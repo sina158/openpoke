@@ -90,3 +90,26 @@ minimax-m3, 30 days, 1 trial, and all three arms (quota allowed fix_v1). Detail 
 L2, as read: "show no upward slope" is read as a slope whose 95% interval includes 0. fix_v2's point slope is
 positive (+32.2 tokens/day, t = 0.4), so on a sign-only reading L2 fails. This reading was set after the slopes were
 seen.
+
+## B2-guard (v2.1, registered before any guard run)
+
+**The client guard (arm `fix_v2_guard`).** fix_v2's switches plus `OPENPOKE_CLIENT_GUARD=1` (default 0, profile v2
+only): a send that reuses an existing agent whose client the turn's message does not name is refused when the
+message names another client or when the turn's sends, every round, reach two or more clients
+(`unnamed_client_conflict` in `server/agents/interaction_agent/tools.py`). The guard was designed after reading
+round two's B2a and B2b failures (`evals/results/CLIENT_GUARD_WHATIF.md`), so its result on the round-two set is
+reported as NON-BLIND, beside these bars and never as a verdict on them. Only the held-out set counts.
+
+Set: a held-out, seed-generated set the guard was not designed on; N=500, 1 trial, minimax-m3; fix_v2 and
+fix_v2_guard on the same cases, paired per case.
+
+| # | Bar |
+|---|---|
+| G-i | B2a in fix_v2_guard = 0 on cases whose gold does not call for two clients (B2a as read above; the zero is reported as a rule-of-three bound) |
+| G-ii | Cross-client wrong reuse in fix_v2_guard <= fix_v2's and <= 2% of should-reuse case-trials |
+| G-iii | Accuracy non-inferior: fix_v2_guard >= fix_v2 - 3.0 points (point estimates; the paired McNemar p and the template-clustered interval of the difference reported beside it) |
+| G-iv | Parallel-gold multi-client sends that matched gold in fix_v2_guard not lower than fix_v2's (if the set has no parallel case, said so, not passed) |
+
+Reported without a bar: sends and turns the guard refused, what the model did in the round after a refusal,
+and clarify recall on ambiguous cases. The what-if found one parallel false block in 13 on round two (a client
+described, not named), so G-iv is the bar most at risk.
