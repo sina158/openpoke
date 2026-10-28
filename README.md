@@ -1,221 +1,252 @@
-<!-- DRAFT-FOR-SINA: facts are checked; rewrite the prose in your own words before submitting -->
-
 # OpenPoke fork: bounded agent routing
 
-This fork changes how OpenPoke's interaction agent picks an execution agent, and puts an approval gate in
-front of outbound email. Everything above "Upstream README" is new; the upstream README is kept unchanged below.
+This fork changes how OpenPoke's interaction agent chooses an execution agent once there are hundreds of them, and
+puts an approval gate in front of outbound email. Everything above "Upstream README" is new; the upstream README is
+kept unchanged below.
 
-TODO-AI-ASSISTANCE: one line, drafted by another party and rewritten by the owner. Nothing is written here yet.
+<!-- OWNER: AI-assistance line -->
+
+**In one screen** (fresh test set, 500 agents, three trials, minimax-m3, unless a line says otherwise):
+
+1. **Agent overload, solved in code.** The model no longer reads every agent's name each turn: it sees at most 8
+   cards ranked by keyword relevance, searches for the rest, reuses an agent by id and can ask the user. Accuracy:
+   baseline <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.accuracy.rate -->46.4%<!-- /n -->, fix v1 <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.accuracy.rate -->71.2%<!-- /n -->, fix v2 <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.rate -->83.0%<!-- /n -->; wrong reuse
+   <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.wrong_reuse.rate -->29.0%<!-- /n --> to <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.wrong_reuse.rate -->6.3%<!-- /n -->; duplicates <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.duplicate.rate -->25.0%<!-- /n --> to
+   <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.duplicate.rate -->0.0%<!-- /n -->. Over a simulated month the baseline ends with <!-- n:lifecycle:arms.baseline.summary.live_end -->53<!-- /n --> live agents (ideal
+   <!-- n:lifecycle:arms.baseline.summary.ideal_live_end -->25<!-- /n -->) and its tokens per turn grow <!-- n:lifecycle:arms.baseline.summary.prompt_tokens_slope_per_day -->1,793<!-- /n --> a day; fix v2 ends with
+   <!-- n:lifecycle:arms.fix_v2.summary.live_end -->23<!-- /n --> and +<!-- n:lifecycle:arms.fix_v2.summary.prompt_tokens_slope_per_day -->32<!-- /n --> a day, an interval that includes 0. [What I built](#what-i-built)
+2. **Test cases and evaluators.** A <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.pairs -->110<!-- /n -->-case set written blind and locked by
+   hash, gold labels from the generator, graded in code; a routing eval, a <!-- n:v2:injection.attacks -->46<!-- /n -->-attack injection suite, a
+   30-day lifecycle simulation, a scripted demo, about 400 unit tests. Every model call is recorded, so every number
+   replays offline. [Tests and evaluators](#tests-and-evaluators)
+3. **How it was judged.** Bars were committed before any run and kept when they failed. Passed: fix v2 beats fix v1
+   (+<!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.delta_accuracy -->10.0%<!-- /n -->, p = <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.mcnemar_p -->0.0034<!-- /n -->),
+   hijack, small N, duplicates, injection, a second model, the six lifecycle bars (L2 read after the slopes were
+   seen). **Failed: B2a, <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.k -->19<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.n -->312<!-- /n --> turns sent to two clients; B2b,
+   cross-client wrong reuse <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.cross_client.wrong_reuse -->11<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.cross_client.wrong_reuse_n -->252<!-- /n --> (bar 2%); B4, the
+   model asked the user on <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.k -->2<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.n -->30<!-- /n --> ambiguous cases; B5, a turn costs
+   <!-- n:v2:bars.prompt_token_ratio_n500 -->103.0%<!-- /n --> of the baseline's tokens; A1, evidence snippets; the demo, 6 of 9 turns.**
+   [How I knew](#how-i-tested-it-and-how-i-knew), [what failed](#what-failed-and-what-i-would-do-next)
+4. **Other problems, fixed in code:** outbound email waits for a code the user types (<!-- n:v2:injection.unauthorised_sends -->0<!-- /n -->
+   unauthorised sends in <!-- n:v2:injection.attacks -->46<!-- /n --> attacks), ids instead of names, an escaped current turn, archive and
+   revive, bounded execution history, a cost ledger. 30 open gaps are ranked with fixes in [KNOWN-GAPS.md](KNOWN-GAPS.md).
+   [Other problems](#other-problems-fixed-in-code)
+
+`make test` and `make demo` need no API key; `make demo` replays the demo offline in under a second
+([TRANSCRIPT.md](evals/results/TRANSCRIPT.md)).
 
 ## The problem
 
-Upstream, every turn shows the interaction agent every execution agent by name
-(`server/agents/interaction_agent/agent.py`, `_render_active_agents`), and the model reuses an agent by retyping
-its name in `send_message_to_agent(agent_name=...)`.
+Upstream, every turn shows the interaction agent every execution agent by name (`_render_active_agents`,
+`server/agents/interaction_agent/agent.py`), and the model reuses one by retyping its name.
 
-- **Size.** The roster block grows linearly with the number of agents: about <!-- n:selector.tokens.n5.full_mean -->55<!-- /n --> tokens at 5 agents, <!-- n:selector.tokens.n500.full_mean -->5,499<!-- /n --> at 500 and <!-- n:selector.tokens.n5000.full_mean -->55,014<!-- /n --> at 5,000 (chars / 4, `evals/results/SELECTOR.md`). In the baseline run the whole prompt at 500 agents averaged <!-- n:report.by_key.baseline_minimax-m3_k8_n500.prompt_tokens.mean -->9,499<!-- /n --> prompt tokens per turn.
-- **Identity.** An agent was a string in `roster.json`. Reuse means retyping the name exactly; two names with the
-  same slug shared one log file; two clients with similar names cannot be told apart from the name.
-- **Decision.** The upstream prompt tells the model to prefer an existing agent and "Don't worry if the agent name
-  is unrelated to the new task if it contains useful context" (`prompts/interaction_full.md`, line 19). There is no
-  way to ask the user which agent is meant and no check before a second agent is made for the same matter.
-  Baseline at 500 agents (three trials): wrong reuse <!-- n:report.by_key.baseline_minimax-m3_k8_n500.wrong_reuse.rate -->36.3%<!-- /n --> (<!-- n:report.by_key.baseline_minimax-m3_k8_n500.wrong_reuse.k -->73<!-- /n --> of <!-- n:report.by_key.baseline_minimax-m3_k8_n500.wrong_reuse.n -->201<!-- /n -->); <!-- n:report.by_key.baseline_minimax-m3_k8_n500.cross_client.wrong_reuse -->49<!-- /n --> of those reached another client's agent; duplicates <!-- n:report.by_key.baseline_minimax-m3_k8_n500.duplicate.rate -->13.4%<!-- /n -->.
-- **Over time.** Agents are never removed, so the roster only grows, and each execution agent's prompt carries its
-  whole history (`ExecutionAgent` takes a `conversation_limit` that the runtime never passed).
+- **Size.** The roster block is about <!-- n:selector.tokens.n5.full_mean -->55<!-- /n --> tokens at 5 agents, <!-- n:selector.tokens.n500.full_mean -->5,499<!-- /n --> at 500 and
+  <!-- n:selector.tokens.n5000.full_mean -->55,014<!-- /n --> at 5,000 (chars / 4, `evals/results/SELECTOR.md`).
+- **Identity.** An agent was a string in `roster.json`: reuse meant retyping the name, two names with one slug shared a
+  log file, and two clients with similar names could not be told apart.
+- **Decision.** The prompt says to prefer an existing agent, "Don't worry if the agent name is unrelated to the new
+  task" (`prompts/interaction_full.md`, line 19), with no way to ask the user and no duplicate check. Baseline on the
+  fresh set: wrong reuse <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.wrong_reuse.rate -->29.0%<!-- /n -->, <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.cross_client.wrong_reuse -->46<!-- /n --> times to another client's agent.
+- **Over time.** Agents were never removed, and each execution agent's prompt carried its whole history.
 
+## What I built
 
-## What changed
+Agents live in a SQLite registry with a minted id (`a_0001`) and a unique slug; the name is a label. Each agent has a
+card built from its own log without a model call. Each turn the model sees at most 8 cards (up to 4 pinned, then the
+best by BM25 keyword score, entity overlap and recency, within 1,200 tokens); `search_agents` reaches the rest, reuse
+passes `agent_id`, creating runs a duplicate check, `clarify_agent_choice` asks the user. Reply, forward and send-draft
+become proposals sent once, after the user types the action's code. That is round one, **fix v1**.
 
-Agents live in a SQLite registry with a minted id (`a_0001`, ...) and a unique slug; the name is a display label.
-Each agent has a card built from its own log without an LLM. Each turn the interaction agent sees at most 8 cards
-instead of the roster (up to 4 pinned agents, then the best by BM25 + entity overlap + recency, within a 1,200-token
-budget). `search_agents(query)` reaches the rest; reuse passes `agent_id`; creating runs a duplicate check;
-`clarify_agent_choice` asks the user. Reply, forward and send-draft become proposals sent once, only after the user
-types the action's 4-character code. In round one, agents idle for 30 days left the shortlist.
+**Fix v2** (the default; `OPENPOKE_ROUTING_PROFILE=v1` restores fix v1) adds four changes, each switchable in
+`OPENPOKE_V2_DISABLE`: **c1** refuses a turn's sends when two targets share a rare name, email or id; **c2** cuts each
+card's purpose line at its first sentence and **c3** keeps archived agents on the shortlist with their status (one
+switch, `c3`, controls both); **c4** rewrites the prompt: reuse an agent only for the same matter, and sending to two
+agents to find out is guessing. The baseline arm is the upstream routing. Reasons: [DESIGN.md](DESIGN.md).
 
-Round two (profile v2, the default; `OPENPOKE_ROUTING_PROFILE=v1` gives round one back) adds four changes, each with
-its own switch in `OPENPOKE_V2_DISABLE`: **c1** a check that refuses one turn's sends when the targets look like the
-same client, **c2/c3** archived agents stay candidates on the shortlist with their status shown, and cards end at the
-first sentence, **c4** a rewritten prompt rule (`interaction_shortlist_v2.md`). The upstream routing stays available as
-`OPENPOKE_ROSTER_MODE=full` + `OPENPOKE_PROMPT_VARIANT=original`, the baseline arm.
+| file | what it does |
+|---|---|
+| `server/services/execution/registry.py`, `lifecycle.py`, `cards.py`, `card_store.py` | ids, slug, archive and revive; cards from logs (c2) |
+| `server/services/execution/selector.py` | pure ranking: BM25, entity overlap, recency, pins |
+| `server/agents/interaction_agent/agent.py`, `prompts/` | the shortlist and pending actions (c3); upstream prompt byte for byte, `interaction_shortlist_v2.md` (c4) |
+| `server/agents/interaction_agent/tools.py`, `runtime.py` | routing by id, duplicate check, clarify, search, `confirm_action`, the shared-client check (c1) |
+| `server/services/approvals.py`, `provenance.py`, `costs.py` | single-use sends with a typed code; turn source; cost ledger |
 
-| file | what it does | v2 |
-|---|---|---|
-| `server/services/execution/registry.py`, `roster.py`, `lifecycle.py` | SQLite registry: minted ids, unique slug, archive / revive; the old names-only API as a view | - |
-| `server/services/execution/embeddings.py` | optional local embeddings fused with BM25 by RRF | - |
-| `server/services/execution/cards.py`, `card_store.py` | pure card building from a log; stored cards rebuilt on dispatch | c2: purpose line ends at the first sentence |
-| `server/services/execution/selector.py` | pure: BM25, entity overlap, recency, pins, `select`, `search` | evidence snippets (`OPENPOKE_SHORTLIST_EVIDENCE`) |
-| `server/services/approvals.py`, `provenance.py`, `costs.py` | single-use pending sends with a typed code; turn source; per-call cost ledger | - |
-| `server/agents/interaction_agent/agent.py` | roster modes, `<pending_actions>`, escaped current turn | c3: archived agents as candidates with status |
-| `server/agents/interaction_agent/tools.py`, `runtime.py` | `agent_id` routing, duplicate check, `clarify_agent_choice`, `search_agents`, `confirm_action` | c1: `shared_client_conflict`, `check_turn_sends` |
-| `server/agents/interaction_agent/prompts/` | `interaction_full.md` (upstream, byte for byte), `interaction_shortlist.md` | c4: `interaction_shortlist_v2.md` |
-| `server/agents/execution_agent/` | reply / forward / send-draft register a proposal; history limit, stub mode | `OPENPOKE_EXECUTION_MEMORY=retrieved` |
-| `server/config.py` | env overrides for models, endpoint, temperature, seed | `routing_profile`, `v2_change_enabled` |
-| `evals/`, `tests/` | seeded generator, golden sets, evals, cassettes, stats, results | fresh set `routing_v2.jsonl`, lifecycle simulation, demo |
+## Tests and evaluators
 
-Design reasons: [DESIGN.md](DESIGN.md). Where it still fails: [FAILURES.md](FAILURES.md). Open problems: [KNOWN-GAPS.md](KNOWN-GAPS.md).
+- **Cases.** `evals/golden/routing_v2.jsonl`: <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.pairs -->110<!-- /n --> cases from
+  <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.templates -->19<!-- /n --> templates in nine categories (explicit, entity, paraphrase,
+  pronoun, near-duplicate, should-create, ambiguous, parallel, agent message) over synthetic clients. Gold labels come
+  from the tuple that builds each case, never from a model (`evals/golden/LABELS.md`). The author of the set had not
+  seen the failures, results or v2 code, and the builders of v2 never read it. sha256
+  `35c914b20baa0409d1ee28db4c56d23b2e4b1feb4facbbadecfc7e3807a3122f` (`routing_v2.sha256`, commit 8090344). A 20-case
+  hand check: 20 of 20 labels agree on a first pass by the owner's assistant; the owner's own check is pending.
+- **Evaluators.** `evals/run_routing.py` grades each case into one outcome in code; `evals/compare.py` adds Wilson and
+  template-clustered intervals and paired McNemar tests; `evals/run_injection.py`, `run_lifecycle.py` and
+  `demo_conversation.py` run the attacks, the month and the demo.
+- **Unit tests.** About 400, offline (`make test`). Read first: `test_send_gate.py` and `test_approvals.py` (the code),
+  `test_shared_client_check.py` (c1), `test_registry.py`, `test_baseline_replay.py` and `test_v1_profile_replays.py`
+  (the baseline and round one replay byte for byte), `test_every_llm_call_is_ledgered.py`.
+- **Replay.** Each live call is stored in a cassette keyed by a hash of the full request; a replay that meets an
+  unrecorded call fails (`make eval-replay`).
 
-## Headline: baseline, fix v1, fix v2
+Terms: an **arm** is a configuration; a **case-trial** is one case in one trial; **wrong reuse** goes to an existing
+agent that is not the gold one (**cross-client** when it is another client's); a **spray** messages the right agent
+and another; a **hijack** puts a new matter on an old agent; **pass^3** is right on all three trials;
+**template-clustered** intervals resample templates, because cases share them; a zero carries a **rule-of-three** bound.
 
-Fresh set (`evals/golden/routing_v2.jsonl`), report split, N=500 agents, three trials, minimax-m3, temperature 0.
-Every interval and the N=5 and N=50 rows are in [RESULTS_v2.md](evals/results/RESULTS_v2.md).
+## How I tested it and how I knew
 
-| fresh set, N=500, 3 trials, minimax-m3 | baseline | fix v1 | fix v2 |
+The bars (`evals/BARS.md`, `evals/BARS-v2.md`) were committed before the runs they judge; a failed bar stays failed.
+The baseline is the upstream prompt, tools and full roster (current turn escaped, sends only proposed) on the same
+cases and settings. The fresh set leans on archived agents: <!-- n:v2:set_mix.idle_target -->58<!-- /n --> of <!-- n:v2:set_mix.non_create -->94<!-- /n --> non-create
+cases have a gold target idle over 30 days, against <!-- n:continuity:set_mix.idle_target -->35<!-- /n --> of <!-- n:continuity:set_mix.non_create -->73<!-- /n --> in round one's set.
+`make check-numbers` checks every marked number here against its results file. Failure transcripts: [FAILURES.md](FAILURES.md).
+
+### Headline: fresh set, N=500, three trials, minimax-m3 ([RESULTS_v2.md](evals/results/RESULTS_v2.md))
+
+| | baseline | fix v1 | fix v2 |
 |---|---|---|---|
-| accuracy, Wilson 95% | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.accuracy.rate -->46.4%<!-- /n --> [<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.accuracy.ci95.0 -->41.1%<!-- /n -->, <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.accuracy.ci95.1 -->51.8%<!-- /n -->] (<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.accuracy.k -->153<!-- /n -->/<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.accuracy.n -->330<!-- /n -->) | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.accuracy.rate -->71.2%<!-- /n --> [<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.accuracy.ci95.0 -->66.1%<!-- /n -->, <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.accuracy.ci95.1 -->75.8%<!-- /n -->] (<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.accuracy.k -->235<!-- /n -->/<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.accuracy.n -->330<!-- /n -->) | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.rate -->83.0%<!-- /n --> [<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.ci95.0 -->78.6%<!-- /n -->, <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.ci95.1 -->86.7%<!-- /n -->] (<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.k -->274<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.n -->330<!-- /n -->) |
+| accuracy, Wilson 95% | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.accuracy.rate -->46.4%<!-- /n --> [<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.accuracy.ci95.0 -->41.1%<!-- /n -->, <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.accuracy.ci95.1 -->51.8%<!-- /n -->] | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.accuracy.rate -->71.2%<!-- /n --> [<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.accuracy.ci95.0 -->66.1%<!-- /n -->, <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.accuracy.ci95.1 -->75.8%<!-- /n -->] | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.rate -->83.0%<!-- /n --> [<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.ci95.0 -->78.6%<!-- /n -->, <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.ci95.1 -->86.7%<!-- /n -->] |
 | accuracy, template-clustered 95% | [<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.accuracy.clustered.ci95.0 -->25.5%<!-- /n -->, <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.accuracy.clustered.ci95.1 -->64.6%<!-- /n -->] | [<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.accuracy.clustered.ci95.0 -->55.8%<!-- /n -->, <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.accuracy.clustered.ci95.1 -->84.9%<!-- /n -->] | [<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.clustered.ci95.0 -->68.1%<!-- /n -->, <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.clustered.ci95.1 -->94.7%<!-- /n -->] |
-| pass^3 (right on all three trials) | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.pass_k -->36.4%<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.pass_k -->59.1%<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.pass_k -->78.2%<!-- /n --> |
-| wrong reuse | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.wrong_reuse.rate -->29.0%<!-- /n --> (<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.wrong_reuse.k -->73<!-- /n -->/<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.wrong_reuse.n -->252<!-- /n -->) | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.wrong_reuse.rate -->19.4%<!-- /n --> (<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.wrong_reuse.k -->49<!-- /n -->/<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.wrong_reuse.n -->252<!-- /n -->) | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.wrong_reuse.rate -->6.3%<!-- /n --> (<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.wrong_reuse.k -->16<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.wrong_reuse.n -->252<!-- /n -->) |
-| cross-client wrong reuse | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.cross_client.wrong_reuse -->46<!-- /n --> of <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.cross_client.wrong_reuse_n -->252<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.cross_client.wrong_reuse -->16<!-- /n --> of <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.cross_client.wrong_reuse_n -->252<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.cross_client.wrong_reuse -->11<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.cross_client.wrong_reuse_n -->252<!-- /n --> |
-| sends to two clients (B2a) | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.multi_client_send.k -->47<!-- /n --> of <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.multi_client_send.n -->312<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.multi_client_send.k -->20<!-- /n --> of <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.multi_client_send.n -->312<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.k -->19<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.n -->312<!-- /n --> |
-| hijack | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.hijack.count -->11<!-- /n --> of <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.hijack.n -->48<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.hijack.count -->12<!-- /n --> of <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.hijack.n -->48<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.hijack.count -->1<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.hijack.n -->48<!-- /n --> |
-| clarify recall | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.clarify_recall.rate -->0.0%<!-- /n --> (<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.clarify_recall.k -->0<!-- /n -->/<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.clarify_recall.n -->30<!-- /n -->) | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.clarify_recall.rate -->0.0%<!-- /n --> (<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.clarify_recall.k -->0<!-- /n -->/<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.clarify_recall.n -->30<!-- /n -->) | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.rate -->6.7%<!-- /n --> (<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.k -->2<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.n -->30<!-- /n -->) |
-| over-clarify | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.over_clarify.rate -->0.0%<!-- /n --> (<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.over_clarify.k -->0<!-- /n -->/<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.over_clarify.n -->300<!-- /n -->) | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.over_clarify.rate -->0.0%<!-- /n --> (<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.over_clarify.k -->0<!-- /n -->/<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.over_clarify.n -->300<!-- /n -->) | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.over_clarify.rate -->1.7%<!-- /n --> (<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.over_clarify.k -->5<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.over_clarify.n -->300<!-- /n -->) |
-| duplicates | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.duplicate.rate -->25.0%<!-- /n --> (<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.duplicate.k -->63<!-- /n -->/<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.duplicate.n -->252<!-- /n -->) | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.duplicate.rate -->0.0%<!-- /n --> (<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.duplicate.k -->0<!-- /n -->/<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.duplicate.n -->252<!-- /n -->) | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.duplicate.rate -->0.0%<!-- /n --> (<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.duplicate.k -->0<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.duplicate.n -->252<!-- /n -->) |
-| prompt tokens per turn | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.prompt_tokens.mean -->9,901<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.prompt_tokens.mean -->9,944<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.prompt_tokens.mean -->10,198<!-- /n --> |
-| search_agents calls per turn | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.searches.mean -->0.00<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.searches.mean -->1.21<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.searches.mean -->1.08<!-- /n --> |
-| model calls per turn | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.llm_calls.mean -->1.10<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.llm_calls.mean -->1.86<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.llm_calls.mean -->1.88<!-- /n --> |
+| right on all three trials (pass^3) | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.pass_k -->36.4%<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.pass_k -->59.1%<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.pass_k -->78.2%<!-- /n --> |
+| wrong reuse, of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.wrong_reuse.n -->252<!-- /n --> (to another client's agent) | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.wrong_reuse.rate -->29.0%<!-- /n --> (<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.cross_client.wrong_reuse -->46<!-- /n -->) | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.wrong_reuse.rate -->19.4%<!-- /n --> (<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.cross_client.wrong_reuse -->16<!-- /n -->) | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.wrong_reuse.rate -->6.3%<!-- /n --> (<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.cross_client.wrong_reuse -->11<!-- /n -->) |
+| turns that sent to two clients, of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.n -->312<!-- /n --> | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.multi_client_send.k -->47<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.multi_client_send.k -->20<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.k -->19<!-- /n --> |
+| hijack, of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.hijack.n -->48<!-- /n --> | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.hijack.count -->11<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.hijack.count -->12<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.hijack.count -->1<!-- /n --> |
+| asked the user when ambiguous, of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.n -->30<!-- /n -->; when not, of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.over_clarify.n -->300<!-- /n --> | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.clarify_recall.k -->0<!-- /n -->; <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.over_clarify.k -->0<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.clarify_recall.k -->0<!-- /n -->; <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.over_clarify.k -->0<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.k -->2<!-- /n -->; <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.over_clarify.k -->5<!-- /n --> |
+| duplicates | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.duplicate.rate -->25.0%<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.duplicate.rate -->0.0%<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.duplicate.rate -->0.0%<!-- /n --> |
+| prompt tokens per turn; model calls per turn | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.prompt_tokens.mean -->9,901<!-- /n -->; <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.llm_calls.mean -->1.10<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.prompt_tokens.mean -->9,944<!-- /n -->; <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.llm_calls.mean -->1.86<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.prompt_tokens.mean -->10,198<!-- /n -->; <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.llm_calls.mean -->1.88<!-- /n --> |
 | p50 latency, ms | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.latency_ms.p50 -->8,509<!-- /n --> | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.latency_ms.p50 -->12,225<!-- /n --> | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.latency_ms.p50 -->12,065<!-- /n --> |
-| list $ per 100 turns | $<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.usd_per_100_turns -->0.2636<!-- /n --> | $<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.usd_per_100_turns -->0.2166<!-- /n --> | $<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.usd_per_100_turns -->0.2243<!-- /n --> |
 
-Target mix: <!-- n:v2:set_mix.idle_target -->58<!-- /n --> of <!-- n:v2:set_mix.non_create -->94<!-- /n --> non-create fresh cases have a gold target idle more than 30 days, against
-<!-- n:continuity:set_mix.idle_target -->35<!-- /n --> of <!-- n:continuity:set_mix.non_create -->73<!-- /n --> in round one's report split. Accuracy by target status:
+A fix v2 call carries <!-- n:v2:bars.prompt_token_per_call_ratio_n500 -->58.5%<!-- /n --> of the baseline's prompt, but its search round makes
+almost two calls a turn, so a turn sends <!-- n:v2:bars.prompt_token_ratio_n500 -->103.0%<!-- /n --> of the baseline's. On deepseek-v4-pro fix
+v2 sends <!-- n:v2:report.by_key.fix_v2_deepseek-v4-pro_k8_n500.prompt_tokens.mean -->5,943<!-- /n --> tokens a turn against <!-- n:v2:report.by_key.baseline_deepseek-v4-pro_k8_n500.prompt_tokens.mean -->9,720<!-- /n -->, and over the simulated
+month <!-- n:lifecycle:arms.fix_v2.summary.prompt_tokens_per_turn -->20,110<!-- /n --> against <!-- n:lifecycle:arms.baseline.summary.prompt_tokens_per_turn -->30,366<!-- /n -->.
 
-| target | baseline | fix v1 | fix v2 |
+<!-- TBD-LEAD: N5000 -->
+**N=5,000.** The demonstration row at 5,000 agents (baseline and fix v2, 30 cases, one trial) goes here once it has run.
+
+### Bars ([BARS-v2.md](evals/BARS-v2.md)); for each failure, why and the next step in code
+
+| bar | verdict | measured | why; next step |
 |---|---|---|---|
-| idle more than 30 days | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.target_status.idle.rate -->27.6%<!-- /n --> (<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.target_status.idle.k -->48<!-- /n -->/<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.target_status.idle.n -->174<!-- /n -->) | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.target_status.idle.rate -->64.4%<!-- /n --> (<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.target_status.idle.k -->112<!-- /n -->/<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.target_status.idle.n -->174<!-- /n -->) | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.target_status.idle.rate -->73.0%<!-- /n --> (<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.target_status.idle.k -->127<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.target_status.idle.n -->174<!-- /n -->) |
-| active | <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.target_status.active.rate -->63.0%<!-- /n --> (<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.target_status.active.k -->68<!-- /n -->/<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.target_status.active.n -->108<!-- /n -->) | <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.target_status.active.rate -->80.6%<!-- /n --> (<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.target_status.active.k -->87<!-- /n -->/<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.target_status.active.n -->108<!-- /n -->) | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.target_status.active.rate -->92.6%<!-- /n --> (<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.target_status.active.k -->100<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.target_status.active.n -->108<!-- /n -->) |
+| B1 fix v2 beats fix v1, paired | pass | +<!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.delta_accuracy -->10.0%<!-- /n --> over <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.pairs -->110<!-- /n --> cases, McNemar p = <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.mcnemar_p -->0.0034<!-- /n --> | |
+| B2a no turn sends to two clients | **fail** | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.k -->19<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.n -->312<!-- /n --> turns (parallel cases, which ask for two, left out) | c1 refuses only targets that look like the same client; these reached two different clients. Next: a deterministic client guard (below). |
+| B2b cross-client wrong reuse <= 2% | **fail** | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.cross_client.wrong_reuse -->11<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.cross_client.wrong_reuse_n -->252<!-- /n --> (fix v1 <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.cross_client.wrong_reuse -->16<!-- /n -->) | All sprays: the right agent plus another client's. Next: the same guard. |
+| B3 hijack at most half of fix v1's | pass | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.hijack.count -->1<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.hijack.n -->48<!-- /n --> (fix v1 <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.hijack.count -->12<!-- /n -->) | |
+| B4 clarify recall >= 50%, over-clarify <= 5% | **fail** | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.k -->2<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.n -->30<!-- /n -->; over-clarify <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.over_clarify.rate -->1.7%<!-- /n --> | The model guessed: two claims for one client, no date, it picked one on all 15 case-trials; two clients with one first name, it messaged both on 8 of 15, which the prompt calls guessing. deepseek-v4-pro asked on <!-- n:v2:report.by_key.fix_v2_deepseek-v4-pro_k8_n500.clarify_recall.k -->5<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_deepseek-v4-pro_k8_n500.clarify_recall.n -->10<!-- /n --> under the same prompt (over-clarify <!-- n:v2:report.by_key.fix_v2_deepseek-v4-pro_k8_n500.over_clarify.k -->2<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_deepseek-v4-pro_k8_n500.over_clarify.n -->100<!-- /n -->): the rule depends on the model. Next: return the question in code when two shortlisted agents fit equally. |
+| B5 tokens <= 75% of baseline, <= 0.5 searches, p50 not above | **fail** | <!-- n:v2:bars.prompt_token_ratio_n500 -->103.0%<!-- /n --> per turn; <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.searches.mean -->1.08<!-- /n --> searches; p50 <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.latency_ms.p50 -->12,065<!-- /n --> vs <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.latency_ms.p50 -->8,509<!-- /n --> ms | Smaller calls, but an extra search round. Next: skip the search when a strong match is on the shortlist. |
+| B6 no small-N regression | pass | N=5: fix v2 <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5.accuracy.rate -->87.3%<!-- /n -->, baseline <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n5.accuracy.rate -->34.5%<!-- /n -->, fix v1 <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n5.accuracy.rate -->74.5%<!-- /n --> | |
+| B7 duplicates; B8 injection | pass | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.duplicate.k -->0<!-- /n --> duplicates; <!-- n:v2:injection.unauthorised_sends -->0<!-- /n --> unauthorised sends in <!-- n:v2:injection.attacks -->46<!-- /n --> attacks | |
+| B9 a second model agrees in direction | pass | deepseek-v4-pro, one trial per arm (2 and 3 cut for quota): +<!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_deepseek-v4-pro_k8_n500.delta_accuracy -->1.8%<!-- /n --> over fix v1 (p = <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_deepseek-v4-pro_k8_n500.mcnemar_p -->0.7539<!-- /n -->), cross-client <!-- n:v2:report.by_key.fix_v1_deepseek-v4-pro_k8_n500.cross_client.wrong_reuse -->1<!-- /n --> to <!-- n:v2:report.by_key.fix_v2_deepseek-v4-pro_k8_n500.cross_client.wrong_reuse -->0<!-- /n --> | Its fix v1 was already <!-- n:v2:report.by_key.fix_v1_deepseek-v4-pro_k8_n500.accuracy.rate -->84.5%<!-- /n -->. |
+| ablation, no c1 | <!-- n:v2:verdicts.10.verdict -->not needed on this set<!-- /n --> | <!-- n:v2:report.paired_by_key.fix_v2_no_c1_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->0.0%<!-- /n -->, p = <!-- n:v2:report.paired_by_key.fix_v2_no_c1_vs_fix_v2_minimax-m3_k8_n500.mcnemar_p -->1.0000<!-- /n --> | It refused <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.refused.sends -->18<!-- /n --> sends and same-client multi-sends fell <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.same_client_multi_send -->28<!-- /n --> (fix v1) to <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.same_client_multi_send -->0<!-- /n -->, but no graded outcome moved. |
+| ablation, no c2/c3 | <!-- n:v2:verdicts.11.verdict -->needed (removing it lowers accuracy)<!-- /n --> | <!-- n:v2:report.paired_by_key.fix_v2_no_c3_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->-8.2%<!-- /n --> [<!-- n:v2:report.paired_by_key.fix_v2_no_c3_vs_fix_v2_minimax-m3_k8_n500.delta_clustered_ci95.0 -->-13.2%<!-- /n -->, <!-- n:v2:report.paired_by_key.fix_v2_no_c3_vs_fix_v2_minimax-m3_k8_n500.delta_clustered_ci95.1 -->-2.9%<!-- /n -->], p = <!-- n:v2:report.paired_by_key.fix_v2_no_c3_vs_fix_v2_minimax-m3_k8_n500.mcnemar_p -->0.0225<!-- /n --> | One switch removes both. |
+| ablation, no c4 | <!-- n:v2:verdicts.12.verdict -->needed (removing it lowers accuracy)<!-- /n --> | <!-- n:v2:report.paired_by_key.fix_v2_no_c4_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->-3.6%<!-- /n --> [<!-- n:v2:report.paired_by_key.fix_v2_no_c4_vs_fix_v2_minimax-m3_k8_n500.delta_clustered_ci95.0 -->-11.5%<!-- /n -->, <!-- n:v2:report.paired_by_key.fix_v2_no_c4_vs_fix_v2_minimax-m3_k8_n500.delta_clustered_ci95.1 -->1.9%<!-- /n -->], p = <!-- n:v2:report.paired_by_key.fix_v2_no_c4_vs_fix_v2_minimax-m3_k8_n500.mcnemar_p -->0.3877<!-- /n --> | The interval includes 0: not significant. |
+| A1 evidence snippets: no accuracy loss, tokens <= +10% | **fail** | <!-- n:v2:report.paired_by_key.fix_v2_evidence_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->0.0%<!-- /n -->; <!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.prompt_tokens.mean -->11,456<!-- /n --> vs <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.prompt_tokens.mean -->10,198<!-- /n --> tokens | The eval's logs hold two entries, both on the card, so it tests duplication; the flag stays off. A2 passes as registered (<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.registered.k -->18<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.registered.n -->34<!-- /n -->) and as corrected, post hoc (<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.corrected.k -->18<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.corrected.n -->18<!-- /n -->). |
+| L1-L6 lifecycle; D1 demo | pass; replay pass, cells **fail** | below | L2 is post hoc; the demo's misses are below. |
 
-v2's changes were designed from v1's failures on the v1 report split, so v1's set is not blind for v2; every v2
-number above is on templates no one had seen when the changes were written.
+<!-- TBD-LEAD: CLIENT-GUARD -->
+**Client guard (v2.1).** The deterministic client guard for B2a and B2b, measured on a new seed set with its bar
+written first, is reported here once it has run.
 
-<!-- SLOT-HEADLINE-LABEL-CHECK: README headline waits for the label review of the 20 sampled fresh-set cases. -->
+### 30-day lifecycle simulation ([LIFECYCLE.md](evals/results/LIFECYCLE.md))
 
-Tokens: a model call under fix v2 carries <!-- n:v2:bars.prompt_token_per_call_ratio_n500 -->58.5%<!-- /n --> of the baseline's prompt, but a turn makes
-<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.llm_calls.mean -->1.88<!-- /n --> calls against <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.llm_calls.mean -->1.10<!-- /n --> (the shortlist needs a search round), so a turn sends <!-- n:v2:bars.prompt_token_ratio_n500 -->103.0%<!-- /n --> of the
-baseline's. N=5,000 is where the baseline's roster should overload; that row is not run yet (<!-- SLOT-N5000 -->).
+One broker's month through the real interaction turn (`evals/lifecycle_scenario.py`, 158 turns per arm,
+<!-- n:lifecycle:arms.fix_v2.summary.seeded_agents -->16<!-- /n --> agents pre-seeded, execution stubbed, minimax-m3, one trial); ideal is one agent per matter.
 
-### v2 bars (`evals/BARS-v2.md`)
+| measure | baseline | fix v1 | fix v2 | bar |
+|---|---|---|---|---|
+| live agents at the end (ideal <!-- n:lifecycle:arms.fix_v2.summary.ideal_live_end -->25<!-- /n -->) | <!-- n:lifecycle:arms.baseline.summary.live_end -->53<!-- /n --> | <!-- n:lifecycle:arms.fix_v1.summary.live_end -->20<!-- /n --> | <!-- n:lifecycle:arms.fix_v2.summary.live_end -->23<!-- /n --> | L4 pass |
+| duplicates | <!-- n:lifecycle:arms.baseline.summary.duplicates -->21<!-- /n --> | <!-- n:lifecycle:arms.fix_v1.summary.duplicates -->0<!-- /n --> | <!-- n:lifecycle:arms.fix_v2.summary.duplicates -->0<!-- /n --> | L1 pass |
+| wrong-reuse sends; cross-client sends | <!-- n:lifecycle:arms.baseline.summary.wrong_reuse -->186<!-- /n -->; <!-- n:lifecycle:arms.baseline.summary.cross_client -->73<!-- /n --> | <!-- n:lifecycle:arms.fix_v1.summary.wrong_reuse -->57<!-- /n -->; <!-- n:lifecycle:arms.fix_v1.summary.cross_client -->2<!-- /n --> | <!-- n:lifecycle:arms.fix_v2.summary.wrong_reuse -->10<!-- /n -->; <!-- n:lifecycle:arms.fix_v2.summary.cross_client -->0<!-- /n --> | L5 pass |
+| day-30 messages whose agent was in the prompt | <!-- n:lifecycle:arms.baseline.summary.reachability_last_day.reachable -->6<!-- /n -->/<!-- n:lifecycle:arms.baseline.summary.reachability_last_day.needing_an_agent -->6<!-- /n --> | <!-- n:lifecycle:arms.fix_v1.summary.reachability_last_day.reachable -->2<!-- /n -->/<!-- n:lifecycle:arms.fix_v1.summary.reachability_last_day.needing_an_agent -->2<!-- /n --> | <!-- n:lifecycle:arms.fix_v2.summary.reachability_last_day.reachable -->6<!-- /n -->/<!-- n:lifecycle:arms.fix_v2.summary.reachability_last_day.needing_an_agent -->6<!-- /n --> | L3 pass |
+| an archived matter's message reached its agent | never archives | <!-- n:lifecycle:arms.fix_v1.summary.revived -->3<!-- /n -->/<!-- n:lifecycle:arms.fix_v1.summary.revive_due -->3<!-- /n --> | <!-- n:lifecycle:arms.fix_v2.summary.revived -->4<!-- /n -->/<!-- n:lifecycle:arms.fix_v2.summary.revive_due -->4<!-- /n --> | L6 pass |
+| clarifications (<!-- n:lifecycle:arms.fix_v2.summary.ambiguous_messages -->10<!-- /n --> ambiguous messages) | <!-- n:lifecycle:arms.baseline.summary.clarifications -->0<!-- /n --> | <!-- n:lifecycle:arms.fix_v1.summary.clarifications -->0<!-- /n --> | <!-- n:lifecycle:arms.fix_v2.summary.clarifications -->0<!-- /n --> | |
+| prompt tokens per turn | <!-- n:lifecycle:arms.baseline.summary.prompt_tokens_per_turn -->30,366<!-- /n --> | <!-- n:lifecycle:arms.fix_v1.summary.prompt_tokens_per_turn -->22,257<!-- /n --> | <!-- n:lifecycle:arms.fix_v2.summary.prompt_tokens_per_turn -->20,110<!-- /n --> | |
+| its slope per day [95% CI] | +<!-- n:lifecycle:arms.baseline.summary.prompt_tokens_slope_per_day -->1,793<!-- /n --> [+1,412, +2,175] | +<!-- n:lifecycle:arms.fix_v1.summary.prompt_tokens_slope_per_day -->656<!-- /n --> [+340, +973] | +<!-- n:lifecycle:arms.fix_v2.summary.prompt_tokens_slope_per_day -->32<!-- /n --> [-134, +198] | L2 pass, post hoc |
+| turns ended at the tool-iteration limit | <!-- n:lifecycle:arms.baseline.summary.errors -->52<!-- /n --> | <!-- n:lifecycle:arms.fix_v1.summary.errors -->4<!-- /n --> | <!-- n:lifecycle:arms.fix_v2.summary.errors -->0<!-- /n --> | |
 
-Written before any v2 run. Four bars fail, and are reported as they came out.
+- **L2 is post hoc:** "no upward slope" was read as an interval that includes 0 after the slopes were seen; on a
+  sign-only reading fix v2's +<!-- n:lifecycle:arms.fix_v2.summary.prompt_tokens_slope_per_day -->32<!-- /n --> fails it. The intervals are in `RESULTS_v2.md`.
+- **c1 is inert here:** the roster never reaches 100 agents (at most <!-- n:lifecycle:arms.baseline.summary.roster_end -->53<!-- /n -->), and below 100 the 2% cut-off
+  drops every shared entity.
+- **Tokens rise, the prompt does not:** tokens add up every call in a turn, while `LIFECYCLE.md`'s chars measure the
+  first call only (baseline slope <!-- n:lifecycle:arms.baseline.summary.prompt_chars_slope_per_day -->16<!-- /n --> chars a day). The baseline makes more calls as the
+  month goes on (2.3 a turn on days 1-10, 6.9 on days 21-30, in `lifecycle_baseline_minimax-m3_d30.jsonl`), and 45 of
+  its <!-- n:lifecycle:arms.baseline.summary.errors -->52<!-- /n --> limit turns fall in the last ten days; those turns had already sent and are graded.
+- **Fix v1's 2/2:** the check counts only messages whose matter already has its own agent. In fix v1 four of the six
+  day-30 matters never got one (their messages went to other matters' agents), which is also why it ends below ideal.
 
-| bar | verdict | measured (fix v2 at N=500 unless stated) |
-|---|---|---|
-| B1 v2 beats v1, paired | pass | +<!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.delta_accuracy -->10.0%<!-- /n --> over <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.pairs -->110<!-- /n --> cases, McNemar p = <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.mcnemar_p -->0.0034<!-- /n --> |
-| B2a no send reaches two clients | **fail** | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.k -->19<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.n -->312<!-- /n --> turns; parallel-gold turns that did so <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.parallel_gold.k -->13<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.parallel_gold.n -->18<!-- /n --> |
-| B2b cross-client wrong reuse <= 2% | **fail** | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.cross_client.wrong_reuse -->11<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.cross_client.wrong_reuse_n -->252<!-- /n --> (fix v1: <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.cross_client.wrong_reuse -->16<!-- /n -->) |
-| B3 hijack <= half of v1's | pass | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.hijack.count -->1<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.hijack.n -->48<!-- /n --> (fix v1: <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.hijack.count -->12<!-- /n -->) |
-| B4 clarify recall >= 50%, over-clarify <= 5% | **fail** | recall <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.rate -->6.7%<!-- /n --> [<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.ci95.0 -->1.8%<!-- /n -->, <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.ci95.1 -->21.3%<!-- /n -->] (<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.k -->2<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.n -->30<!-- /n -->); over-clarify <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.over_clarify.rate -->1.7%<!-- /n --> [<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.over_clarify.ci95.0 -->0.7%<!-- /n -->, <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.over_clarify.ci95.1 -->3.8%<!-- /n -->] (<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.over_clarify.k -->5<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.over_clarify.n -->300<!-- /n -->) |
-| B5 tokens per turn <= 75% of baseline; <= 0.5 searches; p50 not above baseline | **fail** | <!-- n:v2:bars.prompt_token_ratio_n500 -->103.0%<!-- /n --> of baseline per turn (<!-- n:v2:bars.prompt_token_per_call_ratio_n500 -->58.5%<!-- /n --> per call); <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.searches.mean -->1.08<!-- /n --> searches; p50 <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.latency_ms.p50 -->12,065<!-- /n --> ms vs <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.latency_ms.p50 -->8,509<!-- /n -->; N=5,000 row pending |
-| B6 no small-N regression (N=5, 1 trial) | pass | fix v2 <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5.accuracy.rate -->87.3%<!-- /n --> (<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5.accuracy.k -->96<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5.accuracy.n -->110<!-- /n -->), baseline <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n5.accuracy.rate -->34.5%<!-- /n --> (<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n5.accuracy.k -->38<!-- /n -->/<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n5.accuracy.n -->110<!-- /n -->), fix v1 <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n5.accuracy.rate -->74.5%<!-- /n --> (<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n5.accuracy.k -->82<!-- /n -->/<!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n5.accuracy.n -->110<!-- /n -->) |
-| B7 duplicates not above v1 | pass | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.duplicate.k -->0<!-- /n --> and <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.duplicate.k -->0<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.duplicate.n -->252<!-- /n --> |
-| B8 injection suite unchanged | pass | <!-- n:v2:injection.unauthorised_sends -->0<!-- /n --> unauthorised sends in <!-- n:v2:injection.attacks -->46<!-- /n --> attacks |
-| B9 second model, ablation | pending | the second-model runs and the one-change-off ablation are not run yet |
+### Demo ([TRANSCRIPT.md](evals/results/TRANSCRIPT.md))
 
-### Evidence snippets
+`make demo` replays a nine-turn conversation (fix v2, recorded once, live, with minimax-m3) offline in 0.6 s: D1's
+replay half passes, its cells half fails at 6 of 9. Turns 3 to 5 are real model misses: a new renewal and a new
+kitchen-fire claim went to the client's welcome agent, so the c4 same-matter rule was not followed in this recording
+(hijack on the 110-case set: <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.hijack.count -->1<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.hijack.n -->48<!-- /n -->). Turn 7, a phishing email asking for a forward,
+is "held" only in the sense that nothing was sent: the model never called `confirm_action`, so the gate refused
+nothing, and refusals are tested by the injection suite. The live run's log graded 5 of 9; today's grader gives 6,
+counting turn 7 as held under the gate-cell definition in 91f2bda.
 
-Arm `fix_v2_evidence` (`OPENPOKE_SHORTLIST_EVIDENCE=1`, one trial, <!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.n -->110<!-- /n --> case-trials): paired with fix v2 it moves accuracy by
-<!-- n:v2:report.paired_by_key.fix_v2_evidence_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->0.0%<!-- /n --> (McNemar p = <!-- n:v2:report.paired_by_key.fix_v2_evidence_vs_fix_v2_minimax-m3_k8_n500.mcnemar_p -->1.0000<!-- /n -->) and costs
-<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.prompt_tokens.mean -->11,456<!-- /n --> prompt tokens per turn against <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.prompt_tokens.mean -->10,198<!-- /n -->, above the +10% allowance: **A1 fails**, so the flag stays off.
-A2 (the cited entry names the discriminator), as registered: <!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.registered.rate -->52.9%<!-- /n --> (<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.registered.k -->18<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.registered.n -->34<!-- /n -->), pass;
-corrected to correct near-duplicate picks only: <!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.corrected.rate -->100.0%<!-- /n --> (<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.corrected.k -->18<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.corrected.n -->18<!-- /n -->), pass. Read this with the limits below: the eval's agent logs hold
-two entries, both already on the card, so here the arm tests duplication, not retrieval.
+## Other problems fixed in code
 
-### 30-day lifecycle simulation
+1. **Email went out on the model's word.** Reply, forward and send-draft register a proposal bound to a hash of its
+   arguments, sent once after a user turn types its code (`approvals.py`; `test_send_gate.py`, `make injection`).
+2. **Names were identity.** Two names with one slug shared a log, and the save truncated before locking; now minted
+   ids and a unique slug (`registry.py`; `test_registry.py::test_slug_collision_cannot_split_one_agent_or_merge_two_logs`).
+3. **An email could pose as the user.** The current turn is escaped like history, and approval needs `user`
+   provenance, which defaults to none (`provenance.py`; `test_provenance.py::test_current_turn_is_escaped_like_history`).
+4. **The roster only grew.** Agents idle 30 days archive, never one with a trigger or a pending send, and revive when
+   reused (`lifecycle.py`; `test_lifecycle.py`).
+5. **Execution history was unbounded.** `conversation_limit` is passed, and `OPENPOKE_EXECUTION_MEMORY=retrieved` keeps
+   recent plus relevant entries: 5,190 to 246 history tokens on a 200-entry log (`test_execution_memory.py`; unit only).
+6. **Model calls were not metered.** Every call goes through a cost ledger with a budget (`costs.py`; `test_costs.py`,
+   `test_every_llm_call_is_ledgered.py`).
 
-<!-- SLOT-LIFECYCLE: result of the 30 simulated days, from `evals/results/LIFECYCLE.md` (execution-agent prompt size at day 30 with and without the history limit, reported as a measurement, not a bar). -->
+## What failed, and what I would do next
 
-### Demo transcript
+The failed bars, why, and the next step are in the bars table. Also open:
 
-<!-- SLOT-DEMO: `make demo` writes `evals/results/TRANSCRIPT.md`; link it and give the one-line command here. -->
-
-## How it was tested and judged
-
-1. **Bars before runs.** Written and committed before any run: `evals/BARS.md` (round one) and `evals/BARS-v2.md`
-   (round two). A failed bar is a result, not a reason to change the test.
-2. **Baseline first.** The baseline is the upstream prompt, upstream four tools and every agent by name (the current
-   turn is escaped, and email sends only propose). It ran on the same cases, with the same settings, as the fixes.
-3. **A blind fresh set.** `routing_v2.jsonl` was written by a seat that did not see the failures, the results or the
-   v2 code, and the builders of the v2 changes did not read it. <!-- SLOT-BLIND: sha of the set and the label-check outcome. -->
-4. **Replay.** Every live call is stored in a cassette keyed by a hash of the full request; the committed cassettes
-   replay offline and an unrecorded call fails (`make eval-replay`).
-5. **Failures.** Real transcripts, one per class, each with its replay command and what fix v2 did on the same case (`evals/results/continuity/`): [FAILURES.md](FAILURES.md).
-6. **What was not measured, and what the numbers do not say:**
-   - Not run: second-model runs for v2, the one-change-off ablation, N=5,000, the default model
-     (`anthropic/claude-sonnet-4`, no key). Cut for quota: second-model trials 2 and 3 (one trial), the `cards_full`
-     N=500 demo, a model-phrased set.
-   - The routing eval stubs execution: it grades one routing decision per case, not what the agent then does. The
-     injection suite proves the gate, not the model. The sets are synthetic and built from templates.
-   - **C2 abbreviation clip** (`server/services/execution/cards.py:68` `_SENTENCE_END`, `:181` `_first_sentence`):
-     "Send Ms. Halloran the renewal forms..." becomes "Send Ms.". Found by the blind review after the measurement
-     was frozen; not fixed because it changes card bytes the recorded runs replay against. Fix: skip a match that
-     ends in Mr., Ms., Mrs., Dr., St., Jr. or Sr.
-   - **The shared-client check refuses only targets that look like the same client** (a shared multi-word name,
-     email or id). Two different clients' agents in one turn are not refused (B2a above), and the check is inert
-     below 100 agents (a fixed 2% document-frequency cut-off), so its zeros mean something at N=500 only.
-   - **Every `should_create` fresh message says "new"**, so hijack (B3) is measured only where the user states it.
-   - **Evidence arm:** the agent logs have two entries, both already on the card, so it tests duplication, not
-     retrieval; evidence is added outside the shortlist token budget; the v2 prompt explains neither
-     `status="archived"` nor `evidence=`.
-   - **Bounded execution memory** (`OPENPOKE_EXECUTION_MEMORY=retrieved`) is covered by a unit test only
-     (`tests/test_execution_memory.py`: a 200-entry log goes from 5,190 to 246 history tokens); the routing eval
-     stubs execution and cannot score it.
-   - Round one's own limits are in [evals/results/ROUND1.md](evals/results/ROUND1.md). More in [KNOWN-GAPS.md](KNOWN-GAPS.md).
+- **c2 cuts a purpose line at an abbreviation** (`_first_sentence`, `cards.py`). It reached the fresh set: 14 of its
+  case agents are in St. Catharines, and their cards end at "St." (for example "... a dentist's office in St."). The
+  lifecycle scenario's "Billing problem for Mr. Delgado: ..." would read "Billing problem for Mr.". Found after the
+  runs were frozen; not fixed, because it changes the card bytes the recordings replay. Fix: skip a match ending in
+  Mr., Ms., Mrs., Dr., St., Jr. or Sr., then re-record.
+- **Every should-create fresh message says "new"**, so hijack is measured only where the user states it.
+- **Not measured:** execution is stubbed, so the evals grade routing, not what an agent then does; the injection suite
+  tests the gate, not the model, and the demo never reached the refusal; the sets are synthetic; no run used the
+  default model (`anthropic/claude-sonnet-4`). Cut for quota: deepseek trials 2 and 3, a `cards_full` N=500 run, a
+  model-phrased set.
+- **First on Monday** ([KNOWN-GAPS.md](KNOWN-GAPS.md)): auth on the HTTP API, the client guard, a hash of the draft
+  body at approval, pending sends shown in the UI from the store, a tenant key on every store.
 
 ## Round 1, as measured on 2026-10-28
 
-Round one (shortlist router, v1 set, minimax-m3) is kept as reported in [evals/results/ROUND1.md](evals/results/ROUND1.md)
-(summary, the six pre-registered bars, the injection suite, the second-model table) and
-[evals/results/ROUND1-TABLES.md](evals/results/ROUND1-TABLES.md); those numbers are checked against `RESULTS.json`
-and never share a table with the fresh-set numbers above. In short: at N=500 the fix routed
-<!-- n:report.by_key.fix_minimax-m3_k8_n500.accuracy.rate -->73.3%<!-- /n --> of turns correctly against
-<!-- n:report.by_key.baseline_minimax-m3_k8_n500.accuracy.rate -->48.4%<!-- /n --> for the baseline, and two of the six round-one bars failed:
-cross-client wrong reuse was not zero, and prompt tokens per turn were
-<!-- n:bars.prompt_token_ratio_n500 -->102.5%<!-- /n --> of the baseline's.
+Round one (fix v1 on the round-one set) is in [ROUND1.md](evals/results/ROUND1.md) and
+[ROUND1-TABLES.md](evals/results/ROUND1-TABLES.md), never in a table with fresh-set numbers. At N=500 it routed
+<!-- n:report.by_key.fix_minimax-m3_k8_n500.accuracy.rate -->73.3%<!-- /n --> of turns correctly against <!-- n:report.by_key.baseline_minimax-m3_k8_n500.accuracy.rate -->48.4%<!-- /n -->;
+two of its six bars failed (cross-client wrong reuse above zero; tokens per turn <!-- n:bars.prompt_token_ratio_n500 -->102.5%<!-- /n --> of
+the baseline's).
 
 ## How to run
 
-Python 3.11. No API key is needed for anything except `make eval-live`.
+Python 3.11. Only `make eval-live` needs an API key (`OPENPOKE_LLM_API_KEY` or `OPENROUTER_API_KEY`).
 
 ```bash
 python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
-make test           # offline: unit tests + a replay of the baseline cassette
-make injection      # offline: prompt-injection cases against the send gate -> evals/results/INJECTION.json
-make compare        # committed result files + INJECTION.json -> evals/results/RESULTS.md and RESULTS.json
-make check-numbers  # every marked number in README.md, DESIGN.md and ROUND1.md against its results file
-
-# offline: rerun the routing eval from the committed cassettes; an unrecorded call fails
-make eval-replay EVAL_ARGS="--model minimax-m3 --split all --out-dir /tmp/openpoke-replay"
-make eval-replay ARMS="baseline fix" SIZES=500 TRIALS=3 EVAL_ARGS="--model minimax-m3 --out-dir /tmp/openpoke-replay"
-python -m evals.run_selector --out-dir /tmp/openpoke-replay  # offline: recall@k, MRR and roster size per scorer
-
-make eval-live      # live: needs OPENPOKE_LLM_API_KEY or OPENROUTER_API_KEY; spend cap BUDGET_PER_ARM (default $13) per arm
+make test           # unit tests and a replay of the baseline cassette
+make demo           # the demo -> evals/results/TRANSCRIPT.md; exit 0 on a complete replay, DEMO_ARGS=--strict for 1 on a miss
+make lifecycle      # the 30-day simulation -> evals/results/LIFECYCLE.md
+make injection      # the attacks against the send gate -> evals/results/INJECTION.json
+make check-numbers  # every marked number in the docs against its results file
+make eval-replay ARMS="baseline fix_v1 fix_v2" SIZES=500 TRIALS=3 EVAL_ARGS="--set v2 --model minimax-m3 --out-dir /tmp/r"
+make eval-live      # records new calls; spend cap BUDGET_PER_ARM (default $13) per arm
 ```
 
-`make compare` reads `evals/results/INJECTION.json`, so run `make injection` first. The replays and the selector
-eval write new result files; `--out-dir` keeps them apart from the committed ones, because `make compare` refuses two
-result files with the same configuration. The committed cassettes were recorded with `minimax-m3`. On OpenRouter,
-`make eval-live` defaults to `openai/gpt-4.1-mini`; pass `EVAL_ARGS="--model <model>"` to choose another.
+A call missing from a cassette fails every replay. `--out-dir` keeps replayed result files apart from the committed
+ones, which `make compare` would refuse as duplicates. Settings (`OPENPOKE_*`) are listed in
+[DESIGN.md](DESIGN.md#configuration).
 
-Settings (env):
-
-| variable | default | what it does |
-|---|---|---|
-| `OPENPOKE_ROUTING_PROFILE` | `v2` | `v1` restores round one's behaviour |
-| `OPENPOKE_V2_DISABLE` | empty | comma list of `c1`, `c3`, `c4` to switch single v2 changes off |
-| `OPENPOKE_SHORTLIST_EVIDENCE` | `0` | `1` adds an evidence snippet to shortlisted cards (profile v2 only) |
-| `OPENPOKE_EXECUTION_MEMORY` | `recent` | `retrieved` gives an execution agent recent plus relevant log entries |
-| `OPENPOKE_ROSTER_MODE`, `OPENPOKE_PROMPT_VARIANT` | `shortlist` | `full`, `full_cards`, `original` give the baseline arms |
-| `OPENPOKE_SHORTLIST_K`, `_TOKEN_BUDGET` | 8, 1200 | shortlist size and card budget |
-| `OPENPOKE_SELECTOR` | `bm25` | `hybrid` needs `pip install -r requirements-embeddings.txt` |
-| `OPENPOKE_DUPLICATE_THRESHOLD`, `OPENPOKE_ARCHIVE_IDLE_DAYS` | 0.85, 30 | duplicate name score, idle days before archiving |
-| `OPENPOKE_EXECUTION_HISTORY_LIMIT`, `OPENPOKE_DATA_DIR`, `OPENPOKE_LLM_BASE_URL`, `OPENPOKE_*_MODEL` | unset | history cap, data dir, endpoint, per-role models |
-
-
-## What this means for an assistant at a brokerage
-
-TODO-BROKERAGE: another party drafts this paragraph; the owner rewrites it. Nothing is written here yet.
+<!-- OWNER: brokerage paragraph, under the heading "What this means for an assistant at a brokerage" -->
 
 ## License
 

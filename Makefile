@@ -54,8 +54,8 @@ DEMO_ARGS ?=
 demo:
 	$(PYTHON) -m evals.demo_conversation $(DEMO_ARGS)
 
-# Offline: replays the 30-day lifecycle simulation for baseline and fix_v2 into evals/results/LIFECYCLE.md.
+# Offline: replays the 30-day lifecycle simulation for all three arms into evals/results/LIFECYCLE.md.
 # LIFECYCLE_ARGS="--record --model vendor/model --days 15" records it live (needs a key).
 LIFECYCLE_ARGS ?=
 lifecycle:
-	$(PYTHON) -m evals.run_lifecycle --arms baseline,fix_v2 $(LIFECYCLE_ARGS)
+	$(PYTHON) -m evals.run_lifecycle --arms baseline,fix_v1,fix_v2 $(LIFECYCLE_ARGS)

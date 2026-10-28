@@ -1,11 +1,45 @@
-<!-- DRAFT-FOR-SINA: facts are checked; rewrite the prose in your own words before submitting -->
-
 # Design
+
+**Sections 1 to 10 are round one's design and carry round one's numbers (fix v1 on the round-one set).** Round
+two's changes are in the next section; its numbers are in the README and `evals/results/RESULTS_v2.md`.
 
 Numbers here are marked like the README's, so `python -m evals.check_readme_numbers --readme DESIGN.md` checks
 them. Selector numbers come from the offline selector eval (`evals/results/SELECTOR.md`, all 130 cases, 110 with a
 target agent). Live routing numbers come from `evals/results/RESULTS.json`: report split, model minimax-m3, three
 trials for baseline and fix at N=500 and one for every other run.
+
+## Round two: c1 to c4
+
+Fix v2 is fix v1 plus four changes, each read at call time through `config.v2_change_enabled` and switched off one at
+a time by `OPENPOKE_V2_DISABLE` (`OPENPOKE_ROUTING_PROFILE=v1` turns all four off; `tests/test_v1_profile_replays.py`
+replays round one byte for byte). They were designed from fix v1's failures on round one's set (FAILURES.md), which is
+why they were measured on a fresh set.
+
+- **c1, the shared-client check** (`tools.shared_client_conflict` and `check_turn_sends`, called by `runtime.py`).
+  When one turn sends to two or more existing agents, it takes each target card's names, emails and ids and keeps
+  those on at most 2% of all cards (`SHARED_CLIENT_MAX_DF`): an insurer or a city sits on many cards and says nothing
+  about the client, while a client's email sits on a handful. If two targets share one, the sends to them are refused
+  with a message that points at `agent_id` and `clarify_agent_choice`, and the model gets another round. The 2% is
+  fixed, not tuned, and it makes the check inert below 100 agents (2% of fewer than 100 cards is under two, so an
+  entity two cards share is always dropped). It refuses one client's agents, not two clients': at N=500 it refused
+  <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.refused.sends -->18<!-- /n --> sends, and removing it moved no graded outcome (`tests/test_shared_client_check.py`).
+- **c2, first-sentence cards** (`cards._first_sentence`, `card_store.py`): the purpose line ends at the first sentence
+  (up to 180 characters) instead of being clipped at 120, which had cut the city, the one detail telling two
+  same-named clients apart, off both their cards. It is read under the `c3`
+  switch, so the "no c3" ablation removes c2 and c3 together. Known bug: an abbreviation ends the sentence, so the
+  cards of 14 fresh-set case agents in St. Catharines lose the city (README, "What failed").
+- **c3, archived agents as candidates** (`agent.py`, `registry.list(None)`): under fix v1 an agent idle 30 days left
+  the shortlist and was reachable only through `search_agents`; under fix v2 it is ranked with the rest and its card
+  says `status="archived"`. The fresh set has <!-- n:v2:set_mix.idle_target -->58<!-- /n --> of <!-- n:v2:set_mix.non_create -->94<!-- /n --> non-create targets idle over
+  30 days, and removing c2/c3 changed accuracy by <!-- n:v2:report.paired_by_key.fix_v2_no_c3_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->-8.2%<!-- /n --> (p =
+  <!-- n:v2:report.paired_by_key.fix_v2_no_c3_vs_fix_v2_minimax-m3_k8_n500.mcnemar_p -->0.0225<!-- /n -->), the only ablation whose interval excludes 0.
+- **c4, the prompt's routing lines** (`prompts/interaction_shortlist_v2.md`; `tests/test_interaction_prompts.py` pins
+  that only those lines changed): reuse an agent only for the same matter, a similar name is not enough, and sending to
+  two agents to find out is guessing. Removing it changed accuracy by <!-- n:v2:report.paired_by_key.fix_v2_no_c4_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->-3.6%<!-- /n -->,
+  with an interval that includes 0 (not significant), and the demo shows the model ignoring the same-matter rule in one recording.
+
+Two options stay off by default: evidence snippets (`OPENPOKE_SHORTLIST_EVIDENCE`, bar A1 failed) and retrieved
+execution memory (`OPENPOKE_EXECUTION_MEMORY=retrieved`, covered by a unit test only).
 
 ## 1. A turn, in order
 
@@ -49,7 +83,7 @@ order = pins (max 4), then score desc, then id   -> stop at k=8 or 1,200 tokens 
   <!-- n:selector.tokens.n500.full_mean -->5,499<!-- /n --> for every name. The whole prompt per turn is not smaller
   for it: the fix makes <!-- n:report.by_key.fix_minimax-m3_k8_n500.llm_calls.mean -->1.83<!-- /n --> model calls per turn
   at N=500, mostly to read `search_agents` results, so a turn sends
-  <!-- n:bars.prompt_token_ratio_n500 -->102.5%<!-- /n --> of the baseline's prompt tokens (README, bar 5, which fails).
+  <!-- n:bars.prompt_token_ratio_n500 -->102.5%<!-- /n --> of the baseline's prompt tokens (round one's bar 5, which fails; `evals/results/ROUND1.md`).
 - Cards cost more than names at small N: <!-- n:selector.tokens.n5.shortlist_mean -->512<!-- /n --> vs
   <!-- n:selector.tokens.n5.full_mean -->55<!-- /n --> tokens at N=5, and
   <!-- n:selector.tokens.n50.shortlist_mean -->838<!-- /n --> vs <!-- n:selector.tokens.n50.full_mean -->552<!-- /n -->
@@ -246,3 +280,17 @@ provenance, and a pending outbound action waits for a code the user types.
   never touches the network and an unrecorded call fails.
 - Gold labels come from the generator's tuples, never from a model (`evals/golden/LABELS.md`); template `t0` of each
   category is the held-out split for tuning, the rest is reported.
+
+## Configuration
+
+| variable | default | what it does |
+|---|---|---|
+| `OPENPOKE_ROUTING_PROFILE` | `v2` | `v1` restores round one's behaviour |
+| `OPENPOKE_V2_DISABLE` | empty | comma list of `c1`, `c3`, `c4` to switch single v2 changes off (`c3` also turns off c2) |
+| `OPENPOKE_SHORTLIST_EVIDENCE` | `0` | `1` adds an evidence snippet to shortlisted cards (profile v2 only) |
+| `OPENPOKE_EXECUTION_MEMORY` | `recent` | `retrieved` gives an execution agent recent plus relevant log entries |
+| `OPENPOKE_ROSTER_MODE`, `OPENPOKE_PROMPT_VARIANT` | `shortlist` | `full`, `full_cards`, `original` give the baseline arms |
+| `OPENPOKE_SHORTLIST_K`, `_TOKEN_BUDGET` | 8, 1200 | shortlist size and card budget |
+| `OPENPOKE_SELECTOR` | `bm25` | `hybrid` needs `pip install -r requirements-embeddings.txt` |
+| `OPENPOKE_DUPLICATE_THRESHOLD`, `OPENPOKE_ARCHIVE_IDLE_DAYS` | 0.85, 30 | duplicate name score, idle days before archiving |
+| `OPENPOKE_EXECUTION_HISTORY_LIMIT`, `OPENPOKE_DATA_DIR`, `OPENPOKE_LLM_BASE_URL`, `OPENPOKE_*_MODEL` | unset | history cap, data dir, endpoint, per-role models |
