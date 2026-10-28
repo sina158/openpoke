@@ -180,3 +180,59 @@ def test_profile_v1_the_disable_flag_and_the_upstream_prompt_send_both(roster, m
 
     assert [r["status"] for r in results] == ["success", "success"] and loop.dispatched == 2
     assert summary.execution_agents == {ids["sarnia"], ids["barrie"]}
+
+
+def _run_rounds(rounds):
+    """One assistant message per entry of `rounds` (each a list of sends), then a final message."""
+    runtime = InteractionAgentRuntime()
+    replies = [
+        {"role": "assistant", "content": "", "tool_calls": [
+            {"id": f"call_{r}_{i}", "type": "function",
+             "function": {"name": "send_message_to_agent", "arguments": json.dumps(args)}}
+            for i, args in enumerate(sends)
+        ]}
+        for r, sends in enumerate(rounds)
+    ] + [{"role": "assistant", "content": "Done."}]
+
+    async def fake_call(system_prompt, messages):
+        return {"choices": [{"message": replies.pop(0)}]}
+
+    runtime._make_llm_call = fake_call
+    messages = [{"role": "user", "content": "resend the Maplestone certificate"}]
+    asyncio.run(runtime._run_interaction_loop("system", messages))
+    assert replies == []
+    return [json.loads(m["content"]) for m in messages if m["role"] == "tool"]
+
+
+def test_a_spray_split_across_rounds_is_refused_in_the_later_round(roster):
+    loop, ids = roster
+    before = _requests(ids["barrie"])
+
+    first, second = _run_rounds([[_send(ids["sarnia"])], [_send(ids["barrie"])]])
+
+    assert first["status"] == "success" and second["status"] == "error"
+    assert second["error"]["reason"] == "shared_client"
+    assert second["error"]["agent_ids"] == [ids["sarnia"], ids["barrie"]]
+    assert loop.dispatched == 1 and _requests(ids["barrie"]) == before
+
+
+def test_a_follow_up_to_the_same_agent_or_an_unrelated_one_passes(roster):
+    loop, ids = roster
+    results = _run_rounds([[_send(ids["sarnia"])], [_send(ids["sarnia"])], [_send(ids["delta"])]])
+    assert [r["status"] for r in results] == ["success"] * 3 and loop.dispatched == 3
+
+
+def test_a_refused_send_does_not_count_as_sent(roster):
+    loop, ids = roster
+    results = _run_rounds([[_send(ids["sarnia"]), _send(ids["barrie"])], [_send(ids["barrie"])]])
+    assert [r["status"] for r in results] == ["error", "error", "success"] and loop.dispatched == 1
+
+
+@pytest.mark.parametrize("env", [{"OPENPOKE_ROUTING_PROFILE": "v1"}, {"OPENPOKE_V2_DISABLE": "c1"}])
+def test_profile_v1_and_the_disable_flag_send_in_both_rounds(roster, monkeypatch, env):
+    loop, ids = roster
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    get_settings.cache_clear()
+    results = _run_rounds([[_send(ids["sarnia"])], [_send(ids["barrie"])]])
+    assert [r["status"] for r in results] == ["success", "success"] and loop.dispatched == 2

@@ -4,7 +4,7 @@ import asyncio
 import json
 from collections import Counter
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from ...config import get_settings
 from ...logging_config import logger
@@ -302,23 +302,26 @@ def _existing_target(args: dict[str, Any]) -> Optional[str]:
     return record.id if record else None
 
 
-def check_turn_sends(calls: list[tuple[str, dict[str, Any]]]) -> dict[int, ToolResult]:
+def check_turn_sends(calls: list[tuple[str, dict[str, Any]]], sent: Sequence[str] = ()) -> dict[int, ToolResult]:
     """Refusals, by position in ``calls``, for one assistant turn's sends to agents of one client.
 
-    ``calls`` are the turn's ``(tool name, arguments)`` pairs. Sends whose targets share an
-    identifying entity are all refused with the same payload; every other call is left alone.
+    ``calls`` are the turn's ``(tool name, arguments)`` pairs; ``sent`` are the agents already sent
+    to earlier in the same user turn, so a spray split across rounds is caught too. Sends whose
+    targets share an identifying entity (with each other or with ``sent``) are all refused with
+    the same payload; every other call is left alone.
     """
     sends = [
         index for index, (name, args) in enumerate(calls)
         if name == "send_message_to_agent" and "__invalid_arguments__" not in args
     ]
-    if len(sends) < 2:
+    if not sends or len(sends) + len(sent) < 2:
         return {}
     targets = {index: _existing_target(calls[index][1]) for index in sends}
-    if len({target for target in targets.values() if target}) < 2:
+    current = [target for target in targets.values() if target]
+    if len(set(current) | set(sent)) < 2:
         return {}
     cards = cards_for(get_agent_registry().list(status=None))
-    conflict = shared_client_conflict([t for t in targets.values() if t], cards)
+    conflict = shared_client_conflict([*sent, *current], cards)
     if conflict is None:
         return {}
     return {

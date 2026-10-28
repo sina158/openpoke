@@ -392,14 +392,23 @@ def _recording_runtime_class() -> type:
             return parsed
 
         def _turn_refusals(self, routing):
-            """The server's whole-turn check (v2 shared-client sends), run against this case's sandbox."""
-            if self._sandbox is None or sum(c.name == "send_message_to_agent" for c in routing) < 2:
+            """The server's whole-turn check (v2 shared-client sends), run against this case's sandbox.
+
+            In the round after a guard's answer, the sends let through in the first round count as
+            already sent, as they do in the server's loop.
+            """
+            from server.agents.interaction_agent import tools as tools_module
+
+            earlier = [args for name, args in self.kept or [] if name == "send_message_to_agent"]
+            sends = sum(c.name == "send_message_to_agent" for c in routing)
+            if self._sandbox is None or not sends or sends + len(earlier) < 2:
                 return {}
             # Synchronous, so nothing else runs on the loop while the stores point at this case.
             point_stores_at(self._sandbox)
-            return super()._check_turn_tools(routing)
+            sent = [agent_id for agent_id in map(tools_module._existing_target, earlier) if agent_id]
+            return super()._check_turn_tools(routing, sent)
 
-        def _check_turn_tools(self, tool_calls):  # type: ignore[override]
+        def _check_turn_tools(self, tool_calls, sent=()):  # type: ignore[override]
             return {}  # applied in _parse_tool_calls, where the stores point at this case
 
         def _execute_tool(self, tool_call):  # type: ignore[override]

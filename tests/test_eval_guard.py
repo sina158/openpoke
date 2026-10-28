@@ -99,7 +99,7 @@ def _spray(second_turn):
 
 def test_shared_client_check_gives_one_more_turn_and_grades_it(tmp_path):
     case, fake = _spray(lambda names: [("send_message_to_agent", {"agent_name": names[0], "instructions": "go"})])
-    record = _run("fix", fake, case, tmp_path, size=500)
+    record = _run("fix_v2", fake, case, tmp_path, size=500)
     assert record["guard_fired"] == "shared_client" and record["guard_outcome"] == "reused_suggested"
     assert record["routing_rounds"] == 2 and record["cell"] == "correct_reuse"
 
@@ -107,14 +107,32 @@ def test_shared_client_check_gives_one_more_turn_and_grades_it(tmp_path):
 def test_a_second_spray_is_refused_again_and_reaches_no_client(tmp_path):
     case, fake = _spray(lambda names: [("send_message_to_agent", {"agent_name": n, "instructions": "go"})
                                        for n in names])
-    record = _run("fix", fake, case, tmp_path, size=500)
+    record = _run("fix_v2", fake, case, tmp_path, size=500)
     assert record["guard_fired"] == "shared_client" and record["guard_outcome"] == "no_route"
     assert record["predicted"] == [] and record["cell"] == "no_route" and not record["cross_client"]
 
 
-def test_profile_v1_grades_the_spray_as_sent(tmp_path, monkeypatch):
-    monkeypatch.setenv("OPENPOKE_ROUTING_PROFILE", "v1")
+def test_profile_v1_grades_the_spray_as_sent(tmp_path):
     case, fake = _spray(lambda names: pytest.fail("profile v1 must not get a second routing turn"))
-    record = _run("fix", fake, case, tmp_path, size=500)
+    record = _run("fix_v1", fake, case, tmp_path, size=500)
     assert record["guard_fired"] is False and record["routing_rounds"] == 1
     assert record["cell"] == "wrong_reuse" and record["cross_client"]
+
+
+def test_a_send_in_the_second_round_is_checked_against_the_first(tmp_path):
+    """Round one reuses the target and makes a create the duplicate guard refuses; round two then sends to
+    the other Maplestone. That send is refused as if both had been in one round, so only the target is graded."""
+    case = next(c for c in load_cases(split="all") if c["case_id"] == "near_duplicate-006")
+    target, other = (load_pool()[i]["name"] for i in case["target_ids"] + case["hard_negative_ids"])
+    reordered = " ".join(other.split()[1:] + other.split()[:1])
+
+    async def fake(*, model, messages, system=None, tools=None, api_key=None, **kwargs):
+        if len(messages) == 1:
+            return _reply([("send_message_to_agent", {"agent_name": target, "instructions": "go"}),
+                           ("send_message_to_agent", {"agent_name": reordered, "instructions": "go"})])
+        return _reply([("send_message_to_agent", {"agent_name": other, "instructions": "go"})])
+
+    record = _run("fix_v2", fake, case, tmp_path, size=500)
+    assert record["routing_rounds"] == 2 and record["shared_client_refused"] == 1
+    assert [p["arguments"]["agent_name"] for p in record["predicted"]] == [target]
+    assert record["cell"] == "correct_reuse" and not record["cross_client"]

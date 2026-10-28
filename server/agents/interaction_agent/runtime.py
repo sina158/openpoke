@@ -2,7 +2,7 @@
 
 import json
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Sequence, Set
 
 from .agent import build_system_prompt, prepare_message_with_history
 from .tools import ToolResult, check_turn_sends, get_tool_schemas, handle_tool_call
@@ -159,6 +159,7 @@ class InteractionAgentRuntime:
         """Iteratively query the LLM until it issues a final response."""
 
         summary = _LoopSummary()
+        sent: List[str] = []  # agents this user turn has already dispatched to, across rounds
 
         for iteration in range(self.MAX_TOOL_ITERATIONS):
             response = await self._make_llm_call(system_prompt, messages)
@@ -182,7 +183,7 @@ class InteractionAgentRuntime:
             if not parsed_tool_calls:
                 break
 
-            refusals = self._check_turn_tools(parsed_tool_calls)
+            refusals = self._check_turn_tools(parsed_tool_calls, sent)
             for tool_call in parsed_tool_calls:
                 summary.tool_names.append(tool_call.name)
                 refusal = refusals.get(id(tool_call))
@@ -193,6 +194,9 @@ class InteractionAgentRuntime:
                         summary.execution_agents.add(agent)
 
                 result = refusal if refusal is not None else self._execute_tool(tool_call)
+                if tool_call.name == "send_message_to_agent" and result.success and isinstance(result.payload, dict):
+                    if isinstance(result.payload.get("agent_id"), str):
+                        sent.append(result.payload["agent_id"])
 
                 if result.user_message:
                     summary.user_messages.append(result.user_message)
@@ -212,15 +216,18 @@ class InteractionAgentRuntime:
         return summary
 
     # Check the turn's tool calls as a whole before any of them runs
-    def _check_turn_tools(self, tool_calls: List[_ToolCall]) -> Dict[int, ToolResult]:
-        """Refusals keyed by ``id(tool_call)``: sends in one turn to agents of one client (v2, c1).
+    def _check_turn_tools(
+        self, tool_calls: List[_ToolCall], sent: Sequence[str] = ()
+    ) -> Dict[int, ToolResult]:
+        """Refusals keyed by ``id(tool_call)``: sends in one user turn to agents of one client (v2, c1).
 
-        Only under the shortlist prompt, which describes clarify_agent_choice; the upstream prompt
-        and profile v1 get an empty dict, so every call runs as before.
+        ``sent`` are the agents earlier rounds of this turn dispatched to. Only under the shortlist
+        prompt, which describes clarify_agent_choice; the upstream prompt and profile v1 get an empty
+        dict, so every call runs as before.
         """
         if not v2_change_enabled("c1") or self.settings.prompt_variant != "shortlist":
             return {}
-        refusals = check_turn_sends([(call.name, call.arguments) for call in tool_calls])
+        refusals = check_turn_sends([(call.name, call.arguments) for call in tool_calls], sent)
         for index, refusal in refusals.items():
             self._log_tool_invocation(tool_calls[index], stage="rejected", detail=refusal.payload)
         return {id(tool_calls[index]): refusal for index, refusal in refusals.items()}
