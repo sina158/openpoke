@@ -62,6 +62,7 @@ class Turn:
     searches: int = 0
     confirm_attempts: List[Dict[str, Any]] = field(default_factory=list)
     shown_ids: List[str] = field(default_factory=list)
+    archived_at_start: List[str] = field(default_factory=list)
     archived: List[str] = field(default_factory=list)
     revived: List[str] = field(default_factory=list)
     reply: str = ""
@@ -69,6 +70,8 @@ class Turn:
     llm_calls: int = 0
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    prompt_chars: int = 0  # system prompt plus the first request, a model-independent size
+    latency_ms: float = 0.0
     messages: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self, with_messages: bool = False) -> Dict[str, Any]:
@@ -224,6 +227,9 @@ class Simulation:
         usages = [call["usage"] or {} for call in ctx.calls]
         turn.prompt_tokens = sum(u.get("prompt_tokens") or 0 for u in usages)
         turn.completion_tokens = sum(u.get("completion_tokens") or 0 for u in usages)
+        turn.latency_ms = round(sum(call["latency_ms"] for call in ctx.calls), 1)
+        turn.archived_at_start = sorted(i for i, s in before.items() if s == "archived")
+        turn.prompt_chars = len(self.capture.system) + sum(len(str(m.get("content") or "")) for m in messages[:1])
         turn.archived = archived + [i for i, s in after.items() if s == "archived" and before.get(i) == "active"]
         turn.revived = [i for i, s in after.items() if s == "active" and before.get(i) == "archived"]
         turn.shown_ids = _shown_ids(messages, get_agent_registry())

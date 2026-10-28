@@ -12,7 +12,7 @@ BUDGET_PER_ARM ?= 13
 # Extra flags for evals.run_routing, e.g. EVAL_ARGS="--model vendor/model --split all".
 EVAL_ARGS ?=
 
-.PHONY: test eval-replay eval-live injection compare demo
+.PHONY: test eval-replay eval-live injection compare demo lifecycle
 
 # Offline: no API key, no network.
 test:
@@ -44,3 +44,9 @@ compare:
 DEMO_ARGS ?=
 demo:
 	$(PYTHON) -m evals.demo_conversation $(DEMO_ARGS)
+
+# Offline: replays the 30-day lifecycle simulation for baseline and fix_v2 into evals/results/LIFECYCLE.md.
+# LIFECYCLE_ARGS="--record --model vendor/model --days 15" records it live (needs a key).
+LIFECYCLE_ARGS ?=
+lifecycle:
+	$(PYTHON) -m evals.run_lifecycle --arms baseline,fix_v2 $(LIFECYCLE_ARGS)
