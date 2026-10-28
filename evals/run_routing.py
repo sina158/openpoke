@@ -78,8 +78,9 @@ def resolve_call(name: str, args: Dict[str, Any], by_id: Dict[str, str], by_slug
         return {"action": "error", "detail": str(args["__invalid_arguments__"])}
     if name == "clarify_agent_choice":
         candidates = args.get("candidate_ids")
-        ids = [by_id.get(str(c), str(c)) for c in candidates] if isinstance(candidates, list) else []
-        return {"action": "clarify", "agent_ids": ids}
+        candidates = [str(c) for c in candidates] if isinstance(candidates, list) else []
+        return {"action": "clarify", "agent_ids": [by_id[c] for c in candidates if c in by_id],
+                "unknown_ids": [c for c in candidates if c not in by_id]}
     agent_id = args.get("agent_id")
     if isinstance(agent_id, str) and agent_id.strip():
         if agent_id in by_id:
@@ -110,7 +111,9 @@ def grade(case: Dict[str, Any], resolved: List[Dict[str, Any]], client_key_of: D
     cross = any(client_key_of.get(a) and client_key_of[a] not in case_keys for a in wrong)
 
     if gold_kind == "clarify":
-        if clarified and not reused and not created:
+        offered = {a for r in resolved if r["action"] == "clarify" for a in r["agent_ids"]}
+        unknown = any(r.get("unknown_ids") for r in resolved if r["action"] == "clarify")
+        if clarified and not reused and not created and not unknown and gold_ids <= offered:
             return "correct_clarify", False
         return "wrong_guess", cross
     if gold_kind == "create":

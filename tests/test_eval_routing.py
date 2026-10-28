@@ -54,6 +54,10 @@ def test_create_gold_cells():
 def test_clarify_gold_cells():
     case = _case("clarify", ["g_1", "g_2"])
     assert _cell(case, ("clarify_agent_choice", {"candidate_ids": ["g_1", "g_2"]})) == ("correct_clarify", False)
+    assert _cell(case, ("clarify_agent_choice", {"candidate_ids": ["a_0001", "g_2", "g_3"]})) == ("correct_clarify", False)
+    assert _cell(case, ("clarify_agent_choice", {"candidate_ids": ["g_1"]})) == ("wrong_guess", False)
+    assert _cell(case, ("clarify_agent_choice", {"candidate_ids": ["g_1", "g_2", "x_9"]})) == ("wrong_guess", False)
+    assert _cell(case, ("clarify_agent_choice", {"question": "which?"})) == ("wrong_guess", False)
     assert _cell(case, _send(agent_id="g_1")) == ("wrong_guess", False)
     assert _cell(case, _send(agent_name="Something new")) == ("wrong_guess", False)
 
