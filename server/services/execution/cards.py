@@ -11,10 +11,16 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from html import escape
-from typing import Iterable, Protocol, Sequence
+from typing import Collection, Iterable, Protocol, Sequence
 
 PURPOSE_MAX_CHARS = 200
-MAX_CARD_ENTITIES = 8
+# Identifiers are exact lookup keys while names are weak, repeated evidence, so each kind has its own
+# cap and a log full of names can never push out the thread id a user will quote back.
+MAX_CARD_IDS = 8
+MAX_CARD_NAMES = 4
+# Thread, draft and message ids name one conversation; emails and policy numbers are shared by every
+# matter of a client, so only these are used for a deterministic lookup.
+MAIL_ID = "mail_id"
 
 # Tool responses are left out: they hold raw search results, so every address in an inbox would
 # become an "entity" of the agent that searched it.
@@ -61,6 +67,7 @@ _NAME_STOPWORDS = frozenset(
     A An The This That These Those Hi Hello Hey Dear Thanks Thank Please Re Fwd Subject From To Cc
     Send Email Reply Forward Draft Ask Tell Follow Remind Schedule Check Find Search Call Book Let
     Can Could Would Will Should Did Does Do Is Are Was Any What When Where Who Why How Yes No Ok Okay
+    Emailed Sent Called Asked Replied Forwarded Drafted Scheduled Followed Checked Told Reminded Booked
     Monday Tuesday Wednesday Thursday Friday Saturday Sunday Today Tomorrow Yesterday
     January February March April May June July August September October November December
     """.split()
@@ -102,22 +109,22 @@ def _as_name(value: str) -> str | None:
 # Order matters: an earlier pattern claims its span, so an email's local part is never re-read as
 # a policy number and a date is never re-read as a phone number.
 _EXTRACTORS = (
-    (_EMAIL, str.lower),
-    (_LABELLED_ID, _as_id),
-    (_GMAIL_DRAFT_ID, str.lower),
-    (_PREFIXED_ID, _as_id),
-    (_GMAIL_HEX_ID, _as_hex_id),
-    (_POLICY, str.lower),
-    (_PHONE, _as_phone),
-    (_NAME, _as_name),
+    ("email", _EMAIL, str.lower),
+    (MAIL_ID, _LABELLED_ID, _as_id),
+    (MAIL_ID, _GMAIL_DRAFT_ID, str.lower),
+    (MAIL_ID, _PREFIXED_ID, _as_id),
+    (MAIL_ID, _GMAIL_HEX_ID, _as_hex_id),
+    ("policy", _POLICY, str.lower),
+    ("phone", _PHONE, _as_phone),
+    ("name", _NAME, _as_name),
 )
 
 
-def extract_entities(text: str) -> list[str]:
-    """Return the normalised entities in ``text``, deduplicated, in order of first appearance."""
-    found: list[tuple[int, str]] = []
+def _extract(text: str) -> list[tuple[str, str]]:
+    """``(kind, value)`` for every entity in ``text``, in order of appearance."""
+    found: list[tuple[int, str, str]] = []
     claimed: list[tuple[int, int]] = []
-    for pattern, normalise in _EXTRACTORS:
+    for kind, pattern, normalise in _EXTRACTORS:
         for match in pattern.finditer(text):
             group = 1 if pattern.groups else 0
             start, end = match.span(group)
@@ -126,13 +133,28 @@ def extract_entities(text: str) -> list[str]:
             value = normalise(match.group(group))
             if value:
                 claimed.append((start, end))
-                found.append((start, value))
+                found.append((start, kind, value))
     found.sort(key=lambda item: item[0])
-    return _dedupe(value for _, value in found)
+    return [(kind, value) for _, kind, value in found]
+
+
+def extract_entities(text: str, kinds: Collection[str] | None = None) -> list[str]:
+    """Return the normalised entities in ``text``, deduplicated, in order of first appearance.
+
+    ``kinds`` keeps only some: "email", MAIL_ID, "policy", "phone", "name".
+    """
+    return _dedupe(value for kind, value in _extract(text) if kinds is None or kind in kinds)
 
 
 def _dedupe(values: Iterable[str]) -> list[str]:
     return list(dict.fromkeys(v for v in values if v))
+
+
+def _latest(values: Sequence[str], limit: int) -> list[str]:
+    """The ``limit`` most recently mentioned distinct values, in order of first appearance."""
+    last_seen = {value: i for i, value in enumerate(values)}
+    keep = set(sorted(last_seen, key=last_seen.__getitem__)[-limit:])
+    return [value for value in _dedupe(values) if value in keep]
 
 
 def _clip(text: str, limit: int) -> str:
@@ -161,21 +183,21 @@ def _purpose_from_log(requests: list[str], responses: list[str]) -> str:
 def build_card(source: CardSource, log_entries: Sequence[tuple[str, str]] = ()) -> AgentCard:
     """Build a card from the agent's log entries, given as ``(tag, text)`` pairs in log order.
 
-    The purpose is the first request plus the head of the last response. With no usable log the
-    card falls back to ``source.purpose`` and ``source.entities``.
+    The purpose is the first request plus the head of the last response. Entities come from the whole
+    log: identifiers first (the most recently mentioned survive the cap), then the first names. With
+    no usable log the card falls back to ``source.purpose`` and ``source.entities``.
     """
     requests = [text for tag, text in log_entries if tag == "agent_request"]
     responses = [text for tag, text in log_entries if tag == "agent_response"]
     purpose = _purpose_from_log(requests, responses) or _clip(source.purpose or "", PURPOSE_MAX_CHARS)
 
-    entities = _dedupe(
-        entity
-        for tag, text in log_entries
-        if tag in _ENTITY_TAGS
-        for entity in extract_entities(text)
-    )
+    found = [item for tag, text in log_entries if tag in _ENTITY_TAGS for item in _extract(text)]
+    ids = _latest([value for kind, value in found if kind != "name"], MAX_CARD_IDS)
+    names = _dedupe(value for kind, value in found if kind == "name")[:MAX_CARD_NAMES]
+    entities = ids + names
     if not entities:
-        entities = _dedupe(" ".join(str(e).split()).lower() for e in (source.entities or ()))
+        fallback = _dedupe(" ".join(str(e).split()).lower() for e in (source.entities or ()))
+        entities = fallback[: MAX_CARD_IDS + MAX_CARD_NAMES]
 
     return AgentCard(
         agent_id=source.id,
@@ -183,7 +205,7 @@ def build_card(source: CardSource, log_entries: Sequence[tuple[str, str]] = ()) 
         status=source.status,
         last_active_at=source.last_active_at,
         purpose=purpose,
-        entities=tuple(entities[:MAX_CARD_ENTITIES]),
+        entities=tuple(entities),
     )
 
 

@@ -3,7 +3,9 @@ from dataclasses import dataclass, field
 import pytest
 
 from server.services.execution.cards import (
-    MAX_CARD_ENTITIES,
+    MAIL_ID,
+    MAX_CARD_IDS,
+    MAX_CARD_NAMES,
     PURPOSE_MAX_CHARS,
     AgentCard,
     build_card,
@@ -33,6 +35,7 @@ class FakeRecord:
         ("Reply on thread t_91 with the draft", ["t_91"]),
         ("Ask Dana Whitfield at Larkspur Brokers", ["dana whitfield", "larkspur brokers"]),
         ("Send Alice Chen the quote", ["alice chen"]),
+        ("Emailed Dana Whitfield about it", ["dana whitfield"]),
         ("Call +1 (416) 555-0199 or 416.555.0199", ["4165550199"]),
     ],
 )
@@ -92,11 +95,36 @@ def test_card_ignores_entities_inside_raw_tool_responses():
     assert build_card(FakeRecord(), log).entities == ("dana@example.com",)
 
 
-def test_card_caps_entities():
-    emails = " ".join(f"person{i}@example.com" for i in range(MAX_CARD_ENTITIES + 5))
-    card = build_card(FakeRecord(), [("agent_request", emails)])
-    assert len(card.entities) == MAX_CARD_ENTITIES
-    assert card.entities[0] == "person0@example.com"
+def test_extract_entities_can_keep_only_some_kinds():
+    text = (
+        "Dana Whitfield on thread 18c2f4a9b3e1d7f0, policy HO-4421-77, dana@example.com, "
+        "draft_id r-1234567890123456789"
+    )
+    assert extract_entities(text, kinds={MAIL_ID}) == ["18c2f4a9b3e1d7f0", "r-1234567890123456789"]
+    assert extract_entities(text, kinds={"name"}) == ["dana whitfield"]
+
+
+def test_an_id_only_in_the_last_response_survives_a_crowded_log():
+    people = ["Ada Brook", "Ben Cole", "Cy Dale", "Di Eads", "Ed Fenn", "Flo Gage"]
+    contacts = people + ["Gus Hale"] * 4
+    first = "contacts: " + ", ".join(f"{name} <p{i}@example.com>" for i, name in enumerate(contacts))
+    log = [
+        ("agent_request", first),
+        ("agent_response", "Drafted the notes. " + " ".join(f"HO-{1000 + i}-11" for i in range(6))),
+        ("agent_request", "Now reply to the carrier"),
+        ("agent_response", "Replied to Ada Brook on thread 77a2cf9854f5c11c."),
+    ]
+    card = build_card(FakeRecord(), log)
+    assert "77a2cf9854f5c11c" in card.entities
+    assert "p0@example.com" not in card.entities  # 17 ids: the oldest mentions give way
+    assert len(card.entities) == MAX_CARD_IDS + MAX_CARD_NAMES
+    assert card.entities[-MAX_CARD_NAMES:] == ("ada brook", "ben cole", "cy dale", "di eads")
+    assert card.entities.index("77a2cf9854f5c11c") < card.entities.index("ada brook")  # ids come first
+
+
+def test_card_caps_the_record_fallback():
+    record = FakeRecord(entities=[f"person{i}@example.com" for i in range(20)])
+    assert len(build_card(record).entities) == MAX_CARD_IDS + MAX_CARD_NAMES
 
 
 def test_card_falls_back_to_the_record_without_a_log():
