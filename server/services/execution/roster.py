@@ -1,12 +1,16 @@
 """Simple agent roster management - just a list of agent names."""
 
 import json
-import fcntl
-import time
+import os
+import tempfile
+import threading
 from pathlib import Path
 
 from ...logging_config import logger
 from ...utils.paths import data_dir
+
+
+_SAVE_LOCK = threading.Lock()
 
 
 class AgentRoster:
@@ -33,33 +37,20 @@ class AgentRoster:
             self.save()
 
     def save(self) -> None:
-        """Save agent names to roster.json with file locking."""
-        max_retries = 5
-        retry_delay = 0.1
-
-        for attempt in range(max_retries):
+        """Save agent names to roster.json atomically (write a temp file, then replace)."""
+        with _SAVE_LOCK:
             try:
                 self._roster_path.parent.mkdir(parents=True, exist_ok=True)
-
-                # Open file and acquire exclusive lock
-                with open(self._roster_path, 'w') as f:
-                    fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    try:
+                fd, tmp = tempfile.mkstemp(dir=self._roster_path.parent, suffix=".tmp")
+                try:
+                    with os.fdopen(fd, "w", encoding="utf-8") as f:
                         json.dump(self._agents, f, indent=2)
-                        return
-                    finally:
-                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-
-            except BlockingIOError:
-                # Lock is held by another process
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                    retry_delay *= 2  # Exponential backoff
-                else:
-                    logger.warning("Failed to acquire lock on roster.json after retries")
+                    os.replace(tmp, self._roster_path)
+                except BaseException:
+                    Path(tmp).unlink(missing_ok=True)
+                    raise
             except Exception as exc:
                 logger.warning(f"Failed to save roster.json: {exc}")
-                break
 
     def add_agent(self, agent_name: str) -> None:
         """Add an agent to the roster if not already present."""
