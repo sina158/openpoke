@@ -203,3 +203,17 @@ class Settings(BaseModel):
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()
+
+
+def routing_profile() -> str:
+    """Return the routing profile: "v2" (default) or "v1" (round-one behaviour)."""
+    value = os.getenv("OPENPOKE_ROUTING_PROFILE", "v2").strip().lower()
+    return value if value in {"v1", "v2"} else "v2"
+
+
+def v2_change_enabled(change: str) -> bool:
+    """True when the v2 profile is active and `change` (c1, c3, c4) is not in OPENPOKE_V2_DISABLE."""
+    if routing_profile() != "v2":
+        return False
+    disabled = {part.strip().lower() for part in os.getenv("OPENPOKE_V2_DISABLE", "").split(",") if part.strip()}
+    return change.lower() not in disabled

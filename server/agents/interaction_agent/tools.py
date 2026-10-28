@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Optional
 
@@ -242,6 +243,87 @@ def possible_duplicates(
         {"agent_id": card.agent_id, "name": card.name, "status": card.status, "why": why}
         for _, _, card, why in found[:5]
     ]
+
+
+# An entity on more than 2% of all cards (an insurer, a city, a common word) says nothing about
+# which client an agent serves; a client's email or name sits on a handful. Fixed, not tuned.
+SHARED_CLIENT_MAX_DF = 0.02
+SHARED_CLIENT_MESSAGE = (
+    "Nothing was sent: these agents look like the same person or business. Reuse one by agent_id, "
+    "or call clarify_agent_choice(candidate_ids, question) to ask the user."
+)
+
+
+def _card_entities(card: AgentCard) -> set[str]:
+    """The card's entities plus the names in the agent's own name."""
+    return set(card.entities) | set(extract_entities(card.name))
+
+
+def identifying_entities(card: AgentCard, df: Counter, total: int) -> set[str]:
+    """The card's entities that appear on at most 2% of ``total`` cards (``df`` counts cards per entity)."""
+    return {entity for entity in _card_entities(card) if df[entity] <= SHARED_CLIENT_MAX_DF * total}
+
+
+def shared_client_conflict(agent_ids: list[str], cards: list[AgentCard]) -> Optional[dict[str, Any]]:
+    """The refusal for one turn's sends when two of their target agents share an identifying entity.
+
+    ``cards`` is every agent's card, archived included; document frequency is counted over them.
+    ``agent_ids`` in the refusal are the targets that share something with another target.
+    """
+    by_id = {card.agent_id: card for card in cards}
+    targets = [agent_id for agent_id in dict.fromkeys(agent_ids) if agent_id in by_id]
+    if len(targets) < 2:
+        return None
+    df = Counter(entity for card in cards for entity in _card_entities(card))
+    found = {agent_id: identifying_entities(by_id[agent_id], df, len(cards)) for agent_id in targets}
+    conflicting = [
+        agent_id for agent_id in targets
+        if any(found[agent_id] & found[other] for other in targets if other != agent_id)
+    ]
+    if not conflicting:
+        return None
+    return {
+        "status": "refused",
+        "reason": "shared_client",
+        "agent_ids": conflicting,
+        "message": SHARED_CLIENT_MESSAGE,
+    }
+
+
+def _existing_target(args: dict[str, Any]) -> Optional[str]:
+    """The id of the existing agent a send reuses, or None when it would create one."""
+    registry = get_agent_registry()
+    agent_id, agent_name = args.get("agent_id"), args.get("agent_name")
+    record = None
+    if isinstance(agent_id, str) and agent_id.strip():
+        record = registry.get(agent_id.strip())
+    elif isinstance(agent_name, str) and agent_name.strip() and not args.get("confirm_new"):
+        record = registry.find_by_name(agent_name)
+    return record.id if record else None
+
+
+def check_turn_sends(calls: list[tuple[str, dict[str, Any]]]) -> dict[int, ToolResult]:
+    """Refusals, by position in ``calls``, for one assistant turn's sends to agents of one client.
+
+    ``calls`` are the turn's ``(tool name, arguments)`` pairs. Sends whose targets share an
+    identifying entity are all refused with the same payload; every other call is left alone.
+    """
+    targets = {
+        index: _existing_target(args)
+        for index, (name, args) in enumerate(calls)
+        if name == "send_message_to_agent" and "__invalid_arguments__" not in args
+    }
+    if len({target for target in targets.values() if target}) < 2:
+        return {}
+    cards = cards_for(get_agent_registry().list(status=None))
+    conflict = shared_client_conflict([t for t in targets.values() if t], cards)
+    if conflict is None:
+        return {}
+    return {
+        index: ToolResult(success=False, payload=dict(conflict))
+        for index, target in targets.items()
+        if target in conflict["agent_ids"]
+    }
 
 
 def _resolve_agent(
