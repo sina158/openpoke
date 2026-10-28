@@ -12,6 +12,7 @@ from ...services.provenance import current_provenance, current_turn_id
 from ...services.conversation import get_conversation_log
 from ...services.execution import get_agent_registry, get_execution_agent_logs
 from ...services.execution.card_store import cards_for, refresh_card
+from ...services.execution.cards import MAIL_ID, AgentCard, extract_entities
 from ...services.execution.registry import AgentRecord
 from ...services.execution.selector import search, tokenize
 from ...utils.clock import now_utc
@@ -210,16 +211,41 @@ def name_similarity(a: str, b: str) -> float:
     return len(left & right) / len(left | right)
 
 
-def possible_duplicates(name: str, records: list[AgentRecord], threshold: float) -> list[AgentRecord]:
-    """Existing agents whose name is close enough to ``name`` to be the same matter, closest first."""
-    scored = [(name_similarity(name, record.name), record) for record in records]
-    close = [(score, record) for score, record in scored if score >= threshold]
-    close.sort(key=lambda item: (-item[0], item[1].id))
-    return [record for _, record in close[:5]]
+# Thread, draft and message ids and policy numbers tie a request to a matter. Emails do not: a
+# client's address appears on every one of its matters.
+_DUPLICATE_ID_KINDS = (MAIL_ID, "policy")
+
+
+def possible_duplicates(
+    name: str, instructions: str, cards: list[AgentCard], threshold: float
+) -> list[dict[str, str]]:
+    """Existing agents that may already own the matter a new agent is being created for.
+
+    A card matches when its name's similarity to ``name`` is at least ``threshold``, or when it holds
+    a thread, draft, message or policy id that ``name`` or ``instructions`` mention. Cards sharing an
+    id come first, then the closest names; at most five, each with the reason.
+    """
+    wanted = set(extract_entities(f"{name}\n{instructions}", kinds=_DUPLICATE_ID_KINDS))
+    found = []
+    for card in cards:
+        similarity = name_similarity(name, card.name)
+        shared = sorted(wanted.intersection(card.entities))
+        reasons = []
+        if similarity >= threshold:
+            reasons.append(f"similar name ({similarity:.2f})")
+        if shared:
+            reasons.append("shares " + ", ".join(shared))
+        if reasons:
+            found.append((-len(shared), -similarity, card, "; ".join(reasons)))
+    found.sort(key=lambda item: (item[0], item[1], item[2].agent_id))
+    return [
+        {"agent_id": card.agent_id, "name": card.name, "status": card.status, "why": why}
+        for _, _, card, why in found[:5]
+    ]
 
 
 def _resolve_agent(
-    agent_id: Optional[str], agent_name: Optional[str], confirm_new: bool
+    agent_id: Optional[str], agent_name: Optional[str], confirm_new: bool, instructions: str
 ) -> tuple[Optional[AgentRecord], bool, Optional[ToolResult]]:
     """Find or create the target agent: ``(record, created, refusal)``."""
     registry = get_agent_registry()
@@ -242,11 +268,12 @@ def _resolve_agent(
         return record, False, None
     # Only the shortlist prompt explains confirm_new; under the upstream prompt a name always creates.
     if get_settings().prompt_variant == "shortlist":
-        similar = possible_duplicates(agent_name, registry.list(status=None), get_settings().duplicate_threshold)
+        cards = cards_for(registry.list(status=None))
+        similar = possible_duplicates(agent_name, instructions, cards, get_settings().duplicate_threshold)
         if similar:
             payload = {
                 "status": "possible_duplicates",
-                "possible_duplicates": [{"agent_id": r.id, "name": r.name, "status": r.status} for r in similar],
+                "possible_duplicates": similar,
                 "message": "Nothing was sent. Reuse one of these by agent_id if it is the same matter, or call again with confirm_new=true.",
             }
             return None, False, ToolResult(success=False, payload=payload)
@@ -262,7 +289,7 @@ def send_message_to_agent(
     confirm_new: bool = False,
 ) -> ToolResult:
     """Send instructions to an execution agent, chosen by id or by name (with a duplicate check)."""
-    record, is_new, refusal = _resolve_agent(agent_id, agent_name, confirm_new)
+    record, is_new, refusal = _resolve_agent(agent_id, agent_name, confirm_new, instructions)
     if refusal is not None:
         return refusal
     if record.status == "archived":

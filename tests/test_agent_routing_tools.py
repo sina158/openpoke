@@ -66,7 +66,9 @@ def test_duplicate_guard_stops_a_near_identical_name_until_confirmed(loop):
 
     held = tools.send_message_to_agent("go", agent_name="Alice Example renewal")
     assert not held.success and held.payload["status"] == "possible_duplicates"
-    assert held.payload["possible_duplicates"] == [{"agent_id": alice.id, "name": alice.name, "status": "active"}]
+    assert held.payload["possible_duplicates"] == [
+        {"agent_id": alice.id, "name": alice.name, "status": "active", "why": "similar name (1.00)"}
+    ]
     assert loop.dispatched == 0 and len(get_agent_registry().list()) == 1
 
     created = tools.send_message_to_agent("go", agent_name="Alice Example renewal", confirm_new=True)
@@ -152,3 +154,33 @@ def test_confirm_new_creates_a_separate_agent_even_when_the_name_is_taken(loop):
     assert result.payload["agent_name"] == "Lakeshore Catering renewal (2)"
     first_log = [text for _, _, text in get_execution_agent_logs().iter_entries(first.name)]
     assert first_log == ["Renew the policy for the Oshawa location"]
+
+
+def test_duplicate_guard_matches_a_shared_policy_or_thread_id(loop):
+    status = _agent("Auto renewal for Kim Example", "Renew auto policy AU-3701-88 for kim@example.ca")
+    _agent("Claim for Lee Example", "Open a claim on thread 9f8e7d6c5b4a3f2e for lee@example.ca")
+
+    by_policy = tools.send_message_to_agent(
+        "Look up policy AU-3701-88 and report its status", agent_name="Policy AU-3701-88 status"
+    )
+    assert by_policy.payload["status"] == "possible_duplicates"
+    assert by_policy.payload["possible_duplicates"] == [
+        {"agent_id": status.id, "name": status.name, "status": "active", "why": "shares au-3701-88"}
+    ]
+
+    by_thread = tools.send_message_to_agent("Reply on thread 9f8e7d6c5b4a3f2e", agent_name="Reply to adjuster")
+    assert [d["why"] for d in by_thread.payload["possible_duplicates"]] == ["shares 9f8e7d6c5b4a3f2e"]
+
+
+def test_a_shared_email_alone_is_not_a_duplicate(loop):
+    _agent("Auto renewal for Kim Example", "Renew auto policy AU-3701-88 for kim@example.ca")
+    result = tools.send_message_to_agent("Ask kim@example.ca about the home quote", agent_name="Home quote for Kim")
+    assert result.success and result.payload["new_agent_created"] is True
+
+
+def test_similarity_equal_to_the_threshold_counts(loop, monkeypatch):
+    smith = _agent("Smith Plumbing COI")
+    monkeypatch.setenv("OPENPOKE_DUPLICATE_THRESHOLD", "0.75")
+    get_settings.cache_clear()
+    result = tools.send_message_to_agent("go", agent_name="Smith Plumbing & Heating COI")
+    assert [d["agent_id"] for d in result.payload["possible_duplicates"]] == [smith.id]
