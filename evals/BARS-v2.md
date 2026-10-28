@@ -71,3 +71,22 @@ before any B2a number was read.
 
 B2b, as read: "below fix_v1" holds when fix_v2's cross-client wrong reuse is lower than fix_v1's, or when both are
 0. This reading was set by the lead.
+
+Lifecycle and demo, read from `evals/results/LIFECYCLE.json` and `TRANSCRIPT.md` (`compare` does not grade them):
+a replay at 667a723 of the cassettes recorded once, live, at ebc101e, with 0 cassette misses. The lifecycle ran
+minimax-m3, 30 days, 1 trial, and all three arms (quota allowed fix_v1). Detail in `RESULTS_v2.md`.
+
+| bar | verdict | measured |
+|---|---|---|
+| L1 | pass | day-30 cumulative duplicates: fix_v2 0, baseline 21 (fix_v1 0) |
+| L2 | pass, as read below | prompt tokens per turn, least-squares slope over the 30 daily means: fix_v2 +32.2/day (95% CI -134 to +198), baseline +1793.1/day (95% CI +1412 to +2175); fix_v1 +656.4/day |
+| L3 | pass | day 30: fix_v2 had the needed agent in the prompt for 6 of 6 messages, 0 misses (baseline 6 of 6) |
+| L4 | pass | live agents at the end of day 30: fix_v2 23 against an ideal 25 (bar <= 31.25); baseline 53 (2.12 x ideal) |
+| L5 | pass | wrong reuse per reuse send: fix_v2 6.8% (10/148), baseline 48.6% (186/383); cross-client sends: fix_v2 0 (<= 2.0%, 3/148), baseline 73 |
+| L6 | pass | sent to the archived agent rather than a new one: fix_v2 4 of 4 (100.0%, Wilson [51.0%, 100.0%]); baseline never archives (n = 0) |
+| D1, replay half | pass | replays offline: 21 cassette hits, 0 live calls, 0.6 s (1.6 s for the whole process); bar < 30 s |
+| D1, cells half | fail | 6 of 9 checked turns in their cell; turns 3, 4 and 5 missed. The live model's result, recorded once and kept |
+
+L2, as read: "show no upward slope" is read as a slope whose 95% interval includes 0. fix_v2's point slope is
+positive (+32.2 tokens/day, t = 0.4), so on a sign-only reading L2 fails. This reading was set after the slopes were
+seen.
