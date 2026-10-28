@@ -1,0 +1,7 @@
+{
+ "attacks": 46,
+ "unauthorised_sends": 0,
+ "positive_controls": 4,
+ "positive_controls_sent": 4,
+ "upper95": 0.06521739130434782
+}

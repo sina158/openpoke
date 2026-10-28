@@ -1,0 +1,722 @@
+{
+ "report": {
+  "groups": [
+   {
+    "arm": "fix_v2",
+    "model": "minimax-m3",
+    "k": 8,
+    "roster_mode": "shortlist",
+    "size": 500,
+    "cases_sample": null,
+    "file": "20261028_fix_v2_minimax-m3_k8_report_n500_t1_accf492.json",
+    "date": "2026-10-28T17:08:17Z",
+    "commit": "accf492",
+    "trials": 1,
+    "n": 86,
+    "cells": {
+     "correct_reuse": 63,
+     "wrong_reuse": 3,
+     "duplicate": 0,
+     "over_clarify": 0,
+     "hijack": 1,
+     "correct_create": 10,
+     "correct_clarify": 5,
+     "wrong_guess": 1,
+     "partial": 0,
+     "no_route": 0,
+     "error": 3
+    },
+    "accuracy": {
+     "k": 78,
+     "n": 86,
+     "rate": 0.9069767441860465,
+     "ci95": [
+      0.8270407914425881,
+      0.9521082887162688
+     ],
+     "clustered": {
+      "templates": 19,
+      "ci95": [
+       0.8068181818181818,
+       0.9882352941176471
+      ]
+     }
+    },
+    "accuracy_excl_ambiguous_paraphrase": {
+     "k": 60,
+     "n": 67,
+     "rate": 0.8955223880597015,
+     "ci95": [
+      0.7996850237616437,
+      0.9484629570857679
+     ]
+    },
+    "wrong_reuse": {
+     "k": 3,
+     "n": 67,
+     "rate": 0.04477611940298507,
+     "ci95": [
+      0.015343696938151803,
+      0.12358032510539321
+     ]
+    },
+    "spray": {
+     "k": 0,
+     "n": 67,
+     "rate": 0.0,
+     "ci95": [
+      0.0,
+      0.05422802421176257
+     ],
+     "cross_client": 0
+    },
+    "wrong_only": {
+     "k": 3,
+     "n": 67,
+     "rate": 0.04477611940298507,
+     "ci95": [
+      0.015343696938151803,
+      0.12358032510539321
+     ],
+     "cross_client": 0
+    },
+    "cross_client": {
+     "wrong_reuse": 0,
+     "hijack": 0,
+     "wrong_guess": 0,
+     "wrong_reuse_n": 67,
+     "wrong_reuse_upper95": 0.04477611940298507
+    },
+    "duplicate": {
+     "k": 0,
+     "n": 67,
+     "rate": 0.0,
+     "ci95": [
+      0.0,
+      0.05422802421176257
+     ]
+    },
+    "correct_create": {
+     "k": 10,
+     "n": 13,
+     "rate": 0.7692307692307693,
+     "ci95": [
+      0.49743126004873084,
+      0.918206209075343
+     ]
+    },
+    "hijack": {
+     "count": 1,
+     "n": 13,
+     "upper95": null
+    },
+    "refused": {
+     "turns": 0,
+     "n": 86,
+     "sends": 10
+    },
+    "same_client_multi_send": 0,
+    "multi_client_send": {
+     "k": 0,
+     "n": 83,
+     "rate": 0.0,
+     "ci95": [
+      3.469446951953614e-18,
+      0.04423686343872062
+     ],
+     "upper95": 0.03614457831325301,
+     "parallel_gold": {
+      "k": 3,
+      "n": 3,
+      "matched_gold": 3
+     }
+    },
+    "clarify_precision": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655085052479191,
+      1.0
+     ]
+    },
+    "clarify_recall": {
+     "k": 5,
+     "n": 6,
+     "rate": 0.8333333333333334,
+     "ci95": [
+      0.43649056343635395,
+      0.9699474141282697
+     ]
+    },
+    "over_clarify": {
+     "k": 0,
+     "n": 80,
+     "rate": 0.0,
+     "ci95": [
+      0.0,
+      0.0458197362645751
+     ]
+    },
+    "prompt_tokens": {
+     "mean": 9390.03488372093,
+     "p95": 19162
+    },
+    "prompt_tokens_per_call": {
+     "mean": 5119.75553709856
+    },
+    "uncached_prompt_tokens": {
+     "mean": 3747.7764705882355,
+     "n": 85
+    },
+    "llm_calls": {
+     "mean": 1.697674418604651
+    },
+    "searches": {
+     "mean": 0.8953488372093024
+    },
+    "latency_ms": {
+     "p50": 9568.4,
+     "p95": 29155.0
+    },
+    "usd_per_100_turns": 0.24439390588235296,
+    "no_route_questions": 0,
+    "by_category": {
+     "explicit": {
+      "k": 12,
+      "n": 13,
+      "rate": 0.9230769230769231,
+      "ci95": [
+       0.6668546607175265,
+       0.9862899336203037
+      ],
+      "templates": 2
+     },
+     "entity": {
+      "k": 10,
+      "n": 10,
+      "rate": 1.0,
+      "ci95": [
+       0.7224598312333834,
+       1.0
+      ],
+      "templates": 2
+     },
+     "paraphrase": {
+      "k": 13,
+      "n": 13,
+      "rate": 1.0,
+      "ci95": [
+       0.7718981569447083,
+       1.0
+      ],
+      "templates": 2
+     },
+     "pronoun": {
+      "k": 10,
+      "n": 10,
+      "rate": 1.0,
+      "ci95": [
+       0.7224598312333834,
+       1.0
+      ],
+      "templates": 2
+     },
+     "near_duplicate": {
+      "k": 12,
+      "n": 15,
+      "rate": 0.8,
+      "ci95": [
+       0.5481406466534955,
+       0.9295257935638959
+      ],
+      "templates": 3
+     },
+     "should_create": {
+      "k": 10,
+      "n": 13,
+      "rate": 0.7692307692307693,
+      "ci95": [
+       0.49743126004873084,
+       0.918206209075343
+      ],
+      "templates": 2
+     },
+     "ambiguous": {
+      "k": 5,
+      "n": 6,
+      "rate": 0.8333333333333334,
+      "ci95": [
+       0.43649056343635395,
+       0.9699474141282697
+      ],
+      "templates": 2
+     },
+     "parallel": {
+      "k": 3,
+      "n": 3,
+      "rate": 1.0,
+      "ci95": [
+       0.43849391955098227,
+       1.0
+      ],
+      "templates": 2
+     },
+     "agent_message": {
+      "k": 3,
+      "n": 3,
+      "rate": 1.0,
+      "ci95": [
+       0.43849391955098227,
+       1.0
+      ],
+      "templates": 2
+     }
+    },
+    "guard": {
+     "fired": 10,
+     "outcomes": {
+      "reused_suggested": 2,
+      "error": 1,
+      "confirmed_new": 4,
+      "clarified": 3
+     },
+     "correct_after": 9
+    },
+    "archived_target": {
+     "archived": {
+      "k": 31,
+      "n": 35,
+      "rate": 0.8857142857142857,
+      "ci95": [
+       0.7404820521187976,
+       0.9546489414551025
+      ]
+     },
+     "active": {
+      "k": 37,
+      "n": 38,
+      "rate": 0.9736842105263158,
+      "ci95": [
+       0.8650482156319974,
+       0.9953395324464698
+      ]
+     },
+     "search_found_target": 23
+    },
+    "target_status": {
+     "idle": {
+      "k": 31,
+      "n": 35,
+      "rate": 0.8857142857142857,
+      "ci95": [
+       0.7404820521187976,
+       0.9546489414551025
+      ]
+     },
+     "active": {
+      "k": 37,
+      "n": 38,
+      "rate": 0.9736842105263158,
+      "ci95": [
+       0.8650482156319974,
+       0.9953395324464698
+      ]
+     }
+    },
+    "evidence": {
+     "registered": {
+      "k": 0,
+      "n": 28,
+      "rate": 0.0,
+      "ci95": [
+       0.0,
+       0.12064720365810762
+      ]
+     },
+     "corrected": {
+      "k": 0,
+      "n": 12,
+      "rate": 0.0,
+      "ci95": [
+       0.0,
+       0.2425007574992425
+      ]
+     }
+    }
+   }
+  ],
+  "paired": [],
+  "by_key": {
+   "fix_v2_minimax-m3_k8_n500": {
+    "arm": "fix_v2",
+    "model": "minimax-m3",
+    "k": 8,
+    "roster_mode": "shortlist",
+    "size": 500,
+    "cases_sample": null,
+    "file": "20261028_fix_v2_minimax-m3_k8_report_n500_t1_accf492.json",
+    "date": "2026-10-28T17:08:17Z",
+    "commit": "accf492",
+    "trials": 1,
+    "n": 86,
+    "cells": {
+     "correct_reuse": 63,
+     "wrong_reuse": 3,
+     "duplicate": 0,
+     "over_clarify": 0,
+     "hijack": 1,
+     "correct_create": 10,
+     "correct_clarify": 5,
+     "wrong_guess": 1,
+     "partial": 0,
+     "no_route": 0,
+     "error": 3
+    },
+    "accuracy": {
+     "k": 78,
+     "n": 86,
+     "rate": 0.9069767441860465,
+     "ci95": [
+      0.8270407914425881,
+      0.9521082887162688
+     ],
+     "clustered": {
+      "templates": 19,
+      "ci95": [
+       0.8068181818181818,
+       0.9882352941176471
+      ]
+     }
+    },
+    "accuracy_excl_ambiguous_paraphrase": {
+     "k": 60,
+     "n": 67,
+     "rate": 0.8955223880597015,
+     "ci95": [
+      0.7996850237616437,
+      0.9484629570857679
+     ]
+    },
+    "wrong_reuse": {
+     "k": 3,
+     "n": 67,
+     "rate": 0.04477611940298507,
+     "ci95": [
+      0.015343696938151803,
+      0.12358032510539321
+     ]
+    },
+    "spray": {
+     "k": 0,
+     "n": 67,
+     "rate": 0.0,
+     "ci95": [
+      0.0,
+      0.05422802421176257
+     ],
+     "cross_client": 0
+    },
+    "wrong_only": {
+     "k": 3,
+     "n": 67,
+     "rate": 0.04477611940298507,
+     "ci95": [
+      0.015343696938151803,
+      0.12358032510539321
+     ],
+     "cross_client": 0
+    },
+    "cross_client": {
+     "wrong_reuse": 0,
+     "hijack": 0,
+     "wrong_guess": 0,
+     "wrong_reuse_n": 67,
+     "wrong_reuse_upper95": 0.04477611940298507
+    },
+    "duplicate": {
+     "k": 0,
+     "n": 67,
+     "rate": 0.0,
+     "ci95": [
+      0.0,
+      0.05422802421176257
+     ]
+    },
+    "correct_create": {
+     "k": 10,
+     "n": 13,
+     "rate": 0.7692307692307693,
+     "ci95": [
+      0.49743126004873084,
+      0.918206209075343
+     ]
+    },
+    "hijack": {
+     "count": 1,
+     "n": 13,
+     "upper95": null
+    },
+    "refused": {
+     "turns": 0,
+     "n": 86,
+     "sends": 10
+    },
+    "same_client_multi_send": 0,
+    "multi_client_send": {
+     "k": 0,
+     "n": 83,
+     "rate": 0.0,
+     "ci95": [
+      3.469446951953614e-18,
+      0.04423686343872062
+     ],
+     "upper95": 0.03614457831325301,
+     "parallel_gold": {
+      "k": 3,
+      "n": 3,
+      "matched_gold": 3
+     }
+    },
+    "clarify_precision": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655085052479191,
+      1.0
+     ]
+    },
+    "clarify_recall": {
+     "k": 5,
+     "n": 6,
+     "rate": 0.8333333333333334,
+     "ci95": [
+      0.43649056343635395,
+      0.9699474141282697
+     ]
+    },
+    "over_clarify": {
+     "k": 0,
+     "n": 80,
+     "rate": 0.0,
+     "ci95": [
+      0.0,
+      0.0458197362645751
+     ]
+    },
+    "prompt_tokens": {
+     "mean": 9390.03488372093,
+     "p95": 19162
+    },
+    "prompt_tokens_per_call": {
+     "mean": 5119.75553709856
+    },
+    "uncached_prompt_tokens": {
+     "mean": 3747.7764705882355,
+     "n": 85
+    },
+    "llm_calls": {
+     "mean": 1.697674418604651
+    },
+    "searches": {
+     "mean": 0.8953488372093024
+    },
+    "latency_ms": {
+     "p50": 9568.4,
+     "p95": 29155.0
+    },
+    "usd_per_100_turns": 0.24439390588235296,
+    "no_route_questions": 0,
+    "by_category": {
+     "explicit": {
+      "k": 12,
+      "n": 13,
+      "rate": 0.9230769230769231,
+      "ci95": [
+       0.6668546607175265,
+       0.9862899336203037
+      ],
+      "templates": 2
+     },
+     "entity": {
+      "k": 10,
+      "n": 10,
+      "rate": 1.0,
+      "ci95": [
+       0.7224598312333834,
+       1.0
+      ],
+      "templates": 2
+     },
+     "paraphrase": {
+      "k": 13,
+      "n": 13,
+      "rate": 1.0,
+      "ci95": [
+       0.7718981569447083,
+       1.0
+      ],
+      "templates": 2
+     },
+     "pronoun": {
+      "k": 10,
+      "n": 10,
+      "rate": 1.0,
+      "ci95": [
+       0.7224598312333834,
+       1.0
+      ],
+      "templates": 2
+     },
+     "near_duplicate": {
+      "k": 12,
+      "n": 15,
+      "rate": 0.8,
+      "ci95": [
+       0.5481406466534955,
+       0.9295257935638959
+      ],
+      "templates": 3
+     },
+     "should_create": {
+      "k": 10,
+      "n": 13,
+      "rate": 0.7692307692307693,
+      "ci95": [
+       0.49743126004873084,
+       0.918206209075343
+      ],
+      "templates": 2
+     },
+     "ambiguous": {
+      "k": 5,
+      "n": 6,
+      "rate": 0.8333333333333334,
+      "ci95": [
+       0.43649056343635395,
+       0.9699474141282697
+      ],
+      "templates": 2
+     },
+     "parallel": {
+      "k": 3,
+      "n": 3,
+      "rate": 1.0,
+      "ci95": [
+       0.43849391955098227,
+       1.0
+      ],
+      "templates": 2
+     },
+     "agent_message": {
+      "k": 3,
+      "n": 3,
+      "rate": 1.0,
+      "ci95": [
+       0.43849391955098227,
+       1.0
+      ],
+      "templates": 2
+     }
+    },
+    "guard": {
+     "fired": 10,
+     "outcomes": {
+      "reused_suggested": 2,
+      "error": 1,
+      "confirmed_new": 4,
+      "clarified": 3
+     },
+     "correct_after": 9
+    },
+    "archived_target": {
+     "archived": {
+      "k": 31,
+      "n": 35,
+      "rate": 0.8857142857142857,
+      "ci95": [
+       0.7404820521187976,
+       0.9546489414551025
+      ]
+     },
+     "active": {
+      "k": 37,
+      "n": 38,
+      "rate": 0.9736842105263158,
+      "ci95": [
+       0.8650482156319974,
+       0.9953395324464698
+      ]
+     },
+     "search_found_target": 23
+    },
+    "target_status": {
+     "idle": {
+      "k": 31,
+      "n": 35,
+      "rate": 0.8857142857142857,
+      "ci95": [
+       0.7404820521187976,
+       0.9546489414551025
+      ]
+     },
+     "active": {
+      "k": 37,
+      "n": 38,
+      "rate": 0.9736842105263158,
+      "ci95": [
+       0.8650482156319974,
+       0.9953395324464698
+      ]
+     }
+    },
+    "evidence": {
+     "registered": {
+      "k": 0,
+      "n": 28,
+      "rate": 0.0,
+      "ci95": [
+       0.0,
+       0.12064720365810762
+      ]
+     },
+     "corrected": {
+      "k": 0,
+      "n": 12,
+      "rate": 0.0,
+      "ci95": [
+       0.0,
+       0.2425007574992425
+      ]
+     }
+    }
+   }
+  },
+  "paired_by_key": {}
+ },
+ "all": {
+  "groups": [],
+  "paired": [],
+  "by_key": {},
+  "paired_by_key": {}
+ },
+ "set": "v1",
+ "set_mix": {
+  "set": "v1",
+  "split": "report",
+  "non_create": 73,
+  "idle_target": 35,
+  "share": 0.4794520547945205
+ },
+ "spend": {
+  "total_usd": 0.20773482000000001,
+  "files": 1,
+  "unpriced_records": 1
+ },
+ "bars": {
+  "prompt_token_ratio_n500": null,
+  "prompt_token_per_call_ratio_n500": null
+ },
+ "skipped_partial_runs": []
+}
