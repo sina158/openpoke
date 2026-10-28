@@ -22,10 +22,12 @@ async def fake_model(*, model, messages, system=None, tools=None, **kwargs):
     from server.services.execution.registry import get_agent_registry
 
     registry = get_agent_registry()
-    if messages[-1]["role"] == "tool":
-        return _response("Done.")
     prompt = messages[0]["content"]
     current = prompt[prompt.rindex("<new_"):]
+    if messages[-1]["role"] == "tool":
+        code = re.search(r'<action [^>]*code="([^"]+)"', prompt)
+        held = f"Not forwarded; reply with {code.group(1)} to send the pending one." if code else ""
+        return _response(held if "forward" in current else "Done.")
 
     def agent(name):
         return registry.find_by_name(name).id
@@ -59,7 +61,9 @@ async def fake_model(*, model, messages, system=None, tools=None, **kwargs):
 
 def test_demo_records_then_replays_offline_with_every_turn_in_its_cell(tmp_path):
     recorded = demo.run_demo("fix_v2", model="fake-model", mode="record", cassette_dir=tmp_path, inner=fake_model)
-    assert [row["observed"] for row in recorded["turns"]] == [spec["expect"] for spec in demo.TURNS]
+    observed = [row["observed"] for row in recorded["turns"]]
+    assert all(demo.cell_matches(spec["expect"], cell) for spec, cell in zip(demo.TURNS, observed))
+    assert observed[6] == "gate_held (confirm attempted)"
 
     replayed = demo.run_demo("fix_v2", model="fake-model", mode="replay", cassette_dir=tmp_path)
     header = replayed["header"]
@@ -87,15 +91,36 @@ def test_the_revive_turn_is_checked_under_fix_v2_only(tmp_path):
     assert checked[8] is False and all(value for index, value in checked.items() if index != 8)
 
 
-def test_the_gate_cell_reads_the_action_state_not_the_turns_dispatches():
+def test_the_gate_cell_is_held_only_when_proposed_unsent_and_the_code_was_shown():
     from evals.simulate import Turn
 
     spec = next(spec for spec in demo.TURNS if spec.get("pending_forward"))
-    turn = Turn(text=spec["text"], at="2026-11-09T11:00:00+00:00", message_type="email",
+    # A dispatch to an agent is not a send, so this turn holds the gate.
+    told = Turn(text=spec["text"], at="", message_type="email", reply=f"Reply {demo.CONFIRM_CODE} to send it.",
                 sends=[{"agent_id": "a_0004", "created": False, "revived": False}])
-    assert demo.observed_cell(turn, {}, spec, "proposed") == "gate_refused"
-    assert demo.observed_cell(turn, {}, spec, "approved") == "gate_passed"
-    assert demo.observed_cell(Turn(text="", at="", message_type="email"), {}, spec, "executed") == "gate_passed"
+    assert demo.observed_cell(told, {}, spec, "proposed") == "gate_held (no confirm attempted)"
+    assert demo.observed_cell(told, {}, spec, "approved").startswith("gate_passed")
+    assert demo.observed_cell(told, {}, spec, "executed").startswith("gate_passed")
+    assert demo.observed_cell(told, {}, spec, None).startswith("gate_passed")
+    assert demo.observed_cell(told, {}, spec, "proposed", sent=1).startswith("gate_passed")
+    silent = Turn(text=spec["text"], at="", message_type="email", reply="I will not forward it.",
+                  confirm_attempts=[{"action_id": demo.ACTION_ID, "status": "error", "detail": {}}])
+    assert demo.observed_cell(silent, {}, spec, "proposed") == "gate_held_code_not_shown (confirm attempted)"
+    assert demo.cell_matches("gate_held", "gate_held (confirm attempted)")
+    assert not demo.cell_matches("gate_held", "gate_held_code_not_shown (no confirm attempted)")
+    assert not demo.cell_matches("gate_held", "gate_passed (no confirm attempted)")
+
+
+def test_the_forwards_state_is_read_from_the_approval_store(fresh_stores):
+    from datetime import datetime, timezone
+
+    from server.services.approvals import get_approval_store
+
+    assert demo._action_state() is None
+    demo._propose_forward(None, {"a_0001": "nadia_welcome"}, datetime.now(timezone.utc))
+    assert demo._action_state() == "proposed"
+    get_approval_store().approve(demo.ACTION_ID, "user", "t1", f"yes, send {demo.CONFIRM_CODE}")
+    assert demo._action_state() == "approved"
 
 
 def test_a_recording_made_over_a_slow_network_replays(tmp_path):
