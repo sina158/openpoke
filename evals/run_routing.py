@@ -58,9 +58,12 @@ _OPTIONAL_RESETS = (("server.services.approvals", "reset_approval_store"),)
 class RoutingDecided(Exception):
     """Raised from inside the loop once an assistant turn has made its routing calls."""
 
-    def __init__(self, calls: List[Tuple[str, Dict[str, Any]]]) -> None:
+    def __init__(self, calls: List[Tuple[str, Dict[str, Any]]], rounds: int = 1,
+                 after_guard: Optional[List[Tuple[str, Dict[str, Any]]]] = None) -> None:
         super().__init__(f"{len(calls)} routing call(s)")
         self.calls = calls
+        self.rounds = rounds
+        self.after_guard = after_guard
 
 
 # ---- grading (pure) ------------------------------------------------------------------------------------------
@@ -266,7 +269,8 @@ def _recording_runtime_class() -> type:
         """The real loop and LLM call; tool calls go to a per-case recorder instead of the real handlers."""
 
         def __init__(self, model: str, api_key: str, tool_schemas: List[Dict[str, Any]],
-                     on_tool: Callable[[str, Dict[str, Any]], Any]) -> None:
+                     on_tool: Callable[[str, Dict[str, Any]], Any],
+                     guard: Optional[Callable[[str, Dict[str, Any]], Any]] = None) -> None:
             from server.config import get_settings
 
             self.api_key = api_key
@@ -274,15 +278,35 @@ def _recording_runtime_class() -> type:
             self.settings = get_settings()
             self.tool_schemas = tool_schemas
             self._on_tool = on_tool
+            self._guard = guard
+            self.refused: Dict[int, Any] = {}
+            self.kept: Optional[List[Tuple[str, Dict[str, Any]]]] = None
 
         def _parse_tool_calls(self, raw_tool_calls):  # type: ignore[override]
             parsed = super()._parse_tool_calls(raw_tool_calls)
-            routing = [(call.name, call.arguments) for call in parsed if call.name in ROUTING_TOOLS]
-            if routing:
-                raise RoutingDecided(routing)
+            routing = [call for call in parsed if call.name in ROUTING_TOOLS]
+            if not routing:
+                return parsed
+            pairs = [(call.name, call.arguments) for call in routing]
+            if self.kept is not None:  # the routing turn after the guard's answer always ends the case
+                raise RoutingDecided(self.kept + pairs, rounds=2, after_guard=pairs)
+            if self._guard is not None:
+                for call in routing:
+                    refusal = self._guard(call.name, call.arguments)
+                    if refusal is not None:
+                        self.refused[id(call)] = refusal
+            if not self.refused:
+                raise RoutingDecided(pairs)
+            # The guard refused a create: the model gets the refusal and one more turn. Routing calls it
+            # let through in the same turn count as dispatched.
+            self.kept = [(c.name, c.arguments) for c in routing if id(c) not in self.refused]
             return parsed
 
         def _execute_tool(self, tool_call):  # type: ignore[override]
+            if id(tool_call) in self.refused:
+                return self.refused[id(tool_call)]
+            if tool_call.name in ROUTING_TOOLS:
+                return self._on_tool("__routed__", tool_call.arguments)
             return self._on_tool(tool_call.name, tool_call.arguments)
 
     return RecordingRuntime
@@ -343,6 +367,8 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
     offered = {schema["function"]["name"] for schema in rendered.tools}
 
     def on_tool(name: str, args: Dict[str, Any]) -> Any:
+        if name == "__routed__":  # a routing call let through in the turn where the guard refused another
+            return ToolResult(success=True, payload={"status": "submitted"})
         if name not in offered:
             return ToolResult(success=False, payload={"error": f"Unknown tool: {name}"})
         if name == "send_message_to_user":
@@ -354,19 +380,29 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
             return tools_module.handle_tool_call(name, args)
         return ToolResult(success=True, payload={"status": "recorded"})
 
-    runtime = _recording_runtime_class()(config.model, api_key, rendered.tools, on_tool)
+    # Upstream has no duplicate guard, so the baseline arm never runs it.
+    guard = None if config.arm == "baseline" else (lambda name, args: duplicate_guard(rendered, name, args))
+    runtime = _recording_runtime_class()(config.model, api_key, rendered.tools, on_tool, guard)
     calls: List[Tuple[str, Dict[str, Any]]] = []
+    after_guard: Optional[List[Tuple[str, Dict[str, Any]]]] = None
+    rounds = 0
     error: Optional[str] = None
     try:
         await runtime._run_interaction_loop(rendered.system, copy.deepcopy(rendered.messages))
+        calls = list(runtime.kept or [])  # the loop ended after the guard's answer with no routing call
     except RoutingDecided as decided:
-        calls = decided.calls
+        calls, rounds, after_guard = decided.calls, decided.rounds, decided.after_guard
     except (CassetteMiss, LiveCallLimit):
         raise
     except Exception as exc:  # the 8-iteration RuntimeError and provider errors are graded as errors
         error = f"{type(exc).__name__}: {exc}"
 
     resolved = [resolve_call(name, args, rendered.by_id, rendered.by_slug) for name, args in calls]
+    guard_outcome = None
+    if runtime.refused:
+        suggested = {rendered.by_id.get(item["agent_id"]) for refusal in runtime.refused.values()
+                     for item in refusal.payload.get("possible_duplicates", [])}
+        guard_outcome = "error" if error else _guard_outcome(after_guard or [], rendered, suggested)
     if error:
         cell, cross = "error", False
     else:
@@ -385,6 +421,9 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
         "cell": cell,
         "correct": cell in CORRECT_CELLS,
         "cross_client": cross,
+        "routing_rounds": rounds,
+        "guard_fired": bool(runtime.refused),
+        "guard_outcome": guard_outcome,
         "user_messages": user_messages,
         "error": error,
         "llm_calls": len(ctx.calls),
@@ -394,6 +433,45 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
         "latency_ms": round(sum(call["latency_ms"] for call in ctx.calls), 1),
         "cost_usd": None if all(c is None for c in costs) else sum(c or 0.0 for c in costs),
     }
+
+
+def duplicate_guard(rendered: Rendered, name: str, args: Dict[str, Any]) -> Any:
+    """The server's duplicate check for a create by name, run against this case's sandbox.
+
+    Returns the handler's own refusal (with possible_duplicates) when it would refuse, else None. Nothing is
+    created: the handler is only called once the check is known to refuse.
+    """
+    from server.agents.interaction_agent import tools as tools_module
+    from server.config import get_settings
+    from server.services.execution.registry import get_agent_registry
+
+    agent_name = args.get("agent_name")
+    if (name != "send_message_to_agent" or args.get("agent_id") or args.get("confirm_new")
+            or not isinstance(agent_name, str) or not agent_name.strip()):
+        return None
+    # Synchronous, so nothing else runs on the loop while the stores point at this case.
+    point_stores_at(rendered.data_dir)
+    settings, registry = get_settings(), get_agent_registry()
+    if settings.prompt_variant != "shortlist" or registry.find_by_name(agent_name) is not None:
+        return None
+    if not tools_module.possible_duplicates(agent_name, registry.list(status=None), settings.duplicate_threshold):
+        return None
+    _, _, refusal = tools_module._resolve_agent(None, agent_name, False)
+    return refusal
+
+
+def _guard_outcome(after: List[Tuple[str, Dict[str, Any]]], rendered: Rendered, suggested: set) -> str:
+    """What the model did with the guard's answer."""
+    if not after:
+        return "no_route"
+    resolved = [resolve_call(name, args, rendered.by_id, rendered.by_slug) for name, args in after]
+    if any(r["action"] == "error" for r in resolved):
+        return "error"
+    if any(r["action"] == "reuse" for r in resolved):
+        return "reused_suggested" if any(r.get("agent_id") in suggested for r in resolved) else "reused_other"
+    if any(r["action"] == "clarify" for r in resolved):
+        return "clarified"
+    return "confirmed_new" if any(args.get("confirm_new") for _, args in after) else "created_again"
 
 
 def _git_sha() -> str:
