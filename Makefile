@@ -1,4 +1,9 @@
+# Windows installs provide "python"; elsewhere it is usually "python3".
+ifeq ($(OS),Windows_NT)
 PYTHON ?= python
+else
+PYTHON ?= python3
+endif
 ARMS ?= baseline prompt_only fix
 SIZES ?= 5,50,500
 TRIALS ?= 1
