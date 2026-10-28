@@ -157,7 +157,7 @@ def _mean(values: List[float]) -> Optional[float]:
 
 
 def score(run: Dict[str, Any], scenario: Dict[str, Any]) -> Dict[str, Any]:
-    """The pre-registered measures (S1-S5) for one arm's run, plus the per-day series."""
+    """One arm's lifecycle measures, plus the per-day series."""
     records, days = run["records"], run["header"]["days"]
     graded = grade_turns(records, run["seeded"], scenario["matters"])
     ideal = ideal_timeline(scenario, days=days)
@@ -356,6 +356,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     unknown = [arm for arm in arms if arm not in ARMS]
     if unknown or not 1 <= args.days <= DAYS:
         parser.error(f"unknown arms {unknown}" if unknown else f"--days must be 1..{DAYS}")
+    if args.mode != "replay" and not (os.environ.get("OPENPOKE_LLM_API_KEY") or os.environ.get("OPENROUTER_API_KEY")):
+        parser.error("--record and --live need OPENPOKE_LLM_API_KEY or OPENROUTER_API_KEY")
     logging.getLogger("openpoke").setLevel(logging.WARNING)
     scenario = build_scenario()
     for arm in arms:

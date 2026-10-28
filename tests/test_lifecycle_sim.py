@@ -182,3 +182,10 @@ def test_the_command_line_replays_a_recorded_run_and_refuses_a_missing_one(tmp_p
     assert "## Day 2:" in transcript and "graded:" in transcript and "Archived at 07:00" in transcript
     assert run_lifecycle.main(["--arms", "baseline", *common]) == 2
     assert "stopped, nothing written" in capsys.readouterr().err
+
+
+def test_a_live_run_without_a_key_is_refused(monkeypatch):
+    monkeypatch.delenv("OPENPOKE_LLM_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    with pytest.raises(SystemExit):
+        run_lifecycle.main(["--record", "--days", "1"])

@@ -72,6 +72,9 @@ def test_demo_records_then_replays_offline_with_every_turn_in_its_cell(tmp_path)
     markdown = demo.render_markdown(replayed)
     assert "**9 of 9 checked turns landed in their scripted cell.**" in markdown
     assert demo.CONFIRM_CODE in markdown and "Penhallow basement flood claim" in markdown
+    # Before the v2 shortlist lands, the archived claim is not listed; after, it should be.
+    assert re.search(r"- revived: Penhallow basement flood claim \((it was on the shortlist|not listed in the "
+                     r"prompt)\)", markdown)
 
 
 def test_the_revive_turn_is_checked_under_fix_v2_only(tmp_path):

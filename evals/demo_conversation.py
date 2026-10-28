@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -19,7 +20,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 from unittest import mock
 
-from evals.cassette import CASSETTE_DIR, Cassette
+from evals.cassette import CASSETTE_DIR, Cassette, CassetteMiss
 from evals.run_routing import DEFAULT_MODEL, _model_slug, default_model
 from evals.simulate import ARMS, Simulation, Turn
 
@@ -118,7 +119,7 @@ def observed_cell(turn: Turn, keys: Dict[str, str], spec: Dict[str, Any], gate_s
 def run_demo(arm: str = "fix_v2", model: Optional[str] = None, mode: str = "replay",
              cassette_dir: Path = CASSETTE_DIR, inner: Optional[Callable[..., Any]] = None) -> Dict[str, Any]:
     """Seed the roster, run every turn and return {header, turns}. Each turn carries expected and observed."""
-    model = model or (DEFAULT_MODEL if mode == "replay" else default_model(None))
+    model = model or (DEFAULT_MODEL if mode == "replay" else default_model(os.environ.get("OPENPOKE_LLM_BASE_URL")))
     cassette = Cassette(f"demo_{arm}_{_model_slug(model)}", mode, cassette_dir, inner=inner)
     sim = Simulation(arm, model, cassette)
     from server.agents.interaction_agent import tools as tools_module
@@ -197,8 +198,10 @@ def render_markdown(document: Dict[str, Any]) -> str:
         lines += [f"- {_args_line(call)}" + (f": {call['result'].get('error')}"
                                              if isinstance(call["result"], dict) and call["result"].get("error")
                                              else "") for call in turn.tool_calls] or ["- none"]
-        if turn.revived:
-            lines.append(f"- revived: {', '.join(names.get(i, i) for i in turn.revived)}")
+        for agent_id in turn.revived:
+            how = ("it was on the shortlist" if agent_id in turn.shown_ids
+                   else "found with search_agents" if turn.searches else "not listed in the prompt")
+            lines.append(f"- revived: {names.get(agent_id, agent_id)} ({how})")
         reply = turn.reply or "(no reply)"
         lines += ["", "Reply to the user:", "", *("> " + line if line else ">" for line in reply.splitlines()),
                   "", f"{turn.llm_calls} model call(s), {turn.prompt_tokens} prompt tokens.", ""]
@@ -216,8 +219,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--cassette-dir", type=Path, default=CASSETTE_DIR)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = parser.parse_args(argv)
+    if args.mode != "replay" and not (os.environ.get("OPENPOKE_LLM_API_KEY") or os.environ.get("OPENROUTER_API_KEY")):
+        parser.error("--record and --live need OPENPOKE_LLM_API_KEY or OPENROUTER_API_KEY")
     logging.getLogger("openpoke").setLevel(logging.WARNING)
-    document = run_demo(args.arm, args.model, args.mode, args.cassette_dir)
+    try:
+        document = run_demo(args.arm, args.model, args.mode, args.cassette_dir)
+    except CassetteMiss as exc:
+        print(f"replay miss, nothing written ({exc}); record the demo first with --record", file=sys.stderr)
+        return 2
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(render_markdown(document), encoding="utf-8", newline="\n")
     checked = [row for row in document["turns"] if row["checked"]]

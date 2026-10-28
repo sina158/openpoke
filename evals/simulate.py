@@ -214,7 +214,7 @@ class Simulation:
         archived = self.tick(at)
         before = self.statuses()
         ctx = CallContext(temperature=self.temperature, seed=self.seed)
-        self.capture.messages, self.capture.failure = None, None
+        self.capture.messages, self.capture.system, self.capture.failure = None, "", None
         with frozen_log_clock(at.replace(tzinfo=None)):
             result = asyncio.run(self._run(text, message_type, ctx))
         if self.capture.failure is not None:
@@ -236,8 +236,6 @@ class Simulation:
         return turn
 
     async def _run(self, text: str, message_type: str, ctx: CallContext) -> Any:
-        from server.agents.interaction_agent.runtime import InteractionAgentRuntime
-
         CURRENT.set(ctx)
         runtime = _tail_runtime_class()()
         if message_type == "user":
@@ -271,8 +269,14 @@ def _tail_runtime_class() -> type:
             """The real runtime, with the conversation history cut to its last HISTORY_ENTRIES entries."""
 
             def _load_conversation_transcript(self) -> str:
-                lines = self.conversation_log.load_transcript().splitlines()
-                return "\n".join(lines[-HISTORY_ENTRIES:])
+                # Payloads are escaped, so only a line that starts an entry begins with "<".
+                entries: List[str] = []
+                for line in self.conversation_log.load_transcript().splitlines():
+                    if line.startswith("<") or not entries:
+                        entries.append(line)
+                    else:
+                        entries[-1] += "\n" + line
+                return "\n".join(entries[-HISTORY_ENTRIES:])
 
         _TAIL_RUNTIME = TailRuntime
     return _TAIL_RUNTIME
