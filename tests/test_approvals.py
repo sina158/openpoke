@@ -53,6 +53,19 @@ def test_only_a_user_turn_can_approve(store, provenance):
     assert store.get(action.id).state == "proposed"
 
 
+def test_expire_pending_withdraws_live_actions_only(store):
+    proposed = store.propose("GMAIL_SEND_DRAFT", {"draft_id": "r-1"})
+    approved = store.propose("GMAIL_SEND_DRAFT", {"draft_id": "r-2"})
+    sent = store.propose("GMAIL_SEND_DRAFT", {"draft_id": "r-3"})
+    store.approve(approved.id, "user")
+    store.approve(sent.id, "user")
+    store.consume(sent.id)
+
+    assert store.expire_pending() == 2
+    assert [store.get(a.id).state for a in (proposed, approved, sent)] == ["expired", "expired", "executed"]
+    assert store.list_pending() == []
+
+
 def test_user_approval_records_the_turn(store):
     action = store.propose("GMAIL_REPLY_TO_THREAD", REPLY)
 

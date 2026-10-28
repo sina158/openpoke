@@ -143,6 +143,13 @@ class ApprovalStore:
         self._transition(action_id, "approved", "executed", executed_at=_utc_now().isoformat())
         return self._require(action_id)
 
+    def expire_pending(self) -> int:
+        """Withdraw every proposed or approved action (the conversation they belonged to is gone)."""
+        with self._connect() as conn:
+            return conn.execute(
+                "UPDATE pending_actions SET state = 'expired' WHERE state IN ('proposed', 'approved')"
+            ).rowcount
+
     def get(self, action_id: str) -> Optional[PendingAction]:
         with self._connect() as conn:
             row = conn.execute("SELECT * FROM pending_actions WHERE id = ?", (action_id,)).fetchone()

@@ -17,7 +17,7 @@ from ...services.execution.registry import AgentRecord
 from ...services.execution.selector import search, tokenize
 from ...utils.clock import now_utc
 from ..execution_agent.batch_manager import ExecutionBatchManager
-from ..execution_agent.tools.gmail import execute_approved_action
+from ..execution_agent.tools.gmail import ensure_gmail_connected, execute_approved_action
 
 
 @dataclass
@@ -407,6 +407,8 @@ def send_draft(
 def confirm_action(action_id: str) -> ToolResult:
     """Approve a pending action if this turn came from the user, then execute it."""
     try:
+        # Checked before approving, so a send that cannot run never leaves a stranded approval.
+        ensure_gmail_connected()
         action = get_approval_store().approve(action_id, current_provenance(), current_turn_id())
         result = execute_approved_action(action.id)
     except ApprovalError as exc:

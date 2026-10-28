@@ -1,6 +1,7 @@
 import json
 import sqlite3
 from contextlib import closing
+from types import SimpleNamespace
 
 import pytest
 
@@ -102,6 +103,36 @@ def test_non_user_turns_cannot_confirm(sends, provenance):
 
     assert not result.success
     assert "only the user" in result.payload["error"]
+    assert sends == []
+
+
+def test_disconnected_gmail_does_not_strand_an_approval(sends, monkeypatch):
+    action_id = _propose()
+    monkeypatch.setattr(gmail, "get_active_gmail_user_id", lambda: None)
+
+    refused = _confirm(action_id, "user")
+
+    assert not refused.success and "not connected" in refused.payload["error"]
+    assert get_approval_store().get(action_id).state == "proposed"
+    monkeypatch.setattr(gmail, "get_active_gmail_user_id", lambda: "user-test")
+    assert _confirm(action_id, "user").success
+    assert len(sends) == 1
+
+
+def test_clearing_chat_history_withdraws_pending_sends(sends, monkeypatch):
+    from server.routes import chat
+
+    action_id = _propose()
+    for name in ("get_conversation_log", "get_trigger_service"):
+        monkeypatch.setattr(chat, name, lambda: SimpleNamespace(clear=lambda: None, clear_all=lambda: None))
+    monkeypatch.setattr("server.services.get_execution_agent_logs", lambda: SimpleNamespace(clear_all=lambda: None))
+    monkeypatch.setattr("server.services.get_agent_roster", lambda: SimpleNamespace(clear=lambda: None))
+
+    chat.clear_history()
+
+    assert get_approval_store().get(action_id).state == "expired"
+    assert get_approval_store().list_pending() == []
+    assert not _confirm(action_id, "user").success
     assert sends == []
 
 

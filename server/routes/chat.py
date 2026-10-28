@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 
 from ..models import ChatHistoryClearResponse, ChatHistoryResponse, ChatRequest
 from ..services import get_conversation_log, get_trigger_service, handle_chat_request
+from ..services.approvals import get_approval_store
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -41,6 +42,9 @@ def clear_history() -> ChatHistoryClearResponse:
     # Clear stored triggers
     trigger_service = get_trigger_service()
     trigger_service.clear_all()
+
+    # Withdraw sends awaiting approval: the conversation they were proposed in is gone
+    get_approval_store().expire_pending()
 
     return ChatHistoryClearResponse()
 

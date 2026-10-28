@@ -395,15 +395,21 @@ def _propose_send(kind: str, arguments: Dict[str, Any], agent_name: Optional[str
     }
 
 
+def ensure_gmail_connected() -> str:
+    """Return the connected Gmail user id; raise ApprovalError if there is none (check before approving)."""
+    composio_user_id = get_active_gmail_user_id()
+    if not composio_user_id:
+        raise ApprovalError("Gmail not connected. Please connect Gmail in settings first.")
+    return composio_user_id
+
+
 def execute_approved_action(action_id: str) -> Dict[str, Any]:
     """Send a proposed email exactly as proposed, once, after the user approved it."""
     store = get_approval_store()
     action = store.get(action_id)
     if action is None or action.kind not in _SEND_KINDS:
         raise ApprovalError(f"unknown action {action_id}")
-    composio_user_id = get_active_gmail_user_id()
-    if not composio_user_id:
-        raise ApprovalError("Gmail not connected. Please connect Gmail in settings first.")
+    composio_user_id = ensure_gmail_connected()
     action = store.consume(action_id)
     return _execute(action.kind, composio_user_id, action.args)
 
@@ -606,6 +612,7 @@ def build_registry(agent_name: str) -> Dict[str, Callable[..., Any]]:
 
 __all__ = [
     "build_registry",
+    "ensure_gmail_connected",
     "execute_approved_action",
     "summarise_send",
     "get_schemas",
