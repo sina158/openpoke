@@ -53,6 +53,8 @@ is the most common fix-arm failure instead: 11 of the 14 wrong reuses at N=500.
   all 15 multi-agent wrong turns at N=500 and in none of the 3 correct ones (the parallel cases). The turns after
   the check need a new recorded run.
 
+- v2 on this case: <slot>, replay: <command slot>
+
 ## 2. Near-duplicate business name
 
 - Case: `near_duplicate-006` (`near_duplicate.t1`), N = 500, trial 0. Cell `wrong_reuse`, spray.
@@ -87,6 +89,8 @@ is the most common fix-arm failure instead: 11 of the 14 wrong reuses at N=500.
   with this pair asserting "Barrie" and "Sarnia" in the purposes. A card change changes the prompt, so the arm
   needs re-recording.
 
+- v2 on this case: <slot>, replay: <command slot>
+
 ## 3. A new matter sent to an old agent (hijack)
 
 This replaces "entity-only query the card missed": no entity case failed in the fix arm at any size, on either
@@ -115,6 +119,8 @@ should-create cases at N=500 (6 at N=5, 5 at N=50).
   as a claim where the agent handled a renewal, needs a new agent"), re-record the arm, and check that the
   duplicate column does not rise.
 
+- v2 on this case: <slot>, replay: <command slot>
+
 ## 4. Clarify was right, the model messaged both
 
 - Case: `ambiguous-002` (`ambiguous.t1`), N = 500, trial 0. Cell `wrong_guess`.
@@ -142,6 +148,8 @@ should-create cases at N=500 (6 at N=5, 5 at N=50).
   and "emerson lund"); its message should name `clarify_agent_choice` and both ids. The eval already records what
   the model does after a guard (`guard_outcome`), so the same columns would show whether it then asks.
 
+- v2 on this case: <slot>, replay: <command slot>
+
 ## 5. Archived target, not searched
 
 - Case: `near_duplicate-016` (`near_duplicate.t3`), N = 500, trial 0. Cell `wrong_reuse`, wrong agent only.
@@ -164,6 +172,8 @@ should-create cases at N=500 (6 at N=5, 5 at N=50).
 - What would fix it: in `_render_shortlist` (`server/agents/interaction_agent/agent.py`), also score the archived
   cards and append the best one, rendered with `status="archived"`, when it outscores the last card shown. A
   selector test on this pair would show whether the 2025 card makes the cut.
+
+- v2 on this case: <slot>, replay: <command slot>
 
 ## Where the baseline was as good as the fix
 
@@ -203,3 +213,7 @@ log describes the other. 8 golden agents have this, in `near_duplicate-003`, `-0
 `should_create-005`, `-011`, `-017`, `-020`; for example "Ines Pemberton auto endorsement" [g_0239] says "Process a
 home endorsement ... Home policy HO-3817-65". None of the cases above is affected. Fixing it changes the golden
 file and invalidates every cassette.
+
+## Closed in v2
+
+<!-- Filled after the fresh-set results: one entry per closed failure class or known gap, each with the replay command. Empty until then. -->

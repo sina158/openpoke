@@ -88,6 +88,12 @@ order = pins (max 4), then score desc, then id   -> stop at k=8 or 1,200 tokens 
   type and the city, so this set does not test hard paraphrase. Real traffic could change the answer.
 - Decision: `bm25` is the default; `hybrid` stays a flag, with its tests skipping when the model is not installed.
 
+## Retrieval and the audit surface
+
+<!-- SLOT-RETRIEVAL: one paragraph on retrieval (what ranks the shortlist and why archived agents now compete in it), filled after the v2 runs. -->
+
+<!-- SLOT-AUDIT: one sentence on the audit surface (what is recorded per send so a reviewer can reconstruct it). Retrieval and audit together stay under 200 words. -->
+
 ## 4. Why names are not identity
 
 - Upstream an agent is a string in `roster.json` (`list[str]`). Reuse means the model retypes the name. The log file
