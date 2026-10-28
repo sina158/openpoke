@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 from math import comb, sqrt
 from typing import Dict, List, Tuple
 
@@ -43,3 +44,27 @@ def agreement(outcomes_by_case: Dict[str, List[bool]]) -> float:
     if not outcomes_by_case:
         return 0.0
     return sum(len(set(trials)) == 1 for trials in outcomes_by_case.values()) / len(outcomes_by_case)
+
+
+def cluster_bootstrap(values_by_cluster: Dict[str, List[float]], resamples: int = 2000, seed: int = 0,
+                      level: float = 0.95) -> Tuple[float, float]:
+    """Percentile interval for the pooled mean, resampling whole clusters (e.g. templates) with replacement.
+
+    Cases built from one template are not independent, so this interval is wider than Wilson's when
+    templates differ a lot.
+    """
+    clusters = [(sum(values), len(values)) for _, values in sorted(values_by_cluster.items()) if values]
+    if not clusters:
+        return 0.0, 1.0
+    rng = random.Random(seed)
+    means = []
+    for _ in range(resamples):
+        total = count = 0
+        for _ in range(len(clusters)):
+            cluster_total, cluster_count = clusters[rng.randrange(len(clusters))]
+            total += cluster_total
+            count += cluster_count
+        means.append(total / count)
+    means.sort()
+    tail = (1 - level) / 2
+    return means[int(tail * resamples)], means[min(resamples - 1, int((1 - tail) * resamples))]

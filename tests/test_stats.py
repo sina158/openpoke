@@ -33,3 +33,15 @@ def test_pass_k_and_agreement():
     assert pass_k(outcomes) == pytest.approx(1 / 3)
     assert agreement(outcomes) == pytest.approx(2 / 3)
     assert pass_k({}) == 0.0 and agreement({}) == 0.0
+
+
+def test_cluster_bootstrap():
+    from evals.stats import cluster_bootstrap
+
+    same = {f"t{i}": [1.0, 0.0] for i in range(10)}
+    assert cluster_bootstrap(same) == (0.5, 0.5)
+    split = {"a": [1.0] * 10, "b": [0.0] * 10, "c": [1.0] * 10, "d": [0.0] * 10}
+    lo, hi = cluster_bootstrap(split, seed=1)
+    assert lo < 0.3 and hi > 0.7
+    assert cluster_bootstrap(split, seed=1) == (lo, hi)
+    assert cluster_bootstrap({}) == (0.0, 1.0)
