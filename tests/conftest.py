@@ -7,3 +7,4 @@ import tempfile
 _SESSION_DATA_DIR = tempfile.mkdtemp(prefix="openpoke-test-")
 os.environ["OPENPOKE_DATA_DIR"] = _SESSION_DATA_DIR
 os.environ.pop("OPENROUTER_API_KEY", None)
+os.environ.pop("OPENPOKE_LLM_API_KEY", None)
