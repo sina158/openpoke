@@ -94,6 +94,7 @@ def test_profile_v1_still_sends_the_recorded_fix_prompt(monkeypatch):
     document = run_routing.run(config)
     assert document["header"]["live_calls"] == 0 and document["header"]["cassette_hits"] >= 5
 
-    monkeypatch.setenv("OPENPOKE_ROUTING_PROFILE", "v2")
+    # Negative control: the same cases under profile v2 send a different prompt. The arm pins its profile,
+    # so the v2 run goes through fix_v2.
     with pytest.raises(CassetteMiss):
-        run_routing.run(config)
+        run_routing.run(run_routing.RunConfig(arm="fix_v2", sizes=(5,), split="report", limit=5, mode="replay"))

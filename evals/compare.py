@@ -170,8 +170,7 @@ def summarise(records: List[Dict[str, Any]], templates: Dict[str, str],
     # Older result files lack the call counts; their means stay None rather than zero.
     counted = [r for r in records if "llm_calls" in r]
     cache = [r for r in records if r.get("cache_reported")]
-    evidence = [r for r in records if r["category"] in EVIDENCE_CATEGORIES]
-    checked = [r for r in evidence if r.get("evidence_names_discriminator") is not None]
+    multi = [r for r in records if r.get("multi_client_send")]
     summary = {
         "n": len(records),
         "cells": cells,
@@ -193,6 +192,10 @@ def summarise(records: List[Dict[str, Any]], templates: Dict[str, str],
         "refused": {"turns": sum(bool(r.get("ended_refused")) for r in records), "n": len(records),
                     "sends": sum(r.get("shared_client_refused", 0) for r in records)},
         "same_client_multi_send": sum(bool(r.get("same_client_multi_send")) for r in records),
+        # B2a: turns whose sends reached two or more clients, any category (parallel gold included, shown apart).
+        "multi_client_send": {**_rate(len(multi), len(records)),
+                              "upper95": rule_of_three(len(records)) if not multi else None,
+                              "parallel_gold": sum(r["gold"]["kind"] == "parallel" for r in multi)},
         "clarify_precision": _rate(cells["correct_clarify"], predicted_clarify),
         "clarify_recall": _rate(cells["correct_clarify"], gold["clarify"]),
         "over_clarify": _rate(cells["over_clarify"], len(records) - gold["clarify"]),
@@ -213,8 +216,7 @@ def summarise(records: List[Dict[str, Any]], templates: Dict[str, str],
                   "correct_after": sum(bool(r.get("guard_fired")) and r["correct"] for r in records)},
         "archived_target": _archived(records),
         "target_status": _target_status(records, idle or {}),
-        "evidence": {"k": sum(bool(r["evidence_names_discriminator"]) for r in checked), "n": len(checked),
-                     "case_trials": len(evidence)},
+        "evidence": _evidence(records),
     }
     for category in CATEGORIES:
         subset = [r for r in records if r["category"] == category]
@@ -239,6 +241,16 @@ def _archived(records: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {"archived": _rate(sum(r["correct"] for r in archived), len(archived)),
             "active": _rate(sum(r["correct"] for r in active), len(active)),
             "search_found_target": sum(bool(r.get("search_found_target")) for r in archived)}
+
+
+def _evidence(records: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """BARS-v2 A2 twice. As registered: over every near_duplicate and should_create case-trial. Corrected: over
+    correct near_duplicate picks only (a should_create case has no right agent to cite evidence for)."""
+    registered = [r for r in records if r["category"] in EVIDENCE_CATEGORIES]
+    corrected = [r for r in registered if r["category"] == "near_duplicate" and r["cell"] == "correct_reuse"]
+    return {"registered": _rate(sum(bool(r.get("evidence_names_discriminator")) for r in registered),
+                                len(registered)),
+            "corrected": _rate(sum(bool(r.get("evidence_names_discriminator")) for r in corrected), len(corrected))}
 
 
 def _target_status(records: List[Dict[str, Any]], idle: Dict[str, bool]) -> Dict[str, Any]:
@@ -354,6 +366,16 @@ def _token_bars(by_key: Dict[str, Any], size: int = 500, arm: str = "fix",
             f"prompt_token_per_call_ratio_n{size}": ratio("prompt_tokens_per_call")}
 
 
+def _b2a(by_key: Dict[str, Any]) -> Dict[str, Any]:
+    """BARS-v2 B2a on fix_v2 at N=500 (the shared-client check is inert below about 100 agents): pass when no
+    turn's sends reached two clients; a zero is reported with its rule-of-three bound."""
+    row = by_key.get(group_key("fix_v2", DEFAULT_MODEL, 8, 500))
+    if not row:
+        return {"b2a_multi_client_send_n500": None, "b2a_pass": None}
+    multi = row["multi_client_send"]
+    return {"b2a_multi_client_send_n500": multi, "b2a_pass": multi["k"] == 0}
+
+
 def build(documents: List[Dict[str, Any]], selector: Optional[Dict[str, Any]] = None,
           skipped: Sequence[str] = (), injection: Optional[Dict[str, Any]] = None,
           case_set: str = "v1") -> Dict[str, Any]:
@@ -372,7 +394,8 @@ def build(documents: List[Dict[str, Any]], selector: Optional[Dict[str, Any]] = 
         report["bars"] = _token_bars(report["report"]["by_key"])
     else:  # BARS-v2 B5: N=500, and the N=5,000 demonstration on its case sample
         report["bars"] = {**_token_bars(report["report"]["by_key"], arm="fix_v2"),
-                          **_token_bars(report["report"]["by_key"], 5000, "fix_v2", DEMO_SAMPLE)}
+                          **_token_bars(report["report"]["by_key"], 5000, "fix_v2", DEMO_SAMPLE),
+                          **_b2a(report["report"]["by_key"])}
     report["skipped_partial_runs"] = list(skipped)
     if alias:
         report["skipped_fix_alias_runs"] = alias
@@ -514,19 +537,37 @@ def render_markdown(report: Dict[str, Any]) -> str:
               "The shared-client check fires only on rosters of about 100 agents or more (2% cut-off, no floor), "
               "so its zeros mean something at N=500 only. A turn whose routing calls were all refused is graded "
               "no_route and counted under refused turns.", "",
+              "Multi-client sends (B2a): turns whose sends, over every round, reached agents of two or more "
+              "clients, in any category; the parallel-gold ones, where two clients are the right answer, are "
+              "shown in brackets. Evidence (A2) as registered is over every near_duplicate and should_create "
+              "case-trial; corrected is over correct near_duplicate picks only. The eval seeds each agent's log "
+              "with two entries, so on this set the evidence arm tests little more than duplication.", "",
               "| model | N | arm | uncached prompt tok per turn | refused turns | sends refused (shared client) "
-              "| same-client multi-sends | hijack (zero as bound) | evidence names discriminator |",
-              "|" + "---|" * 9]
+              "| same-client multi-sends | multi-client sends (B2a) | hijack (zero as bound) "
+              "| evidence, as registered | evidence, corrected |",
+              "|" + "---|" * 11]
     for row in head["groups"]:
         hijack = row["hijack"]
         bound = f"0 (<= {_pct(hijack['upper95'])})" if hijack.get("upper95") is not None else str(hijack["count"])
-        evidence = row.get("evidence") or {"k": 0, "n": 0, "case_trials": 0}
-        shown = (f"{evidence['k']}/{evidence['n']} of {evidence['case_trials']} case-trials"
-                 if evidence["n"] else "-")
+        multi = row.get("multi_client_send")
+        if not multi:
+            multi_cell = "-"
+        elif multi["upper95"] is not None:
+            multi_cell = f"0 (<= {_pct(multi['upper95'])})"
+        else:
+            multi_cell = f"{_rate_cell(multi)} ({multi['parallel_gold']} parallel)"
+        evidence = row.get("evidence") or {}
         lines.append(f"| {row['model']} | {_size(row)} | {row['arm']} | "
                      f"{_num((row.get('uncached_prompt_tokens') or {}).get('mean'))} | "
                      f"{row.get('refused', {}).get('turns', 0)} | {row.get('refused', {}).get('sends', 0)} | "
-                     f"{row.get('same_client_multi_send', 0)} | {bound} | {shown} |")
+                     f"{row.get('same_client_multi_send', 0)} | {multi_cell} | {bound} | "
+                     f"{_rate_cell(evidence['registered']) if evidence else '-'} | "
+                     f"{_rate_cell(evidence['corrected']) if evidence else '-'} |")
+    b2a = report["bars"].get("b2a_multi_client_send_n500")
+    if b2a:
+        lines += ["", f"B2a, fix_v2 at N=500: {b2a['k']} of {b2a['n']} turns sent to two or more clients "
+                  f"({b2a['parallel_gold']} of them on parallel-gold cases): "
+                  f"{'pass' if report['bars']['b2a_pass'] else 'fail'}."]
     archived = [row for row in head["groups"] if row["archived_target"]["archived"]["n"]]
     if archived:
         lines += ["", "### Archived targets (report split)", "",

@@ -22,7 +22,6 @@ import copy
 import importlib
 import itertools
 import json
-import html
 import os
 import random
 import re
@@ -56,20 +55,21 @@ FIRST_CALLS_CHECKED = 5
 _SHORTLIST = {"OPENPOKE_ROSTER_MODE": "shortlist", "OPENPOKE_PROMPT_VARIANT": "shortlist"}
 
 
-def _profile(profile: str, disable: str = "", evidence: str = "0") -> Dict[str, str]:
-    """The shortlist arm under one routing profile; every v2 flag is set, so nothing leaks in from the shell."""
-    return {**_SHORTLIST, "OPENPOKE_ROUTING_PROFILE": profile, "OPENPOKE_V2_DISABLE": disable,
+def _profile(profile: str, disable: str = "", evidence: str = "0",
+             base: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    """An arm under one routing profile; every v2 flag is set, so nothing leaks in from the shell."""
+    return {**(base or _SHORTLIST), "OPENPOKE_ROUTING_PROFILE": profile, "OPENPOKE_V2_DISABLE": disable,
             "OPENPOKE_SHORTLIST_EVIDENCE": evidence}
 
 
 ARMS: Dict[str, Dict[str, str]] = {
     "baseline": {"OPENPOKE_ROSTER_MODE": "full", "OPENPOKE_PROMPT_VARIANT": "original"},
-    "prompt_only": {"OPENPOKE_ROSTER_MODE": "full", "OPENPOKE_PROMPT_VARIANT": "shortlist"},
-    # Round one's arm name: it runs under whatever profile the shell sets (v2 by default). Fresh-set
-    # reports leave it out; use fix_v1 / fix_v2 there.
-    "fix": dict(_SHORTLIST),
+    # Round one's arms are pinned to profile v1, so their committed cassettes replay whatever the shell says.
+    # Fresh-set reports leave `fix` out; fix_v1 is its name there.
+    "prompt_only": _profile("v1", base={"OPENPOKE_ROSTER_MODE": "full", "OPENPOKE_PROMPT_VARIANT": "shortlist"}),
+    "fix": _profile("v1"),
     # Every agent as a card with the shortlist prompt: the cards-versus-shortlist ablation.
-    "cards_full": {"OPENPOKE_ROSTER_MODE": "full_cards", "OPENPOKE_PROMPT_VARIANT": "shortlist"},
+    "cards_full": _profile("v1", base={"OPENPOKE_ROSTER_MODE": "full_cards", "OPENPOKE_PROMPT_VARIANT": "shortlist"}),
     "fix_v1": _profile("v1"),
     "fix_v2": _profile("v2"),
     "fix_v2_no_c1": _profile("v2", disable="c1"),
@@ -557,6 +557,8 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
         "shared_client_refused": _shared_client_refusals(runtime.refused) + runtime.refused_again,
         "ended_refused": _guard_fired(runtime.refused) == "shared_client" and not calls,
         "same_client_multi_send": len(reused_keys) != len(set(reused_keys)),
+        # BARS-v2 B2a: the turn's sends (every round) reached agents of two or more clients, in any category.
+        "multi_client_send": len(set(reused_keys)) >= 2,
         "target_idle": bool(gold_ids) and any(pool[i]["last_active_days_ago"] > ARCHIVE_IDLE_DAYS for i in gold_ids),
         "evidence_names_discriminator": evidence_check(rendered, picked),
         "user_messages": user_messages,
@@ -597,34 +599,19 @@ def duplicate_guard(rendered: Rendered, name: str, args: Dict[str, Any]) -> Any:
     return refusal
 
 
-_AGENT_LINE = re.compile(r"<agent\b[^>]*>")
-_EVIDENCE_ATTR = re.compile(r'\bevidence="([^"]*)"')
-
-
-def evidence_for(prompt: str, agent_ref: str) -> str:
-    """The evidence the rendered shortlist cites for one agent, or "" when it shows none (BARS-v2 A2).
-
-    The one function to point at the evidence format: it reads an `evidence="..."` attribute on the agent's
-    `<agent id="..." .../>` card line.
-    """
-    wanted = f'id="{html.escape(agent_ref, quote=True)}"'
-    for line in _AGENT_LINE.findall(prompt):
-        if wanted in line:
-            match = _EVIDENCE_ATTR.search(line)
-            return html.unescape(match.group(1)) if match else ""
-    return ""
-
-
 def evidence_check(rendered: Rendered, picked: List[str]) -> Optional[bool]:
     """Whether a picked agent's cited evidence names one of the case's discriminators (A2).
 
-    None when the check does not apply: another category, no discriminators, no pick, or no evidence shown.
+    The evidence is read with the server's own parser (`cards.evidence_of`). None when the check does not
+    apply: another category, no discriminators, no pick, or no evidence shown.
     """
+    from server.services.execution.cards import evidence_of
+
     terms = [t.lower() for t in rendered.case.get("discriminators") or []]
     if rendered.case["category"] not in EVIDENCE_CATEGORIES or not terms or not picked:
         return None
     prompt = "\n".join([rendered.system, *(str(m.get("content") or "") for m in rendered.messages)])
-    shown = [text.lower() for text in (evidence_for(prompt, ref) for ref in picked) if text]
+    shown = [text.lower() for text in (evidence_of(prompt, ref) for ref in picked) if text]
     if not shown:
         return None
     return any(term in text for text in shown for term in terms)
@@ -703,6 +690,9 @@ def run(config: RunConfig, inner: Optional[Callable[..., Any]] = None) -> Dict[s
     if config.arm == "cards_full" and max(config.sizes) > CARDS_FULL_MAX_SIZE and not config.cases_sample:
         raise ValueError(f"the cards_full arm is for N <= {CARDS_FULL_MAX_SIZE}, or a --cases-sample subset")
     golden_path, pool_path, roster_seed = SETS[config.case_set]
+    if not golden_path.exists():
+        raise FileNotFoundError(f"--set {config.case_set} needs {golden_path.name} in evals/golden, which does not "
+                                "exist yet (generate and lock it first)")
     roster_seed = config.seed if roster_seed is None else roster_seed
     cases = load_cases(golden_path, split=config.split)
     if config.case_ids:
@@ -723,9 +713,13 @@ def run(config: RunConfig, inner: Optional[Callable[..., Any]] = None) -> Dict[s
 
     saved = {key: os.environ.get(key) for key in [*_arm_env(config), "OPENPOKE_DATA_DIR"]}
     os.environ.update(_arm_env(config))
-    from server.config import get_settings
+    from server.config import execution_memory, get_settings, routing_profile
 
     get_settings.cache_clear()
+    flags = {"openpoke_routing_profile": routing_profile(),
+             "openpoke_v2_disable": os.environ.get("OPENPOKE_V2_DISABLE", ""),
+             "openpoke_shortlist_evidence": os.environ.get("OPENPOKE_SHORTLIST_EVIDENCE", "0"),
+             "openpoke_execution_memory": execution_memory()}
     sandbox = Path(tempfile.mkdtemp(prefix="openpoke-eval-"))
     started = time.perf_counter()
     try:
@@ -749,6 +743,7 @@ def run(config: RunConfig, inner: Optional[Callable[..., Any]] = None) -> Dict[s
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "arm": config.arm,
         **{key.lower(): value for key, value in ARMS[config.arm].items()},
+        **flags,
         "model": config.model,
         "base_url_host": urlparse(base_url).hostname,
         "commit": _git_sha(),

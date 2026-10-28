@@ -112,7 +112,8 @@ def test_a_second_spray_is_refused_again_and_reaches_no_client(tmp_path):
     assert record["predicted"] == [] and record["cell"] == "no_route" and not record["cross_client"]
 
 
-def test_profile_v1_grades_the_spray_as_sent(tmp_path):
+def test_profile_v1_grades_the_spray_as_sent(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENPOKE_ROUTING_PROFILE", "v2")  # the arm's own pin wins over the shell
     case, fake = _spray(lambda names: pytest.fail("profile v1 must not get a second routing turn"))
     record = _run("fix_v1", fake, case, tmp_path, size=500)
     assert record["guard_fired"] is False and record["routing_rounds"] == 1

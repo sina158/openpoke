@@ -59,6 +59,22 @@ def test_arm_flags_apply_during_the_run_and_are_restored(arm, expected, tmp_path
     header = document["header"]
     assert (header["openpoke_routing_profile"], header["openpoke_v2_disable"],
             header["openpoke_shortlist_evidence"]) == expected
+    assert header["openpoke_execution_memory"] == "recent"
+
+
+def test_round_one_arms_are_pinned_to_v1_and_every_header_says_what_ran(tmp_path, monkeypatch):
+    assert all(run_routing.ARMS[arm]["OPENPOKE_ROUTING_PROFILE"] == "v1"
+               for arm in ("fix", "prompt_only", "cards_full"))
+    monkeypatch.delenv("OPENPOKE_ROUTING_PROFILE", raising=False)
+    monkeypatch.setenv("OPENPOKE_EXECUTION_MEMORY", "retrieved")
+    header = _run("baseline", _no_route, _v2_case("v2-explicit-001"), tmp_path)["header"]
+    assert header["openpoke_routing_profile"] == "v2" and header["openpoke_execution_memory"] == "retrieved"
+    assert header["openpoke_v2_disable"] == "" and header["openpoke_shortlist_evidence"] == "0"
+
+
+def test_an_absent_set_file_is_a_clear_error():
+    with pytest.raises(FileNotFoundError, match="routing_v2_paraphrase.jsonl"):
+        run_routing.run(RunConfig(case_set="v2_paraphrase"))
 
 
 def test_the_v2_set_uses_its_own_files_seed_and_names(tmp_path):
@@ -132,16 +148,34 @@ def test_without_the_check_the_spray_is_sent_and_nothing_is_refused(arm, tmp_pat
     (record,) = _run(arm, fake, case, tmp_path, sizes=(500,))["records"]
     assert record["cell"] == "wrong_reuse" and record["guard_fired"] is False
     assert record["shared_client_refused"] == 0 and not record["ended_refused"] and record["same_client_multi_send"]
+    assert not record["multi_client_send"]  # one client's two agents
+
+
+def test_a_send_to_two_clients_is_a_multi_client_send(tmp_path):
+    case = _v2_case("v2-near_duplicate-001")  # same stem, two businesses
+    pool = load_pool(POOL_V2_PATH)
+
+    async def fake(**kwargs):
+        return _reply(_send(*(pool[i]["name"] for i in case["target_ids"] + case["hard_negative_ids"])))
+
+    (record,) = _run("fix_v2", fake, case, tmp_path)["records"]  # N=5: the check is inert below 100 agents
+    assert record["multi_client_send"] and not record["same_client_multi_send"] and record["cell"] == "wrong_reuse"
 
 
 # ---- the evidence check (BARS-v2 A2) -------------------------------------------------------------------------
 
-def test_evidence_check_reads_the_picked_agents_card_line():
-    prompt = ('<agent id="a1" name="Orla Fenwick home claim - theft" status="active" '
-              'evidence="loss of June 18 &amp; police report" />\n'
-              '<agent id="a2" name="Orla Fenwick home claim - hail damage" status="active" />')
-    assert run_routing.evidence_for(prompt, "a1") == "loss of June 18 & police report"
-    assert run_routing.evidence_for(prompt, "a2") == "" and run_routing.evidence_for(prompt, "a9") == ""
+def test_evidence_check_reads_the_servers_own_card_lines():
+    from server.services.execution.cards import AgentCard, render_card
+
+    def card(agent_id, name):
+        return AgentCard(agent_id, name, "active", "2026-10-20T09:00:00", "Open a home claim.", ())
+
+    prompt = "\n".join([
+        render_card(card("a1", "Orla Fenwick home claim - theft"),
+                    evidence=(1, "Open a home claim, loss of June 18 & police report")),
+        render_card(card("a2", "Orla Fenwick home claim - hail damage")),
+    ])
+    assert 'evidence="a1#1: ' in prompt  # the real cite, escaped as the server writes it
 
     def check(category, terms, picked):
         case = {"category": category, "discriminators": terms}
@@ -151,6 +185,7 @@ def test_evidence_check_reads_the_picked_agents_card_line():
 
     assert check("near_duplicate", ["June 18"], ["a1"]) is True
     assert check("should_create", ["May 27"], ["a1"]) is False
+    assert check("near_duplicate", ["a1#1"], ["a1"]) is False  # the cite id is not evidence
     assert check("near_duplicate", ["June 18"], ["a2"]) is None  # no evidence shown for the pick
     assert check("explicit", ["June 18"], ["a1"]) is None
     assert check("near_duplicate", ["June 18"], []) is None
@@ -170,6 +205,28 @@ def _document(arm, records, path, **header):
               "split": "report", "sizes": [500], "trials": 1, **header}
     path.write_text(json.dumps({"header": header, "records": records}), encoding="utf-8")
     return path
+
+
+def test_b2a_is_graded_from_multi_client_sends():
+    case = _v2_case("v2-parallel-001")
+    row = compare.summarise([_record(case, t, "correct_reuse", multi_client_send=t == 0) for t in range(3)], {})
+    assert row["multi_client_send"]["k"] == 1 and row["multi_client_send"]["parallel_gold"] == 1
+    key = compare.group_key("fix_v2", run_routing.DEFAULT_MODEL, 8, 500)
+    assert compare._b2a({key: row}) == {"b2a_multi_client_send_n500": row["multi_client_send"], "b2a_pass": False}
+    clean = compare.summarise([_record(case, t, "correct_reuse") for t in range(3)], {})
+    assert clean["multi_client_send"]["upper95"] == pytest.approx(1.0) and compare._b2a({key: clean})["b2a_pass"]
+    assert compare._b2a({})["b2a_pass"] is None
+
+
+def test_a2_is_reported_as_registered_and_corrected():
+    near, create = _v2_case("v2-near_duplicate-001"), _v2_case("v2-should_create-001")
+    rows = [_record(near, 0, "correct_reuse", evidence_names_discriminator=True),
+            _record(near, 1, "wrong_reuse", evidence_names_discriminator=True),
+            _record(create, 0, "hijack", evidence_names_discriminator=False),
+            _record(create, 1, "correct_create")]
+    evidence = compare.summarise(rows, {})["evidence"]
+    assert (evidence["registered"]["k"], evidence["registered"]["n"]) == (2, 4)
+    assert (evidence["corrected"]["k"], evidence["corrected"]["n"]) == (1, 1)
 
 
 def test_each_arm_is_paired_against_its_references():
