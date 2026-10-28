@@ -83,3 +83,17 @@ def test_rerun_embeds_nothing_and_drops_texts_no_longer_used(tmp_path):
     assert embedder.calls == [] and out.read_bytes() == before
     run(tmp_path, POOL[:2], GOLDEN, embedder)
     assert embedder.calls == [] and len(EmbeddingCache(out)) == 4
+
+
+def test_generated_pool_records_use_their_request_and_response_as_the_log():
+    record = {"id": "g_0001", "name": "Harbourline Plumbing COI", "first_request": "Issue a COI for policy CGL-1234-56",
+              "last_response": "Emailed office@harbourline.example.com (thread 77a2cf9854f5c11c)."}
+    text = script.pool_card_text(record)
+    assert "cgl-1234-56" in text and "office@harbourline.example.com" in text and "77a2cf9854f5c11c" in text
+
+
+def test_case_query_adds_the_last_two_user_turns():
+    case = {"message": "tell her yes", "history": [
+        {"role": "user", "text": "one"}, {"role": "assistant", "text": "skip"},
+        {"role": "user", "text": "two"}, {"role": "user", "text": "three"}]}
+    assert script.case_query(case) == "tell her yes two three"

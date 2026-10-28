@@ -4,9 +4,9 @@
         --golden evals/golden/routing.jsonl --out evals/fixtures/embeddings_cache.bin
 
 Pool lines are agent records: id (or agent_id), name, and optionally status, last_active_at, purpose,
-entities and log ([tag, text] pairs). The text embedded is card_text(build_card(record)), the same
-text the selector indexes. Golden lines are cases; their "query" field (or "message" when a case
-has no "query") is embedded. Texts already cached are not embedded again and texts no longer in
+entities and log ([tag, text] pairs; generated records give first_request and last_response instead).
+The text embedded is card_text(build_card(record)), the same text the selector indexes. Golden lines
+are cases; their "query" field (or the message plus the last two user turns) is embedded. Texts already cached are not embedded again and texts no longer in
 either file are dropped, so the output holds exactly the current set.
 
 Vectors are stored as int8 (see server/services/execution/embeddings.py): 416 bytes per text at
@@ -45,12 +45,23 @@ def pool_card_text(record: dict) -> str:
         purpose=record.get("purpose", ""),
         entities=list(record.get("entities", [])),
     )
-    log = [(tag, text) for tag, text in record.get("log", [])]
-    return card_text(build_card(source, log))
+    return card_text(build_card(source, pool_log(record)))
+
+
+def pool_log(record: dict) -> list[tuple[str, str]]:
+    """The record's log; for generated pool records, their first request and last response."""
+    if "log" in record:
+        return [(tag, text) for tag, text in record["log"]]
+    entries = [("agent_request", record.get("first_request")), ("agent_response", record.get("last_response"))]
+    return [(tag, text) for tag, text in entries if text]
 
 
 def case_query(case: dict) -> str:
-    return case.get("query") or case.get("message") or ""
+    """The selector query for a case: its message plus the last two user turns of its history."""
+    if case.get("query"):
+        return case["query"]
+    user_turns = [turn["text"] for turn in case.get("history", []) if turn.get("role") == "user"][-2:]
+    return " ".join([case.get("message") or "", *user_turns]).strip()
 
 
 def collect_texts(pool: Iterable[dict], cases: Iterable[dict]) -> list[str]:
