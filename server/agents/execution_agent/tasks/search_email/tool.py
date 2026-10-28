@@ -153,6 +153,7 @@ async def _run_email_search(
             system=get_system_prompt(),
             api_key=api_key,
             tools=[GMAIL_FETCH_EMAILS_SCHEMA, _COMPLETION_TOOL_SCHEMA],
+            role="search",
         )
         
         # Process assistant response

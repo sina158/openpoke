@@ -216,6 +216,7 @@ class InteractionAgentRuntime:
             system=system_prompt,
             api_key=self.api_key,
             tools=self.tool_schemas,
+            role="interaction",
         )
 
     # Extract the assistant's message from the OpenRouter API response structure

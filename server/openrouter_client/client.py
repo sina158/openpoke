@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
@@ -90,13 +91,23 @@ async def request_chat_completion(
     api_key: Optional[str] = None,
     tools: Optional[List[Dict[str, Any]]] = None,
     base_url: Optional[str] = None,
+    role: str,
+    turn_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Request a chat completion and return the full JSON payload, ``usage`` included."""
+    """Request a chat completion and return the full JSON payload, ``usage`` included.
 
+    Every call is written to the cost ledger under ``role``; a call is refused once the
+    ledger has passed its budget.
+    """
+    # Lazy: server.services imports this client, so a top-level import would depend on import order.
+    from ..services import costs
+
+    costs.check_budget()
     base_url = base_url or get_settings().llm_base_url
     url = f"{base_url.rstrip('/')}/chat/completions"
     payload = _build_payload(model=model, messages=messages, system=system, tools=tools, url=url)
 
+    started = time.perf_counter()
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
@@ -109,7 +120,15 @@ async def request_chat_completion(
                 response.raise_for_status()
             except httpx.HTTPStatusError as exc:
                 _handle_response_error(exc)
-            return response.json()
+            data = response.json()
+            costs.record_call(
+                role=role,
+                model=model,
+                usage=data.get("usage"),
+                latency_ms=(time.perf_counter() - started) * 1000,
+                turn_id=turn_id,
+            )
+            return data
         except httpx.HTTPStatusError as exc:  # pragma: no cover - handled above
             _handle_response_error(exc)
         except httpx.HTTPError as exc:

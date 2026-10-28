@@ -98,6 +98,7 @@ async def classify_email_importance(email: ProcessedEmail) -> Optional[str]:
             system=_SYSTEM_PROMPT,
             api_key=api_key,
             tools=[_TOOL_SCHEMA],
+            role="classifier",
         )
     except OpenRouterError as exc:
         logger.error(

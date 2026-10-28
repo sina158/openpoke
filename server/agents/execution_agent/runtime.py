@@ -158,7 +158,8 @@ class ExecutionAgentRuntime:
             messages=messages,
             system=system_prompt,
             api_key=self.api_key,
-            tools=tools_to_send
+            tools=tools_to_send,
+            role="execution",
         )
 
     # Parse and validate tool calls from LLM response into structured format

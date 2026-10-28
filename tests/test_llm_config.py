@@ -43,7 +43,8 @@ def test_defaults_are_unchanged(env):
     assert settings.llm_base_url == "https://openrouter.ai/api/v1"
     assert settings.llm_temperature is None and settings.llm_seed is None
     assert settings.llm_provider_order == [] and settings.llm_headers == {}
-    assert (settings.roster_mode, settings.prompt_variant, settings.shortlist_k) == ("shortlist", "shortlist", 8)
+    assert (settings.roster_mode, settings.prompt_variant) == ("shortlist", "shortlist")
+    assert settings.shortlist_k == 8
     assert (settings.duplicate_threshold, settings.archive_idle_days) == (0.85, 30)
     assert settings.execution_history_limit is None and settings.eval_budget_usd == 40.0
 
@@ -127,10 +128,13 @@ def test_request_uses_base_url_and_extra_headers_and_returns_full_payload(env):
         return httpx.Response(200, json=body)
 
     real_client = httpx.AsyncClient
-    env.setattr(llm_client.httpx, "AsyncClient", lambda **kw: real_client(transport=httpx.MockTransport(handler)))
+    transport = httpx.MockTransport(handler)
+    env.setattr(llm_client.httpx, "AsyncClient", lambda **kw: real_client(transport=transport))
 
     result = asyncio.run(
-        llm_client.request_chat_completion(model="m", messages=[{"role": "user", "content": "hi"}])
+        llm_client.request_chat_completion(
+            model="m", messages=[{"role": "user", "content": "hi"}], role="interaction"
+        )
     )
 
     assert result == body
