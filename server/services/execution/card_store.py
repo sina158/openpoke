@@ -6,15 +6,21 @@ from __future__ import annotations
 
 from typing import Iterable
 
+from ...config import v2_change_enabled
 from .cards import AgentCard, build_card
 from .log_store import get_execution_agent_logs
 from .registry import AgentRecord, get_agent_registry
 
 
+def purpose_style() -> str:
+    """The card purpose style of the routing profile: "sentence" under v2 (change c3), else "clip120"."""
+    return "sentence" if v2_change_enabled("c3") else "clip120"
+
+
 def card_from_log(record: AgentRecord) -> AgentCard:
     """Build the card from the agent's whole log."""
     entries = [(tag, text) for tag, _, text in get_execution_agent_logs().iter_entries(record.name)]
-    return build_card(record, entries)
+    return build_card(record, entries, purpose_style())
 
 
 def card_for(record: AgentRecord) -> AgentCard:

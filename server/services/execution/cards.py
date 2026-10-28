@@ -14,6 +14,11 @@ from html import escape
 from typing import Collection, Iterable, Protocol, Sequence
 
 PURPOSE_MAX_CHARS = 200
+# How the first request opens the purpose. "clip120" (profile v1) cuts it at 120 characters, which can
+# drop the one detail that tells two clients apart, such as the city at the end of the first sentence.
+# "sentence" (v2) keeps the first sentence up to FIRST_SENTENCE_MAX_CHARS and never drops a whole word.
+PURPOSE_STYLES = ("clip120", "sentence")
+FIRST_SENTENCE_MAX_CHARS = 180
 # Identifiers are exact lookup keys while names are weak, repeated evidence, so each kind has its own
 # cap and a log full of names can never push out the thread id a user will quote back.
 MAX_CARD_IDS = 8
@@ -60,6 +65,7 @@ _POLICY = re.compile(r"\b[A-Za-z]{2,5}-?\d{3,}(?:-[A-Za-z0-9]+)*\b")
 _PHONE = re.compile(r"(?<![\w+])\+?\(?\d[\d ().-]{7,}\d(?!\w)")
 _NAME = re.compile(r"\b[A-Z][A-Za-z'-]*[a-z](?: [A-Z][A-Za-z'-]*[a-z])+\b")
 _ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+_SENTENCE_END = re.compile(r"[.!?](?=\s|$)")
 
 # Title Case words that start or end a sentence without being part of a name.
 _NAME_STOPWORDS = frozenset(
@@ -157,39 +163,63 @@ def _latest(values: Sequence[str], limit: int) -> list[str]:
     return [value for value in _dedupe(values) if value in keep]
 
 
-def _clip(text: str, limit: int) -> str:
-    """Collapse whitespace and cut at a word boundary so the result fits in ``limit`` chars."""
+def _clip(text: str, limit: int, keep_whole_word: bool = False) -> str:
+    """Collapse whitespace and cut at a word boundary so the result fits in ``limit`` chars.
+
+    With ``keep_whole_word`` a word that ends exactly at the cut is kept; without it (round one) it is
+    dropped like a word the cut splits.
+    """
     flat = " ".join(text.split())
     if len(flat) <= limit:
         return flat
     cut = flat[: max(limit - 3, 0)]
-    if " " in cut:
+    if " " in cut and not (keep_whole_word and flat[len(cut)] == " "):
         cut = cut[: cut.rfind(" ")]
     return cut + "..."
 
 
-def _purpose_from_log(requests: list[str], responses: list[str]) -> str:
+def _first_sentence(text: str) -> str:
+    flat = " ".join(text.split())
+    end = _SENTENCE_END.search(flat)
+    return flat[: end.end()] if end else flat
+
+
+def _purpose_from_log(requests: list[str], responses: list[str], style: str = "clip120") -> str:
     if not requests and not responses:
         return ""
-    first = _clip(requests[0], 120) if requests else ""
+    whole = style == "sentence"
+    if not requests:
+        first = ""
+    elif whole:
+        first = _clip(_first_sentence(requests[0]), FIRST_SENTENCE_MAX_CHARS, keep_whole_word=True)
+    else:
+        first = _clip(requests[0], 120)
     if not responses:
         return first
     if not first:
-        return _clip(responses[-1], PURPOSE_MAX_CHARS)
+        return _clip(responses[-1], PURPOSE_MAX_CHARS, whole)
     room = PURPOSE_MAX_CHARS - len(first) - 3
-    return f"{first} | {_clip(responses[-1], room)}" if room > 10 else first
+    return f"{first} | {_clip(responses[-1], room, whole)}" if room > 10 else first
 
 
-def build_card(source: CardSource, log_entries: Sequence[tuple[str, str]] = ()) -> AgentCard:
+def build_card(
+    source: CardSource, log_entries: Sequence[tuple[str, str]] = (), purpose_style: str = "clip120"
+) -> AgentCard:
     """Build a card from the agent's log entries, given as ``(tag, text)`` pairs in log order.
 
-    The purpose is the first request plus the head of the last response. Entities come from the whole
-    log: identifiers first (the most recently mentioned survive the cap), then the first names. With
-    no usable log the card falls back to ``source.purpose`` and ``source.entities``.
+    The purpose is the head of the first request (see ``PURPOSE_STYLES``) plus the head of the last
+    response. Entities come from the whole log: identifiers first (the most recently mentioned survive
+    the cap), then the first names. With no usable log the card falls back to ``source.purpose`` and
+    ``source.entities``.
     """
+    if purpose_style not in PURPOSE_STYLES:
+        raise ValueError(f"purpose_style must be one of {PURPOSE_STYLES}, got {purpose_style!r}")
     requests = [text for tag, text in log_entries if tag == "agent_request"]
     responses = [text for tag, text in log_entries if tag == "agent_response"]
-    purpose = _purpose_from_log(requests, responses) or _clip(source.purpose or "", PURPOSE_MAX_CHARS)
+    whole = purpose_style == "sentence"
+    purpose = _purpose_from_log(requests, responses, purpose_style) or _clip(
+        source.purpose or "", PURPOSE_MAX_CHARS, whole
+    )
 
     found = [item for tag, text in log_entries if tag in _ENTITY_TAGS for item in _extract(text)]
     ids = _latest([value for kind, value in found if kind != "name"], MAX_CARD_IDS)

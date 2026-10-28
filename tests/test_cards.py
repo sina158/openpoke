@@ -178,3 +178,50 @@ def test_render_card_shows_age_from_the_given_clock():
     assert 'last_active="3d ago"' in render_card(card, now=now)
     recent = AgentCard("a_0005", "Reminder", "active", "2026-10-27T04:30:00+00:00", "", ())
     assert 'last_active="4h ago"' in render_card(recent, now=now)
+
+
+def _pool_card(agent_id, style):
+    from evals.generate import load_pool
+
+    agent = load_pool()[agent_id]
+    log = [("agent_request", agent["first_request"]), ("agent_response", agent["last_response"])]
+    return build_card(FakeRecord(id=agent_id, name=agent["name"]), log, purpose_style=style)
+
+
+def test_the_sentence_style_keeps_the_city_that_tells_two_clients_apart():
+    # The two Maplestone agents differ only in the city that ends the first sentence of each request.
+    sarnia, barrie = _pool_card("g_0221", "sentence"), _pool_card("g_0222", "sentence")
+    assert sarnia.purpose.startswith("Issue a certificate of insurance") and "Sarnia." in sarnia.purpose
+    assert "Barrie." in barrie.purpose and "Barrie" not in sarnia.purpose
+    for card in (_pool_card("g_0221", "clip120"), _pool_card("g_0222", "clip120")):
+        assert "Sarnia" not in card.purpose and "Barrie" not in card.purpose
+
+
+def test_the_longest_first_sentence_in_the_pool_survives_whole():
+    from evals.generate import load_pool
+
+    from server.services.execution.cards import _first_sentence
+
+    length, agent_id = max((len(_first_sentence(a["first_request"])), i) for i, a in load_pool().items())
+    assert length == 149
+    sentence = _first_sentence(load_pool()[agent_id]["first_request"])
+    assert _pool_card(agent_id, "sentence").purpose.startswith(sentence + " | ")
+
+
+def test_the_sentence_style_still_clips_a_long_first_sentence():
+    log = [("agent_request", "word " * 100 + "end.")]
+    purpose = build_card(FakeRecord(), log, purpose_style="sentence").purpose
+    assert len(purpose) <= 180 and purpose.endswith("word...")
+
+
+def test_a_word_that_ends_exactly_at_the_cut_is_kept_only_when_asked():
+    from server.services.execution.cards import _clip
+
+    assert _clip("alpha beta gamma", 13) == "alpha..."
+    assert _clip("alpha beta gamma", 13, keep_whole_word=True) == "alpha beta..."
+    assert _clip("alpha betamax gamma", 13, keep_whole_word=True) == "alpha..."
+
+
+def test_an_unknown_purpose_style_is_refused():
+    with pytest.raises(ValueError):
+        build_card(FakeRecord(), [("agent_request", "x")], purpose_style="clip200")

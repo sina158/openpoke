@@ -11,7 +11,9 @@ import shutil
 
 from evals import run_routing
 from evals.cassette import CASSETTE_DIR
+from evals.generate import load_cases
 from evals.run_routing import RESULTS_DIR, RunConfig
+from server.config import get_settings
 
 FIX_CASSETTE = "routing_fix_minimax-m3_k8.jsonl"
 RECORDED_RUN = RESULTS_DIR / "20261028_fix_minimax-m3_k8_all_773a8ac.json"
@@ -33,3 +35,24 @@ def test_fix_cassette_replays_under_the_v1_profile(tmp_path, monkeypatch):
     recorded = json.loads(RECORDED_RUN.read_text(encoding="utf-8"))["records"]
     expected = {(r["case_id"], r["size"]): r["cell"] for r in recorded if r["case_id"] in CASES}
     assert {(r["case_id"], r["size"]): r["cell"] for r in document["records"]} == expected
+
+
+def render_fix(case_id, size, profile, sandbox, monkeypatch):
+    """Render one case the way the fix arm does, under ``profile``; returns the user message content."""
+    case = next(c for c in load_cases() if c["case_id"] == case_id)
+    for key, value in run_routing._arm_env(RunConfig(arm="fix", model=run_routing.DEFAULT_MODEL)).items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("OPENPOKE_ROUTING_PROFILE", profile)
+    get_settings.cache_clear()
+    return run_routing.render_case(case, size, sandbox / profile).messages[0]["content"]
+
+
+def shortlist_of(content):
+    return content[content.index("<active_agents") : content.index("</active_agents>")]
+
+
+def test_the_replay_would_see_a_card_change(fresh_stores, tmp_path, monkeypatch):
+    # Negative control: v2 cards keep the city, so this case's v2 prompt is not in the v1 cassette.
+    v1, v2 = (shortlist_of(render_fix("near_duplicate-006", 500, p, tmp_path, monkeypatch)) for p in ("v1", "v2"))
+    assert "Barrie" not in v1 and "Sarnia" not in v1
+    assert "contractor in Barrie." in v2 and "contractor in Sarnia." in v2
