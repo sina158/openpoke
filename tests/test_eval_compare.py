@@ -111,3 +111,41 @@ def test_accuracy_without_ambiguous_and_paraphrase(tmp_path):
         fair = row["accuracy_excl_ambiguous_paraphrase"]
         assert (fair["k"], fair["n"], fair["rate"]) == (1, 2, 0.5) and len(fair["ci95"]) == 2
     assert "without ambiguous, paraphrase" in (tmp_path / "RESULTS.md").read_text(encoding="utf-8")
+
+
+def _model_runs(tmp_path):
+    base = [_record(c, 0, "correct_reuse", tokens=1000, llm_calls=1, searches=0) for c in "abcd"]
+    fix = [_record(c, 0, "correct_reuse", tokens=600, llm_calls=2, searches=1) for c in "abc"]
+    fix.append(_record("d", 0, "correct_reuse", tokens=600, llm_calls=2, searches=1, cost_usd=None))
+    return (_document("baseline", base, tmp_path / "b.json", trials=1, model="minimax-m3"),
+            _document("fix", fix, tmp_path / "f.json", trials=1, model="minimax-m3"))
+
+
+def test_spend_calls_per_turn_and_token_bars(tmp_path):
+    paths = _model_runs(tmp_path)
+    assert compare.main([str(p) for p in paths] + ["--out-dir", str(tmp_path)]) == 0
+
+    results = json.loads((tmp_path / "RESULTS.json").read_text(encoding="utf-8"))
+    assert results["spend"]["total_usd"] == pytest.approx(0.007)
+    assert results["spend"]["unpriced_records"] == 1 and results["spend"]["files"] == 2
+    fix = results["report"]["by_key"]["fix_minimax-m3_k8_n500"]
+    assert fix["llm_calls"]["mean"] == 2 and fix["searches"]["mean"] == 1
+    assert fix["prompt_tokens"]["mean"] == 600 and fix["prompt_tokens_per_call"]["mean"] == 300
+    assert results["bars"]["prompt_token_ratio_n500"] == pytest.approx(0.6)
+    assert results["bars"]["prompt_token_per_call_ratio_n500"] == pytest.approx(0.3)
+    markdown = (tmp_path / "RESULTS.md").read_text(encoding="utf-8")
+    assert "fix / baseline at N=500: 60.0% per turn, 30.0% per LLM call" in markdown
+    assert "$0.0070" in markdown
+
+
+def test_token_bars_are_none_without_both_arms(tmp_path):
+    base, _ = _model_runs(tmp_path)
+    old = _document("prompt_only", [_record("a", 0, "correct_reuse")], tmp_path / "o.json", trials=1)
+    assert compare.main([str(base), str(old), "--out-dir", str(tmp_path)]) == 0
+
+    results = json.loads((tmp_path / "RESULTS.json").read_text(encoding="utf-8"))
+    assert results["bars"] == {"prompt_token_ratio_n500": None, "prompt_token_per_call_ratio_n500": None}
+    # A file written before the call counts were recorded: no mean rather than a made-up zero.
+    row = results["report"]["by_key"]["prompt_only_m_k8_n500"]
+    assert row["llm_calls"]["mean"] is None and row["searches"]["mean"] is None
+    assert "fix / baseline at N=500" not in (tmp_path / "RESULTS.md").read_text(encoding="utf-8")

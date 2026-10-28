@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from evals.generate import load_cases
-from evals.run_routing import CELLS, RESULTS_DIR, _model_slug
+from evals.run_routing import CELLS, DEFAULT_MODEL, RESULTS_DIR, _model_slug
 from evals.stats import agreement, cluster_bootstrap, mcnemar_exact, pass_k, rule_of_three, wilson
 
 CATEGORIES = ("explicit", "entity", "paraphrase", "pronoun", "near_duplicate", "should_create", "ambiguous",
@@ -77,6 +77,10 @@ def _percentile(values: List[float], q: float) -> Optional[float]:
     return ordered[index]
 
 
+def _mean(values: List[float]) -> Optional[float]:
+    return sum(values) / len(values) if values else None
+
+
 def _rate(k: int, n: int) -> Dict[str, Any]:
     lo, hi = wilson(k, n)
     return {"k": k, "n": n, "rate": k / n if n else None, "ci95": [lo, hi]}
@@ -114,6 +118,8 @@ def summarise(records: List[Dict[str, Any]], templates: Dict[str, str]) -> Dict[
     latency = [r["latency_ms"] for r in records]
     costs = [r["cost_usd"] for r in records if r["cost_usd"] is not None]
     fair = [r for r in records if r["category"] not in BASELINE_UNWINNABLE]
+    # Older result files lack the call counts; their means stay None rather than zero.
+    counted = [r for r in records if "llm_calls" in r]
     summary = {
         "n": len(records),
         "cells": cells,
@@ -133,6 +139,9 @@ def summarise(records: List[Dict[str, Any]], templates: Dict[str, str]) -> Dict[
         "clarify_recall": _rate(cells["correct_clarify"], gold["clarify"]),
         "over_clarify": _rate(cells["over_clarify"], len(records) - gold["clarify"]),
         "prompt_tokens": {"mean": sum(tokens) / len(tokens) if tokens else None, "p95": _percentile(tokens, 0.95)},
+        "prompt_tokens_per_call": {"mean": _mean([r["prompt_tokens"] / max(1, r["llm_calls"]) for r in counted])},
+        "llm_calls": {"mean": _mean([r["llm_calls"] for r in counted])},
+        "searches": {"mean": _mean([r["searches"] for r in records if "searches" in r])},
         "latency_ms": {"p50": _percentile(latency, 0.50), "p95": _percentile(latency, 0.95)},
         "usd_per_100_turns": 100 * sum(costs) / len(costs) if costs else None,
         "no_route_questions": sum(r["cell"] == "no_route" and any("?" in m for m in r.get("user_messages", []))
@@ -233,10 +242,37 @@ def _table(documents: List[Dict[str, Any]], split: str, templates: Dict[str, str
     }
 
 
+def _spend(documents: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """USD (list-price equivalent) summed over every record of the loaded files; unpriced records are counted."""
+    costs = [r["cost_usd"] for document in documents for r in document["records"]]
+    priced = [c for c in costs if c is not None]
+    return {"total_usd": sum(priced) if priced else None, "files": len(documents),
+            "unpriced_records": len(costs) - len(priced)}
+
+
+def _token_bars(by_key: Dict[str, Any], size: int = 500) -> Dict[str, Optional[float]]:
+    """BARS.md bar 5: fix over baseline prompt tokens for the default model, per turn and per LLM call.
+
+    None unless both runs exist. The fix calls search_agents first, so per turn it makes more calls than the
+    baseline; the per-call ratio is the one that shows the roster's share of each prompt.
+    """
+    fix, base = (by_key.get(group_key(arm, DEFAULT_MODEL, 8, size)) for arm in ("fix", "baseline"))
+
+    def ratio(metric: str) -> Optional[float]:
+        if not fix or not base or fix[metric]["mean"] is None or not base[metric]["mean"]:
+            return None
+        return fix[metric]["mean"] / base[metric]["mean"]
+
+    return {f"prompt_token_ratio_n{size}": ratio("prompt_tokens"),
+            f"prompt_token_per_call_ratio_n{size}": ratio("prompt_tokens_per_call")}
+
+
 def build(documents: List[Dict[str, Any]], selector: Optional[Dict[str, Any]] = None,
           skipped: Sequence[str] = ()) -> Dict[str, Any]:
     templates = _template_of()
     report: Dict[str, Any] = {split: _table(documents, split, templates) for split in TABLES}
+    report["spend"] = _spend(documents)
+    report["bars"] = _token_bars(report["report"]["by_key"])
     report["skipped_partial_runs"] = list(skipped)
     if selector is not None:
         report["selector"] = selector
@@ -321,6 +357,18 @@ def render_markdown(report: Dict[str, Any]) -> str:
     lines += ["", "Spray: the gold agent was messaged and so was another one. Wrong only: the gold agent was not "
               "messaged at all."]
     lines += _paired_table(head)
+    lines += ["", "### LLM calls and prompt tokens per turn (report split)", "",
+              "| model | N | arm | k | LLM calls mean | searches mean | prompt tok per turn | prompt tok per call |",
+              "|" + "---|" * 8]
+    for row in head["groups"]:
+        lines.append(f"| {row['model']} | {row['size']} | {row['arm']} | {row['k']} | "
+                     f"{_num(row['llm_calls']['mean'], '{:.2f}')} | {_num(row['searches']['mean'], '{:.2f}')} | "
+                     f"{_num(row['prompt_tokens']['mean'])} | {_num(row['prompt_tokens_per_call']['mean'])} |")
+    bars = report["bars"]
+    if bars["prompt_token_ratio_n500"] is not None:
+        lines += ["", f"Prompt tokens, {DEFAULT_MODEL} fix / baseline at N=500: "
+                  f"{_pct(bars['prompt_token_ratio_n500'])} per turn, "
+                  f"{_pct(bars['prompt_token_per_call_ratio_n500'])} per LLM call (BARS.md bar 5: <= 40%)."]
     lines += ["", "### Accuracy by category (report split)", "",
               "| model | N | arm | k | " + " | ".join(CATEGORIES) + " | without ambiguous, paraphrase |",
               "|" + "---|" * (5 + len(CATEGORIES))]
@@ -362,6 +410,9 @@ def render_markdown(report: Dict[str, Any]) -> str:
     lines += ["", "## Sources", ""]
     sources = {(r["file"], r["date"], r["commit"]) for split in TABLES for r in report[split]["groups"]}
     lines += [f"- `{f}` ({d}, commit {c})" for f, d, c in sorted(sources)]
+    spend = report["spend"]
+    lines += ["", f"Spend behind these files: ${_num(spend['total_usd'], '{:.4f}')} (list-price equivalent; "
+              f"{spend['unpriced_records']} records without a price)."]
     if report["skipped_partial_runs"]:
         lines += ["", "Skipped (made with --limit or --cases): " + ", ".join(report["skipped_partial_runs"])]
     return "\n".join(lines) + "\n"
