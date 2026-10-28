@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 from .runtime import ExecutionAgentRuntime, ExecutionResult
 from ...logging_config import logger
 from ...services.execution import get_agent_registry
-from ...services.execution.agent_cards import refresh_card
+from ...services.execution.card_store import refresh_card
 from ...services.provenance import turn_provenance
 from ...utils.clock import now_utc
 

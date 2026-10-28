@@ -10,7 +10,7 @@ from ...config import get_settings
 from ...logging_config import logger
 from ...services.approvals import get_approval_store
 from ...services.execution import embeddings, get_agent_registry, get_agent_roster
-from ...services.execution.agent_cards import cards_for
+from ...services.execution.card_store import cards_for
 from ...services.execution.cards import AgentCard, card_text
 from ...services.execution.selector import render_shortlist, select
 from ...utils.clock import now_utc

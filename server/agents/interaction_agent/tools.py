@@ -11,7 +11,7 @@ from ...services.approvals import ApprovalError, get_approval_store
 from ...services.provenance import current_provenance, current_turn_id
 from ...services.conversation import get_conversation_log
 from ...services.execution import get_agent_registry, get_execution_agent_logs
-from ...services.execution.agent_cards import cards_for
+from ...services.execution.card_store import cards_for, refresh_card
 from ...services.execution.registry import AgentRecord
 from ...services.execution.selector import search, tokenize
 from ...utils.clock import now_utc
@@ -266,6 +266,7 @@ def send_message_to_agent(
     agent_name = record.name
 
     get_execution_agent_logs().record_request(agent_name, instructions)
+    refresh_card(agent_name)
 
     action = "Created" if is_new else "Reused"
     logger.info(f"{action} agent: {agent_name}")
