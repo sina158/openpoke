@@ -285,7 +285,7 @@ def two_agents(fresh_stores, monkeypatch):
         logs.record_request(name, request)
         logs.record_agent_response(name, response)
 
-    def render(evidence_flag, profile="v2"):
+    def render(evidence_flag, profile="v2", message="the Maplestone in Barrie needs its certificate"):
         from server.agents.interaction_agent.agent import prepare_message_with_history
         from server.config import get_settings
 
@@ -295,7 +295,7 @@ def two_agents(fresh_stores, monkeypatch):
         else:
             monkeypatch.setenv("OPENPOKE_SHORTLIST_EVIDENCE", evidence_flag)
         get_settings.cache_clear()
-        return prepare_message_with_history("the Maplestone in Barrie needs its certificate", "")[0]["content"]
+        return prepare_message_with_history(message, "")[0]["content"]
 
     return render
 
@@ -315,6 +315,19 @@ def test_each_snippet_comes_from_the_cited_agents_own_log(two_agents):
         assert snippet in entries[int(cite.group(1))][2]
     sarnia = get_agent_registry().find_by_name("Maplestone Plumbing COI").id
     assert "Barrie" not in evidence_of(content, sarnia)
+
+
+def test_evidence_is_matched_against_the_message_not_the_agents_name(two_agents):
+    from server.services.execution import get_agent_registry
+    from server.services.execution.cards import evidence_of
+
+    heating = get_agent_registry().find_by_name("Maplestone Heating COI").id
+    # The agent's name matches its request; only the message points at its response.
+    content = two_agents("1", message="who is waiting on the holder")
+    assert evidence_of(content, heating) == "Waiting on the holder."
+    assert f'evidence="{heating}#1: ' in content
+    # Both names match their own logs, so a name-keyed lookup would still quote something here.
+    assert ' evidence="' not in two_agents("1", message="any news on the payroll audit")
 
 
 def test_evidence_off_leaves_the_prompt_byte_identical(two_agents):
