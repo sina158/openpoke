@@ -109,7 +109,7 @@ def test_offline_run_through_the_real_loop(tmp_path):
                                                                            "instructions": "go"})])
         return _reply(content="Which certificate do you mean?")
 
-    config = RunConfig(sizes=(5, 50), split="all", mode="record", cassette_dir=tmp_path, concurrency=4,
+    config = RunConfig(model="fake", sizes=(5, 50), split="all", mode="record", cassette_dir=tmp_path, concurrency=4,
                        case_ids=[explicit["case_id"], create["case_id"], ambiguous["case_id"]])
     document = run_routing.run(config, inner=fake_llm)
     cells = {(r["case_id"], r["size"]): r["cell"] for r in document["records"]}
@@ -135,7 +135,7 @@ def test_offline_run_through_the_real_loop(tmp_path):
     assert "<new_user_message>" in ambiguous_prompt
 
     # The same run replays offline from what was just recorded, with no model at all.
-    replayed = run_routing.run(RunConfig(sizes=(5, 50), split="all", mode="replay", cassette_dir=tmp_path,
+    replayed = run_routing.run(RunConfig(model="fake", sizes=(5, 50), split="all", mode="replay", cassette_dir=tmp_path,
                                          case_ids=config.case_ids))
     assert [r["cell"] for r in replayed["records"]] == [r["cell"] for r in document["records"]]
     assert replayed["header"]["live_calls"] == 0
@@ -146,3 +146,25 @@ def test_clarify_and_reuse_together_is_not_a_correct_clarify():
     case = _case("clarify", ["g_1", "g_2"])
     calls = [("clarify_agent_choice", {"candidate_ids": ["g_1", "g_2"]}), _send(agent_id="g_1")]
     assert _cell(case, *calls) == ("wrong_guess", False)
+
+
+def test_default_model_matches_the_endpoint():
+    assert run_routing.default_model(None) == run_routing.OPENROUTER_DEFAULT_MODEL
+    assert run_routing.default_model("https://openrouter.ai/api/v1") == run_routing.OPENROUTER_DEFAULT_MODEL
+    assert run_routing.default_model("https://llm.example.com/v1") == run_routing.DEFAULT_MODEL
+
+
+def test_provider_failures_abort_instead_of_writing_a_zero(tmp_path):
+    from server.openrouter_client import OpenRouterError
+
+    async def broken(**kwargs):
+        raise OpenRouterError("OpenRouter request failed (401): bad key")
+
+    config = RunConfig(sizes=(5,), split="report", limit=6, mode="live", cassette_dir=tmp_path, concurrency=1)
+    with pytest.raises(run_routing.ProviderFailure):
+        run_routing.run(config, inner=broken)
+
+
+def test_cards_full_is_refused_above_fifty():
+    with pytest.raises(ValueError):
+        run_routing.run(RunConfig(arm="cards_full", sizes=(5, 500)))

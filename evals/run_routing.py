@@ -36,13 +36,21 @@ from evals.cassette import CURRENT, CallContext, Cassette, CassetteMiss, LiveCal
 from evals.generate import SEED, _slug, load_cases, load_pool, roster_for
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
-DEFAULT_MODEL = "minimax-m3"
+DEFAULT_MODEL = "minimax-m3"  # the committed cassettes' model, and the default off OpenRouter
+# Checked against https://openrouter.ai/api/v1/models on 2026-10-28: listed, supports tools and seed.
+OPENROUTER_DEFAULT_MODEL = "openai/gpt-4.1-mini"
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
+# A run stops instead of writing a misleading file when the provider keeps failing.
+MAX_ERROR_SHARE = 0.10
+FIRST_CALLS_CHECKED = 5
 ARMS: Dict[str, Dict[str, str]] = {
     "baseline": {"OPENPOKE_ROSTER_MODE": "full", "OPENPOKE_PROMPT_VARIANT": "original"},
     "prompt_only": {"OPENPOKE_ROSTER_MODE": "full", "OPENPOKE_PROMPT_VARIANT": "shortlist"},
     "fix": {"OPENPOKE_ROSTER_MODE": "shortlist", "OPENPOKE_PROMPT_VARIANT": "shortlist"},
+    # Every agent as a card with the shortlist prompt: the cards-versus-shortlist ablation, small rosters only.
+    "cards_full": {"OPENPOKE_ROSTER_MODE": "full_cards", "OPENPOKE_PROMPT_VARIANT": "shortlist"},
 }
+CARDS_FULL_MAX_SIZE = 50
 ROUTING_TOOLS = {"send_message_to_agent", "clarify_agent_choice"}
 CELLS = ("correct_reuse", "wrong_reuse", "duplicate", "over_clarify", "hijack", "correct_create",
          "correct_clarify", "wrong_guess", "partial", "no_route", "error")
@@ -54,6 +62,21 @@ _CLOCKED_MODULES = ("server.services.conversation.log", "server.services.executi
                     "server.services.conversation.summarization.working_memory_log")
 # Stores added by later branches; reset when present.
 _OPTIONAL_RESETS = (("server.services.approvals", "reset_approval_store"),)
+
+
+class ProviderFailure(RuntimeError):
+    """Too many calls failed at the provider (auth, model, network) for the run to mean anything."""
+
+
+def default_model(base_url: Optional[str]) -> str:
+    """A model id that exists at the configured endpoint."""
+    host = urlparse(base_url or DEFAULT_BASE_URL).hostname or ""
+    return OPENROUTER_DEFAULT_MODEL if host.endswith("openrouter.ai") else DEFAULT_MODEL
+
+
+def provider_error(record: Dict[str, Any]) -> bool:
+    """An error from the provider rather than from the model's behaviour (the 8-iteration limit)."""
+    return bool(record["error"]) and "iteration limit" not in record["error"]
 
 
 class RoutingDecided(Exception):
@@ -356,7 +379,7 @@ def _call_cost(usage: Optional[Dict[str, Any]]) -> Optional[float]:
 @dataclass
 class RunConfig:
     arm: str = "baseline"
-    model: str = DEFAULT_MODEL
+    model: Optional[str] = None
     sizes: Tuple[int, ...] = (5, 50, 500)
     trials: int = 1
     split: str = "report"
@@ -529,6 +552,11 @@ def _arm_env(config: RunConfig) -> Dict[str, str]:
 
 def run(config: RunConfig, inner: Optional[Callable[..., Any]] = None) -> Dict[str, Any]:
     """Render every (case, size), run every trial concurrently, and return the results document."""
+    if config.model is None:  # a replay uses the model the committed cassettes were recorded with
+        base_url = os.environ.get("OPENPOKE_LLM_BASE_URL")
+        config.model = DEFAULT_MODEL if config.mode == "replay" else default_model(base_url)
+    if config.arm == "cards_full" and max(config.sizes) > CARDS_FULL_MAX_SIZE:
+        raise ValueError(f"the cards_full arm is for N <= {CARDS_FULL_MAX_SIZE}")
     cases = load_cases(split=config.split)
     if config.case_ids:
         wanted = set(config.case_ids)
@@ -581,6 +609,8 @@ def run(config: RunConfig, inner: Optional[Callable[..., Any]] = None) -> Dict[s
         "temperature": config.temperature,
         "seed": config.seed,
         "split": config.split,
+        "limit": config.limit,
+        "case_ids": config.case_ids,
         "mode": config.mode,
         "cassette_hits": cassette.hits,
         "live_calls": cassette.live_calls,
@@ -594,22 +624,33 @@ async def _run_all(rendered: List[Rendered], config: RunConfig, api_key: str,
                    pool: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
     gate = asyncio.Semaphore(config.concurrency)
     spent = {"usd": 0.0}
+    done: List[Dict[str, Any]] = []
 
     async def one(item: Rendered, trial: int) -> Dict[str, Any]:
         async with gate:
             if config.budget_usd is not None and spent["usd"] > config.budget_usd:
                 raise SystemExit(f"budget of ${config.budget_usd:.2f} reached (spent ${spent['usd']:.4f})")
+            first = done[:FIRST_CALLS_CHECKED]
+            if len(first) == FIRST_CALLS_CHECKED and all(provider_error(r) for r in first):
+                raise ProviderFailure(f"the first {FIRST_CALLS_CHECKED} cases all failed: {first[0]['error']}")
             record = await run_one(item, trial, config, api_key, pool)
             spent["usd"] += record["cost_usd"] or 0.0
+            done.append(record)
             return record
 
-    return list(await asyncio.gather(*(one(item, t) for item in rendered for t in range(config.trials))))
+    records = list(await asyncio.gather(*(one(item, t) for item in rendered for t in range(config.trials))))
+    failed = [r for r in records if provider_error(r)]
+    if records and len(failed) / len(records) > MAX_ERROR_SHARE:
+        raise ProviderFailure(f"{len(failed)} of {len(records)} cases failed at the provider: {failed[0]['error']}")
+    return records
 
 
 def write_results(document: Dict[str, Any], directory: Path = RESULTS_DIR) -> Path:
     header = document["header"]
     stamp = header["date"][:10].replace("-", "")
-    path = directory / f"{stamp}_{header['arm']}_{_model_slug(header['model'])}_k{header['k']}_{header['commit']}.json"
+    partial = "_partial" if header.get("limit") or header.get("case_ids") else ""
+    path = directory / (f"{stamp}_{header['arm']}_{_model_slug(header['model'])}_k{header['k']}"
+                        f"_{header.get('split', 'report')}{partial}_{header['commit']}.json")
     directory.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(document, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
     return path
@@ -630,7 +671,8 @@ def _summary(records: List[Dict[str, Any]]) -> str:
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Routing eval over the golden set.")
     parser.add_argument("--arm", choices=sorted(ARMS), default="baseline")
-    parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--model", default=None,
+                        help=f"default: {DEFAULT_MODEL} for a replay; live, {OPENROUTER_DEFAULT_MODEL} on OpenRouter")
     parser.add_argument("--sizes", default="5,50,500")
     parser.add_argument("--trials", type=int, default=1)
     parser.add_argument("--split", choices=["report", "heldout", "all"], default="report")
@@ -649,9 +691,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.set_defaults(mode="replay")
     parser.add_argument("--cassette-dir", type=Path, default=CASSETTE_DIR)
     parser.add_argument("--max-live-calls", type=int, default=None)
-    parser.add_argument("--budget-usd", type=float, default=None)
+    parser.add_argument("--budget-usd", type=float, default=None, help="default: OPENPOKE_EVAL_BUDGET_USD")
     parser.add_argument("--out-dir", type=Path, default=RESULTS_DIR)
     args = parser.parse_args(argv)
+    if args.budget_usd is None:
+        from server.config import get_settings
+
+        args.budget_usd = get_settings().eval_budget_usd
 
     config = RunConfig(
         arm=args.arm, model=args.model, sizes=tuple(int(s) for s in args.sizes.split(",")), trials=args.trials,
@@ -660,7 +706,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         max_live_calls=args.max_live_calls, budget_usd=args.budget_usd,
         case_ids=args.cases.split(",") if args.cases else None,
     )
-    document = run(config)
+    try:
+        document = run(config)
+    except ProviderFailure as exc:
+        print(f"aborted, no results written: {exc}", file=sys.stderr)
+        return 2
     path = write_results(document, args.out_dir)
     print(_summary(document["records"]))
     header = document["header"]
