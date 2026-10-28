@@ -7,7 +7,7 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional
 
 from server.services.approvals import ApprovalError, get_approval_store
-from server.services.execution import get_execution_agent_logs
+from server.services.execution import get_agent_registry, get_execution_agent_logs
 from server.services.gmail import execute_gmail_tool, get_active_gmail_user_id
 
 _GMAIL_AGENT_NAME = "gmail-execution-agent"
@@ -353,7 +353,8 @@ _SEND_KINDS = {
 # Register an outbound email as a pending action instead of sending it
 def _propose_send(kind: str, arguments: Dict[str, Any], agent_name: Optional[str]) -> Dict[str, Any]:
     payload = {k: v for k, v in arguments.items() if v is not None}
-    action = get_approval_store().propose(kind, payload, agent_id=agent_name)
+    record = get_agent_registry().find_by_name(agent_name) if agent_name else None
+    action = get_approval_store().propose(kind, payload, agent_id=record.id if record else None)
     payload_str = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     get_execution_agent_logs().record_action(
         _GMAIL_AGENT_NAME,

@@ -12,6 +12,7 @@ from server.services.approvals import (
     get_approval_store,
     reset_approval_store,
 )
+from server.services.execution import get_agent_registry
 from server.services.execution.log_store import reset_execution_agent_logs
 from server.services.provenance import turn_provenance
 
@@ -66,10 +67,11 @@ def test_send_tools_only_propose(sends, tool):
     assert sends == []
 
 
-def test_proposal_names_the_agent(sends):
+def test_proposal_names_the_agent_by_registry_id(sends):
+    record, _ = get_agent_registry().get_or_create("Email to a client")
     action_id = _propose()
 
-    assert get_approval_store().get(action_id).agent_id == "Email to a client"
+    assert get_approval_store().get(action_id).agent_id == record.id
 
 
 def test_proposals_are_journalled_in_the_current_log_store(sends, monkeypatch, tmp_path):
