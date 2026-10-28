@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from evals import compare, run_routing
-from evals.generate import GOLDEN_V2_PATH, POOL_V2_PATH, SEED_V2, load_cases, load_pool
+from evals.generate import GOLDEN_V2_PATH, POOL_V2_PATH, SEED_V2, load_cases, load_pool, set_paths
 from evals.run_routing import RunConfig
 
 V2_FLAGS = ("OPENPOKE_ROUTING_PROFILE", "OPENPOKE_V2_DISABLE", "OPENPOKE_SHORTLIST_EVIDENCE")
@@ -89,6 +89,30 @@ def test_the_v2_set_uses_its_own_files_seed_and_names(tmp_path):
     assert "_v2_fix_v2_fake_k8_report_n5_t1_" in path.name
     headline = dict(document, header=dict(header, sizes=[500], trials=3))
     assert run_routing.write_results(headline, tmp_path / "out") != path  # no overwrite across run shapes
+
+
+def _idle(pool, case):
+    return any(pool[i]["last_active_days_ago"] > 30 for i in case["gold"]["agent_ids"])
+
+
+def test_the_heldout_set_uses_its_own_files_seed_and_names(tmp_path):
+    golden, pool_path, seed = run_routing.SETS["v2_heldout"]
+    assert (pool_path, golden) == set_paths(2, "heldout") and seed == 20261030
+    pool, v2_pool = load_pool(pool_path), load_pool(POOL_V2_PATH)
+    # Case ids repeat across the two sets, so pick one whose gold target is idle in one pool and not the other.
+    case = next(c for c in load_cases(golden) if _idle(pool, c) != _idle(v2_pool, _v2_case(c["case_id"])))
+    config = RunConfig(arm="fix_v2", model="fake", sizes=(5,), case_set="v2_heldout", mode="record",
+                       cassette_dir=tmp_path, case_ids=[case["case_id"]])
+    document = run_routing.run(config, inner=_no_route)
+    header, (record,) = document["header"], document["records"]
+    assert header["set"] == "v2_heldout" and header["roster_seed"] == seed and header["n_cases"] == 1
+    assert record["target_idle"] == _idle(pool, case)
+    v2_document = _run("fix_v2", _no_route, _v2_case(case["case_id"]), tmp_path)
+    assert sorted(p.name for p in tmp_path.glob("*.jsonl")) == [
+        "routing_v2_fix_v2_fake_k8.jsonl", "routing_v2_heldout_fix_v2_fake_k8.jsonl"]
+    path = run_routing.write_results(document, tmp_path / "out")
+    assert "_v2_heldout_fix_v2_fake_k8_report_n5_t1_" in path.name
+    assert run_routing.write_results(v2_document, tmp_path / "out") != path
 
 
 def test_new_recordings_never_append_to_round_one_cassettes(tmp_path):
@@ -258,6 +282,21 @@ def test_compare_never_mixes_sets_and_drops_the_fix_alias_from_v2(tmp_path):
     report = json.loads((tmp_path / "RESULTS_v2.json").read_text(encoding="utf-8"))
     assert [row["arm"] for row in report["report"]["groups"]] == ["fix_v2"]
     assert report["skipped_fix_alias_runs"] == ["c.json"]
+
+
+def test_compare_grades_the_heldout_set_into_its_own_files(tmp_path, monkeypatch):
+    case = load_cases(run_routing.SETS["v2_heldout"][0])[0]
+    runs, out = tmp_path / "runs", tmp_path / "out"
+    runs.mkdir()
+    _document("fix_v2", [_record(case, 0, "correct_reuse")], runs / "1_heldout.json", set="v2_heldout")
+    _document("fix_v2", [_record(_v2_case(case["case_id"]), 0, "correct_reuse")], runs / "2_v2.json", set="v2")
+    monkeypatch.setattr(compare, "RESULTS_DIR", runs)
+    assert compare.main(["--set", "v2_heldout", "--out-dir", str(out)]) == 0  # the v2 file is left out, not mixed
+    assert sorted(p.name for p in out.iterdir()) == ["RESULTS_v2_heldout.json", "RESULTS_v2_heldout.md"]
+    report = json.loads((out / "RESULTS_v2_heldout.json").read_text(encoding="utf-8"))
+    assert report["set"] == "v2_heldout"
+    assert report["set_mix"]["idle_target"] == compare.set_mix("v2_heldout")["idle_target"]
+    assert compare.set_mix("v2_heldout")["idle_target"] != compare.set_mix("v2")["idle_target"]
 
 
 def test_v2_report_pairs_against_fix_v1_and_splits_by_target_status(tmp_path):

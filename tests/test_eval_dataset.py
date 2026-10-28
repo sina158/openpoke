@@ -5,6 +5,8 @@ import json
 import re
 from collections import Counter, defaultdict
 
+import pytest
+
 from evals import generate
 from evals.audit_leakage import LIMIT, leaked_cases
 from evals.generate import CATEGORY_COUNTS, CATEGORY_COUNTS_V2, load_cases, load_pool, roster_for
@@ -84,16 +86,40 @@ def test_name_leak_is_under_the_limit():
 # ---- the round-two set: generated blind, locked by hash, never tuned on ------------------------------------
 
 V2_LOCK = generate.GOLDEN_V2_PATH.with_suffix(".sha256")
+# The held-out set: the same generator on a new seed, for measuring changes made after reading v2's failures.
+HELDOUT_SEED = 20261030
+HELDOUT_PATHS = generate.set_paths(2, "heldout")
 
 
-def _v2():
-    return load_cases(generate.GOLDEN_V2_PATH), load_pool(generate.POOL_V2_PATH)
+def _v2(name=None):
+    pool_path, golden_path = generate.set_paths(2, name)
+    return load_cases(golden_path), load_pool(pool_path)
 
 
 def test_v2_committed_files_match_the_generator():
     pool, cases = generate.generate(version=2)
     assert _lines(generate.POOL_V2_PATH) == pool
     assert _lines(generate.GOLDEN_V2_PATH) == cases
+
+
+def test_main_reproduces_the_committed_bytes_and_writes_a_named_set_beside_them(tmp_path, monkeypatch):
+    names = ("POOL_PATH", "GOLDEN_PATH", "POOL_V2_PATH", "GOLDEN_V2_PATH")
+    committed = {name: getattr(generate, name) for name in names}
+    monkeypatch.setattr(generate, "EVALS_DIR", tmp_path)
+    for name, path in committed.items():
+        monkeypatch.setattr(generate, name, tmp_path / path.parent.name / path.name)
+    assert generate.main([]) == 0 and generate.main(["--version", "2"]) == 0
+    assert generate.main(["--version", "2", "--seed", str(HELDOUT_SEED), "--name", "heldout"]) == 0
+    for path in [*committed.values(), *HELDOUT_PATHS]:  # the named run left the default files as they were
+        assert (tmp_path / path.parent.name / path.name).read_bytes() == path.read_bytes(), path.name
+
+
+def test_heldout_is_a_new_draw_with_the_v2_mix():
+    (cases, pool), (v2_cases, v2_pool) = _v2("heldout"), _v2()
+    assert Counter(c["category"] for c in cases) == CATEGORY_COUNTS_V2
+    assert Counter(c["gold"]["kind"] for c in cases) == Counter(c["gold"]["kind"] for c in v2_cases)
+    assert {c["split"] for c in cases} == {"report"} and len(pool) == len(v2_pool)
+    assert len({c["message"] for c in cases} & {c["message"] for c in v2_cases}) < len(cases) // 10
 
 
 def test_v2_set_matches_its_lock():
@@ -115,8 +141,9 @@ def test_v2_counts_templates_and_splits():
     assert not set(ids) & {c["case_id"] for c in load_cases()}
 
 
-def test_v2_gold_agents_exist_and_belong_to_the_case():
-    cases, pool = _v2()
+@pytest.mark.parametrize("name", [None, "heldout"])
+def test_v2_gold_agents_exist_and_belong_to_the_case(name):
+    cases, pool = _v2(name)
     for case in cases:
         gold = case["gold"]
         assert set(gold["agent_ids"]) <= set(case["target_ids"])
@@ -125,8 +152,9 @@ def test_v2_gold_agents_exist_and_belong_to_the_case():
             assert agent_id in pool
 
 
-def test_v2_discriminators_sit_in_the_gold_agent_record():
-    cases, pool = _v2()
+@pytest.mark.parametrize("name", [None, "heldout"])
+def test_v2_discriminators_sit_in_the_gold_agent_record(name):
+    cases, pool = _v2(name)
     checked = 0
     for case in cases:
         kind, gold, terms = case["gold"]["kind"], case["gold"]["agent_ids"], case["discriminators"]
@@ -184,16 +212,18 @@ def test_v2_rosters_nest_and_keep_targets_in_place():
     assert positions == {"start", "middle", "end"}
 
 
-def test_v2_only_invented_domains():
-    text = generate.POOL_V2_PATH.read_text(encoding="utf-8") + generate.GOLDEN_V2_PATH.read_text(encoding="utf-8")
+@pytest.mark.parametrize("name", [None, "heldout"])
+def test_v2_only_invented_domains(name):
+    text = "".join(path.read_text(encoding="utf-8") for path in generate.set_paths(2, name))
     domains = set(re.findall(r"@([\w.-]+)", text))
     assert domains
     assert all(d.endswith((".example.com", ".example.ca", ".test")) or d in {"example.com", "example.ca"}
                for d in domains), domains
 
 
-def test_v2_name_leak_is_under_the_limit():
-    cases, pool = _v2()
+@pytest.mark.parametrize("name", [None, "heldout"])
+def test_v2_name_leak_is_under_the_limit(name):
+    cases, pool = _v2(name)
     assert len(leaked_cases(cases, pool)) / len(cases) < LIMIT
 
 

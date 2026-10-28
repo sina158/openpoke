@@ -1,7 +1,8 @@
 """Seeded generator for the synthetic agent pool and the golden routing set.
 
 `python -m evals.generate` rewrites evals/fixtures/agents_pool.jsonl and evals/golden/routing.jsonl;
-`--version 2` writes the round-two set (agents_pool_v2.jsonl, routing_v2.jsonl) instead.
+`--version 2` writes the round-two set (agents_pool_v2.jsonl, routing_v2.jsonl) instead, and `--name heldout`
+writes a named set beside it (agents_pool_v2_heldout.jsonl, routing_v2_heldout.jsonl) without touching it.
 Each case is built from tuples first (client, policy line, carrier, workflow, recency), then phrased with one
 of a few hand-written templates for its category. Gold labels come from the tuples, never from a model.
 All people, businesses and addresses are invented; domains are example.com, example.ca or .test.
@@ -984,14 +985,24 @@ def hand_check_sample(cases: List[Dict[str, Any]], k: int = 20, seed: int = SEED
     return sorted(random.Random(seed).sample([c["case_id"] for c in cases], k))
 
 
+def set_paths(version: int, name: Optional[str] = None) -> Tuple[Path, Path]:
+    """Return (pool path, golden path) for a version's committed set, or for a named set beside it."""
+    pool_path, golden_path = (POOL_V2_PATH, GOLDEN_V2_PATH) if version == 2 else (POOL_PATH, GOLDEN_PATH)
+    if not name:
+        return pool_path, golden_path
+    return (pool_path.with_name(f"{pool_path.stem}_{name}.jsonl"),
+            golden_path.with_name(f"{golden_path.stem}_{name}.jsonl"))
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--version", type=int, choices=[1, 2], default=1)
     parser.add_argument("--seed", type=int, default=None, help="default: 20261028 for version 1, 20261029 for 2")
     parser.add_argument("--filler", type=int, default=FILLER_COUNT)
+    parser.add_argument("--name", default=None, help="write a named set beside the committed one, e.g. heldout")
     args = parser.parse_args(argv)
     pool, cases = generate(args.seed, args.filler, args.version)
-    pool_path, golden_path = (POOL_V2_PATH, GOLDEN_V2_PATH) if args.version == 2 else (POOL_PATH, GOLDEN_PATH)
+    pool_path, golden_path = set_paths(args.version, args.name)
     _write_jsonl(pool_path, pool)
     _write_jsonl(golden_path, cases)
     print(f"wrote {len(pool)} agents to {pool_path.relative_to(EVALS_DIR.parent)}")

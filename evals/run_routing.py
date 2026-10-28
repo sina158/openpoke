@@ -82,6 +82,9 @@ SETS: Dict[str, Tuple[Path, Path, Optional[int]]] = {
     "v1": (GOLDEN_PATH, POOL_PATH, None),
     "v2": (GOLDEN_V2_PATH, POOL_V2_PATH, SEED_V2),
     "v2_paraphrase": (GOLDEN_V2_PATH.with_name("routing_v2_paraphrase.jsonl"), POOL_V2_PATH, SEED_V2),
+    # The round-two generator on a new seed: generate --version 2 --seed 20261030 --name heldout.
+    "v2_heldout": (GOLDEN_V2_PATH.with_name("routing_v2_heldout.jsonl"),
+                   POOL_V2_PATH.with_name("agents_pool_v2_heldout.jsonl"), 20261030),
 }
 # cards_full above this size only on a --cases-sample subset (a demonstration, not a sweep).
 CARDS_FULL_MAX_SIZE = 50
