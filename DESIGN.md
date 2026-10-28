@@ -4,7 +4,8 @@
 
 Numbers here are marked like the README's, so `python -m evals.check_readme_numbers --readme DESIGN.md` checks
 them. Selector numbers come from the offline selector eval (`evals/results/SELECTOR.md`, all 130 cases, 110 with a
-target agent). Live routing numbers are TBD until the final runs.
+target agent). Live routing numbers come from `evals/results/RESULTS.json`: report split, model minimax-m3, three
+trials for baseline and fix at N=500 and one for every other run.
 
 ## 1. A turn, in order
 
@@ -37,13 +38,18 @@ order = pins (max 4), then score desc, then id   -> stop at k=8 or 1,200 tokens 
 - k=8 is for what the offline eval does not see: several pins at once (a pronoun follow-up while a send is pending
   and another agent just reported) can take half the list. The plan rejected 3 candidates as too few for pronoun
   follow-ups. Whether a longer list lowers the model's choice accuracy is what the live k-sweep measures: fix arm
-  accuracy at N=500 is <!-- n:TODO.report.by_key.fix_minimax-m3_k3_n500.accuracy.rate -->TBD<!-- /n --> at k=3,
-  <!-- n:TODO.report.by_key.fix_minimax-m3_k8_n500.accuracy.rate -->TBD<!-- /n --> at k=8 and
-  <!-- n:TODO.report.by_key.fix_minimax-m3_k16_n500.accuracy.rate -->TBD<!-- /n --> at k=16.
+  accuracy at N=500 is <!-- n:report.by_key.fix_minimax-m3_k3_n500.accuracy.rate -->70.9%<!-- /n --> at k=3,
+  <!-- n:report.by_key.fix_minimax-m3_k8_n500.accuracy.rate -->73.3%<!-- /n --> at k=8 and
+  <!-- n:report.by_key.fix_minimax-m3_k16_n500.accuracy.rate -->73.3%<!-- /n --> at k=16. k=3 and k=16 are one trial
+  each and k=8 three, and the three lie inside each other's Wilson intervals: on this set the size of the list
+  makes little difference either way.
 - The budget: the plan said 600 tokens. A rendered card is about 65-130 tokens (`server/config.py` comment), so 600
   would cut k=8 to about 5-6 cards. 1,200 lets 8 cards fit and only trims outliers. The shortlist block averages
   <!-- n:selector.tokens.n500.shortlist_mean -->769<!-- /n --> tokens at N=500 against
-  <!-- n:selector.tokens.n500.full_mean -->5,499<!-- /n --> for every name.
+  <!-- n:selector.tokens.n500.full_mean -->5,499<!-- /n --> for every name. The whole prompt per turn is not smaller
+  for it: the fix makes <!-- n:report.by_key.fix_minimax-m3_k8_n500.llm_calls.mean -->1.83<!-- /n --> model calls per turn
+  at N=500, mostly to read `search_agents` results, so a turn sends
+  <!-- n:bars.prompt_token_ratio_n500 -->102.5%<!-- /n --> of the baseline's prompt tokens (README, bar 5, which fails).
 - Cards cost more than names at small N: <!-- n:selector.tokens.n5.shortlist_mean -->512<!-- /n --> vs
   <!-- n:selector.tokens.n5.full_mean -->55<!-- /n --> tokens at N=5, and
   <!-- n:selector.tokens.n50.shortlist_mean -->838<!-- /n --> vs <!-- n:selector.tokens.n50.full_mean -->552<!-- /n -->
@@ -117,10 +123,17 @@ order = pins (max 4), then score desc, then id   -> stop at k=8 or 1,200 tokens 
     default stays 0.85.
   - Grading: wrong reuse is its own cell, the cross-client part is counted apart, and a zero is reported as a
     rule-of-three upper bound, never as "0%" (`evals/stats.py`, `rule_of_three`).
-- Baseline at N=500: wrong reuse <!-- n:report.by_key.baseline_minimax-m3_k8_n500.wrong_reuse.rate -->TBD<!-- /n -->,
-  duplicates <!-- n:report.by_key.baseline_minimax-m3_k8_n500.duplicate.rate -->TBD<!-- /n -->; fix:
-  <!-- n:TODO.report.by_key.fix_minimax-m3_k8_n500.wrong_reuse.rate -->TBD<!-- /n --> and
-  <!-- n:TODO.report.by_key.fix_minimax-m3_k8_n500.duplicate.rate -->TBD<!-- /n -->.
+- Baseline at N=500: wrong reuse <!-- n:report.by_key.baseline_minimax-m3_k8_n500.wrong_reuse.rate -->36.3%<!-- /n -->,
+  duplicates <!-- n:report.by_key.baseline_minimax-m3_k8_n500.duplicate.rate -->13.4%<!-- /n -->; fix:
+  <!-- n:report.by_key.fix_minimax-m3_k8_n500.wrong_reuse.rate -->20.4%<!-- /n --> and
+  <!-- n:report.by_key.fix_minimax-m3_k8_n500.duplicate.rate -->0.0%<!-- /n --> (three trials each).
+- The prompt rule did not bring cross-client wrong reuse to zero: the fix still sent
+  <!-- n:report.by_key.fix_minimax-m3_k8_n500.cross_client.wrong_reuse -->15<!-- /n --> of
+  <!-- n:report.by_key.fix_minimax-m3_k8_n500.cross_client.wrong_reuse_n -->201<!-- /n --> should-reuse case-trials to
+  another client's agent as well as the right one, so bar 3 fails. The new rule says to clarify when two agents
+  could fit, but the upstream paragraph kept above it tells the model to call `send_message_to_agent` in parallel
+  as much as possible (`interaction_shortlist.md`, line 15), and nothing stops a turn from messaging two clients'
+  agents (FAILURES.md, class 1).
 
 ## 6. Lookup-first pins
 
@@ -185,14 +198,18 @@ order = pins (max 4), then score desc, then id   -> stop at k=8 or 1,200 tokens 
   upstream behaviour (all history). `OPENPOKE_EXECUTION_STUB=1` returns canned results and still writes the log, for
   simulations.
 - In the eval, pool agents were last active 0, 3, 7, 45 or 350 days ago; about half are older than 30 days, so the fix
-  arm sees them only through `search_agents`.
+  arm sees them only through `search_agents`. At N=500 it was right on
+  <!-- n:report.by_key.fix_minimax-m3_k8_n500.archived_target.archived.rate -->60.0%<!-- /n --> of cases whose target was
+  archived against <!-- n:report.by_key.fix_minimax-m3_k8_n500.archived_target.active.rate -->86.0%<!-- /n --> when it was active.
 
 ## 9. What was rejected, and why
 
 - Vector database, LangChain, LangGraph, any new framework: before cards there was nothing to embed; heavy
   dependencies in a small repo; the diff has to be reviewable; and the measured hybrid lost (section 3).
 - A router model on the hot path: one more call per turn and evals that do not replay; cards are needed anyway. It is
-  the next step only if a measured miss rate asks for it.
+  the next step only if a measured miss rate asks for it. The extra-call argument is weaker than it looked: the fix
+  already makes <!-- n:report.by_key.fix_minimax-m3_k8_n500.llm_calls.mean -->1.83<!-- /n --> calls per turn at N=500
+  through `search_agents`.
 - Merging agents: a wrong merge corrupts memory, and merges cannot be evaluated in the time available.
 - A cap of 6 active agents and at most 3 candidates: the cap changes product behaviour; 3 is too few for pronoun
   follow-ups. k is measured instead.
