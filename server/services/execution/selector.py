@@ -22,7 +22,8 @@ from typing import Iterable, Mapping, Sequence
 from .cards import MAIL_ID, AgentCard, card_text, extract_entities, render_card
 from .embeddings import hybrid_scores
 
-RECENCY_HALF_LIFE_DAYS = 14.0
+# exp(-age / 14 days): the weight falls to 1/e after 14 days, a half-life of about 9.7 days.
+RECENCY_TIME_CONSTANT_DAYS = 14.0
 SCORERS = ("bm25", "entities", "recency")
 HYBRID = "hybrid"
 DEFAULT_WEIGHTS = (1.0, 2.0, 0.5)
@@ -94,7 +95,7 @@ def recency_weight(last_active_at: str, now: datetime) -> float:
     if when is None:
         return 0.0
     age_days = max((now - when).total_seconds() / 86400.0, 0.0)
-    return math.exp(-age_days / RECENCY_HALF_LIFE_DAYS)
+    return math.exp(-age_days / RECENCY_TIME_CONSTANT_DAYS)
 
 
 def _last_mention(haystack: str, needle: str) -> int:
