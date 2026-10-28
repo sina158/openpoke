@@ -53,7 +53,7 @@ is the most common fix-arm failure instead: 11 of the 14 wrong reuses at N=500.
   all 15 multi-agent wrong turns at N=500 and in none of the 3 correct ones (the parallel cases). The turns after
   the check need a new recorded run.
 
-- v2 on this case: <slot>, replay: <command slot>
+- v2 on this case: `correct_reuse`: one send, to `a_0499` (the right agent, found by `search_agents`); no second send. From `evals/results/continuity/20261028_fix_v2_minimax-m3_k8_report_n500_t1_accf492.json` (fix v2 on the v1 set, one trial, N=500). Replay: `python -m evals.run_routing --set v1 --arm fix_v2 --sizes 500 --cases explicit-008 --split all --model minimax-m3 --replay`
 
 ## 2. Near-duplicate business name
 
@@ -89,7 +89,7 @@ is the most common fix-arm failure instead: 11 of the 14 wrong reuses at N=500.
   with this pair asserting "Barrie" and "Sarnia" in the purposes. A card change changes the prompt, so the arm
   needs re-recording.
 
-- v2 on this case: <slot>, replay: <command slot>
+- v2 on this case: `correct_reuse`: one send, to `a_0500`; no spray. From `evals/results/continuity/20261028_fix_v2_minimax-m3_k8_report_n500_t1_accf492.json` (fix v2 on the v1 set, one trial, N=500). Replay: `python -m evals.run_routing --set v1 --arm fix_v2 --sizes 500 --cases near_duplicate-006 --split all --model minimax-m3 --replay`
 
 ## 3. A new matter sent to an old agent (hijack)
 
@@ -119,7 +119,7 @@ should-create cases at N=500 (6 at N=5, 5 at N=50).
   as a claim where the agent handled a renewal, needs a new agent"), re-record the arm, and check that the
   duplicate column does not rise.
 
-- v2 on this case: <slot>, replay: <command slot>
+- v2 on this case: `correct_create`: a new agent "Mara Fairweather home claim"; no hijack. From `evals/results/continuity/20261028_fix_v2_minimax-m3_k8_report_n500_t1_accf492.json` (fix v2 on the v1 set, one trial, N=500). Replay: `python -m evals.run_routing --set v1 --arm fix_v2 --sizes 500 --cases should_create-002 --split all --model minimax-m3 --replay`
 
 ## 4. Clarify was right, the model messaged both
 
@@ -148,7 +148,7 @@ should-create cases at N=500 (6 at N=5, 5 at N=50).
   and "emerson lund"); its message should name `clarify_agent_choice` and both ids. The eval already records what
   the model does after a guard (`guard_outcome`), so the same columns would show whether it then asks.
 
-- v2 on this case: <slot>, replay: <command slot>
+- v2 on this case: `correct_clarify`: `clarify_agent_choice` with both candidates (`g_0295`, `g_0294`); nothing sent. From `evals/results/continuity/20261028_fix_v2_minimax-m3_k8_report_n500_t1_accf492.json` (fix v2 on the v1 set, one trial, N=500). Replay: `python -m evals.run_routing --set v1 --arm fix_v2 --sizes 500 --cases ambiguous-002 --split all --model minimax-m3 --replay`
 
 ## 5. Archived target, not searched
 
@@ -173,7 +173,7 @@ should-create cases at N=500 (6 at N=5, 5 at N=50).
   cards and append the best one, rendered with `status="archived"`, when it outscores the last card shown. A
   selector test on this pair would show whether the 2025 card makes the cut.
 
-- v2 on this case: <slot>, replay: <command slot>
+- v2 on this case: `correct_reuse`: one send, to `a_0251`; the archived target was found. From `evals/results/continuity/20261028_fix_v2_minimax-m3_k8_report_n500_t1_accf492.json` (fix v2 on the v1 set, one trial, N=500). Replay: `python -m evals.run_routing --set v1 --arm fix_v2 --sizes 500 --cases near_duplicate-016 --split all --model minimax-m3 --replay`
 
 ## Where the baseline was as good as the fix
 
@@ -216,4 +216,29 @@ file and invalidates every cassette.
 
 ## Closed in v2
 
-<!-- Filled after the fresh-set results: one entry per closed failure class or known gap, each with the replay command. Empty until then. -->
+Closed means: the case above is right under fix v2 AND the class rate in the continuity run is zero. The continuity run
+is round one's report split, one trial, so it is not blind for v2 (design changes were made from these failures).
+
+- **Class 1 and 2 (spray), on the v1 set only.** `explicit-008` and `near_duplicate-006` pass, and the continuity run
+  has 0 sprays among its should-reuse turns (`evals/results/continuity/RESULTS.md`). **Not closed on the fresh set:**
+  fix v2 sprayed across clients in 11 of 252 case-trials (B2b, `evals/results/RESULTS_v2.md`), so the check misses
+  the shape the fresh set contains (see the new classes below).
+- **Class 4 (clarify was right, the model messaged both), on this case only.** `ambiguous-002` clarifies. On the fresh
+  set clarification is rare (new class B below), so this is a case fixed, not a behaviour fixed.
+
+Replay each with the command printed under its transcript. Classes 3 (hijack: the continuity run still has 1 hijack among
+13 should-create turns) and 5 (archived target) stay open above, with this case's v2 outcome filled in.
+
+## New failure classes from the fresh set
+
+From `evals/results/RESULTS_v2.md` only, fix v2, N=500, report split, three trials (`evals/golden/routing_v2.jsonl`).
+Per-case transcripts are not pulled yet (each class needs one, written as above, once the label review is done).
+
+- **A. Sends that reach two clients.** 19 of 312 turns on cases whose gold does not call for two (B2a), and 11 of 252
+  should-reuse case-trials reached another client's agent, all of them sprays (the right agent plus another). The
+  check refuses only targets that look like the same client; two different clients are not refused.
+- **B. Clarification almost never happens.** 2 of 30 ambiguous case-trials clarify (6.7%); the other 28 were graded as something else (the cell counts are in `report.by_key.fix_v2_minimax-m3_k8_n500.cells`, not split by category).
+- **C. Archived targets are still harder.** Accuracy 73.0% (127/174) when the gold target has been idle more than 30
+  days against 92.6% (100/108) when it is active, a gap of 19.6 points; fix v1 had 64.4% (112/174) against 80.6% (87/108), a gap of 16.4 points. v2 raised both rows and the gap grew.
+- **D. Tokens.** A turn sends 103.0% of the baseline's prompt tokens (B5): the cost of the search round is not paid for
+  by the smaller roster at N=500.
