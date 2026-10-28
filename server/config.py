@@ -222,3 +222,8 @@ def v2_change_enabled(change: str) -> bool:
 def execution_memory() -> str:
     """OPENPOKE_EXECUTION_MEMORY: "recent" (default, the log as before) or "retrieved" (recent plus relevant)."""
     return _env_choice("OPENPOKE_EXECUTION_MEMORY", ("recent", "retrieved"), "recent")
+
+
+def shortlist_evidence() -> bool:
+    """OPENPOKE_SHORTLIST_EVIDENCE=1 puts an evidence snippet on shortlisted cards; only under profile v2."""
+    return routing_profile() == "v2" and _env_choice("OPENPOKE_SHORTLIST_EVIDENCE", ("0", "1"), "0") == "1"

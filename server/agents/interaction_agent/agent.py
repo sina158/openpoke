@@ -5,15 +5,15 @@ from datetime import datetime
 from functools import lru_cache
 from html import escape, unescape
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from ...config import get_settings, v2_change_enabled
+from ...config import get_settings, shortlist_evidence, v2_change_enabled
 from ...logging_config import logger
 from ...services.approvals import get_approval_store
-from ...services.execution import embeddings, get_agent_registry, get_agent_roster
+from ...services.execution import embeddings, get_agent_registry, get_agent_roster, get_execution_agent_logs
 from ...services.execution.card_store import cards_for
 from ...services.execution.cards import AgentCard, card_text, render_card
-from ...services.execution.selector import render_shortlist, select
+from ...services.execution.selector import Scored, evidence, render_shortlist, select
 from ...utils.clock import now_utc
 
 _PROMPT_DIR = Path(__file__).parent / "prompts"
@@ -146,9 +146,22 @@ def _render_shortlist(latest_text: str, transcript: str, message_type: str) -> s
         now=now,
         **_hybrid_arguments(query, cards),
     )
-    body = render_shortlist(selected, len(cards), now)
+    found = _shortlist_evidence(latest_text, selected) if shortlist_evidence() else None
+    body = render_shortlist(selected, len(cards), now, found)
     header = f'<active_agents mode="shortlist" shown="{len(selected)}" total="{len(cards)}">'
     return f"{header}\n{body}\n</active_agents>"
+
+
+def _shortlist_evidence(message: str, selected: Sequence[Scored]) -> Dict[str, Tuple[int, str]]:
+    """For each shortlisted agent, its own log entry that best matches the incoming message."""
+    logs = get_execution_agent_logs()
+    found: Dict[str, Tuple[int, str]] = {}
+    for item in selected:
+        entries = [(tag, text) for tag, _, text in logs.iter_entries(item.card.name)]
+        match = evidence(message, entries)
+        if match:
+            found[item.card.agent_id] = match
+    return found
 
 
 def _hybrid_arguments(query: str, cards: List[AgentCard]) -> Dict[str, Any]:

@@ -36,3 +36,22 @@ def test_committed_eval_data_is_synthetic():
     assert len(files) >= 5
     found = {str(path.relative_to(ROOT)): problems(path.read_text(encoding="utf-8")) for path in files}
     assert {name: hits[:3] for name, hits in found.items() if hits} == {}
+
+
+def test_a_rendered_shortlist_with_evidence_is_synthetic(fresh_stores, tmp_path, monkeypatch):
+    # Evidence quotes agents' logs into the prompt, so the scan also runs over what a turn would send.
+    from evals import run_routing
+    from evals.generate import load_cases
+    from server.config import get_settings
+
+    for key, value in run_routing._arm_env(run_routing.RunConfig(arm="fix", model=run_routing.DEFAULT_MODEL)).items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("OPENPOKE_ROUTING_PROFILE", "v2")
+    monkeypatch.setenv("OPENPOKE_SHORTLIST_EVIDENCE", "1")
+    get_settings.cache_clear()
+    case = next(c for c in load_cases() if c["case_id"] == "near_duplicate-006")
+
+    content = run_routing.render_case(case, 50, tmp_path).messages[0]["content"]
+
+    assert content.count(' evidence="') >= 2 and "@" in content
+    assert problems(content) == []

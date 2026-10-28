@@ -225,3 +225,100 @@ def test_a_word_that_ends_exactly_at_the_cut_is_kept_only_when_asked():
 def test_an_unknown_purpose_style_is_refused():
     with pytest.raises(ValueError):
         build_card(FakeRecord(), [("agent_request", "x")], purpose_style="clip200")
+
+
+# Evidence snippets (OPENPOKE_SHORTLIST_EVIDENCE=1, profile v2).
+
+EVIDENCE_LOG = [
+    ("agent_request", "Renew the home policy for Dana Whitfield in Kingston."),
+    ("tool_response", "gmail_search: Barrie office lease renewal, Barrie site visit, Barrie Barrie"),
+    ("agent_response", "Sent the renewal forms; the Barrie cottage rider is still open."),
+]
+
+
+def test_evidence_is_the_best_matching_own_entry_and_never_raw_tool_output():
+    from server.services.execution.selector import evidence
+
+    assert evidence("the barrie cottage rider", EVIDENCE_LOG) == (2, EVIDENCE_LOG[2][1])
+    assert evidence("renew dana's policy", EVIDENCE_LOG)[0] == 0
+    assert evidence("barrie office lease", EVIDENCE_LOG)[0] == 2  # the tool response would score higher
+    assert evidence("quarterly payroll", EVIDENCE_LOG) is None
+    assert evidence("", EVIDENCE_LOG) is None
+
+
+def test_evidence_is_capped_in_whole_words_around_the_match():
+    from server.services.execution.selector import EVIDENCE_MAX_CHARS, evidence
+
+    words = [f"filler{n}" for n in range(60)]
+    text = " ".join(words[:40] + ["Sarnia"] + words[40:])
+    _, snippet = evidence("which one is in sarnia", [("agent_request", text)])
+
+    assert len(snippet) <= EVIDENCE_MAX_CHARS and "Sarnia" in snippet
+    assert snippet.startswith("...") and snippet.endswith("...")
+    assert set(snippet.strip(".").split()) <= set(text.split())
+
+
+def test_evidence_renders_last_and_parses_back():
+    from server.services.execution.cards import evidence_of
+
+    card = build_card(FakeRecord(), [("agent_request", "Quote for Dana")])
+    line = render_card(card, evidence=(3, 'the "Barrie" rider & cottage'))
+    assert line.endswith('evidence="a_0001#3: the &quot;Barrie&quot; rider &amp; cottage" />')
+    prompt = f"<active_agents>\n{render_card(card)}\n</active_agents>"
+
+    assert evidence_of(f"<active_agents>\n{line}\n</active_agents>", "a_0001") == 'the "Barrie" rider & cottage'
+    assert evidence_of(prompt, "a_0001") is None and evidence_of(prompt, "a_0002") is None
+    assert render_card(card, evidence=None) == render_card(card)
+
+
+@pytest.fixture
+def two_agents(fresh_stores, monkeypatch):
+    from server.services.execution import get_agent_registry, get_execution_agent_logs
+
+    monkeypatch.setenv("OPENPOKE_FIXED_NOW", "2026-10-27T09:00:00Z")
+    registry, logs = get_agent_registry(), get_execution_agent_logs()
+    for name, request, response in [
+        ("Maplestone Plumbing COI", "Issue the certificate for Maplestone Plumbing in Sarnia.", "Certificate sent."),
+        ("Maplestone Heating COI", "Issue the certificate for Maplestone Heating in Barrie.", "Waiting on the holder."),
+    ]:
+        registry.get_or_create(name)
+        logs.record_request(name, request)
+        logs.record_agent_response(name, response)
+
+    def render(evidence_flag, profile="v2"):
+        from server.agents.interaction_agent.agent import prepare_message_with_history
+        from server.config import get_settings
+
+        monkeypatch.setenv("OPENPOKE_ROUTING_PROFILE", profile)
+        if evidence_flag is None:
+            monkeypatch.delenv("OPENPOKE_SHORTLIST_EVIDENCE", raising=False)
+        else:
+            monkeypatch.setenv("OPENPOKE_SHORTLIST_EVIDENCE", evidence_flag)
+        get_settings.cache_clear()
+        return prepare_message_with_history("the Maplestone in Barrie needs its certificate", "")[0]["content"]
+
+    return render
+
+
+def test_each_snippet_comes_from_the_cited_agents_own_log(two_agents):
+    import re
+
+    from server.services.execution import get_agent_registry, get_execution_agent_logs
+    from server.services.execution.cards import evidence_of
+
+    content = two_agents("1")
+    for record in get_agent_registry().list():
+        snippet = evidence_of(content, record.id)
+        cite = re.search(rf'<agent id="{record.id}" [^\n]* evidence="{record.id}#(\d+): ', content)
+        entries = list(get_execution_agent_logs().iter_entries(record.name))
+        assert snippet and cite, record.name
+        assert snippet in entries[int(cite.group(1))][2]
+    sarnia = get_agent_registry().find_by_name("Maplestone Plumbing COI").id
+    assert "Barrie" not in evidence_of(content, sarnia)
+
+
+def test_evidence_off_leaves_the_prompt_byte_identical(two_agents):
+    unset = two_agents(None)
+    assert two_agents("0") == unset and "evidence=" not in unset
+    assert two_agents("1", profile="v1") == two_agents(None, profile="v1")
+    assert two_agents("1") != unset

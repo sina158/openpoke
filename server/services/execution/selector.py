@@ -22,6 +22,10 @@ from typing import Iterable, Mapping, Sequence
 from .cards import MAIL_ID, AgentCard, card_text, extract_entities, render_card
 from .embeddings import hybrid_scores
 
+# Evidence comes from what the agent was asked, did and answered; raw tool output is left out, as on
+# cards, because it holds other people's mail rather than this agent's matter.
+EVIDENCE_TAGS = frozenset({"agent_request", "agent_action", "agent_response"})
+EVIDENCE_MAX_CHARS = 140
 # exp(-age / 14 days): the weight falls to 1/e after 14 days, a half-life of about 9.7 days.
 RECENCY_TIME_CONSTANT_DAYS = 14.0
 SCORERS = ("bm25", "entities", "recency")
@@ -288,13 +292,64 @@ def search(
     return hits[:limit]
 
 
-def render_shortlist(selected: Sequence[Scored], total: int, now: datetime | None = None) -> str:
+def _window(text: str, terms: set[str], limit: int) -> str:
+    """The run of whole words in ``text`` holding the most distinct ``terms`` (earliest on a tie),
+    at most ``limit`` chars with "..." where it was cut."""
+    words = text.split()
+    if len(" ".join(words)) <= limit:
+        return " ".join(words)
+    budget = limit - 6  # room for "..." at both ends
+    hits = [terms.intersection(tokenize(word)) for word in words]
+    best, best_count = (0, 0), -1
+    for start in range(len(words)):
+        end, size = start, -1
+        while end < len(words) and size + 1 + len(words[end]) <= budget:
+            size += 1 + len(words[end])
+            end += 1
+        count = len(set().union(*hits[start:end]))
+        if end > start and count > best_count:
+            best, best_count = (start, end), count
+    start, end = best
+    if start == end:  # the first word alone is longer than the budget
+        return words[0][:budget] + "..."
+    return ("..." if start else "") + " ".join(words[start:end]) + ("..." if end < len(words) else "")
+
+
+def evidence(query: str, entries: Sequence[tuple[str, str]]) -> tuple[int, str] | None:
+    """The agent's own log entry that best matches ``query`` by BM25, as ``(index, snippet)``.
+
+    ``entries`` are one agent's ``(tag, text)`` log entries in log order and ``index`` points into
+    them; only EVIDENCE_TAGS entries compete, scored against each other (the latest wins a tie). The
+    snippet is the window of that entry holding the most query words, at most EVIDENCE_MAX_CHARS
+    chars. None when no entry shares a word with the query.
+    """
+    terms = tokenize(query)
+    usable = [i for i, (tag, _) in enumerate(entries) if tag in EVIDENCE_TAGS]
+    if not terms or not usable:
+        return None
+    index = BM25([tokenize(entries[i][1]) for i in usable])
+    scores = [index.score(terms, n) for n in range(len(usable))]
+    best = max(range(len(usable)), key=lambda n: (scores[n], n))
+    if scores[best] <= 0:
+        return None
+    return usable[best], _window(entries[usable[best]][1], set(terms), EVIDENCE_MAX_CHARS)
+
+
+def render_shortlist(
+    selected: Sequence[Scored],
+    total: int,
+    now: datetime | None = None,
+    evidence: Mapping[str, tuple[int, str]] | None = None,
+) -> str:
     """Body for ``<active_agents mode="shortlist" shown=".." total="..">``.
 
     When agents are hidden, the last line tells the model that search_agents(query) reaches them.
-    Pass the same ``now`` given to ``select`` so the budget was measured on these exact lines.
+    Pass the same ``now`` given to ``select`` so the budget was measured on these exact lines;
+    ``evidence`` (agent id -> ``(entry, snippet)``) is added after selection, outside that budget.
     """
-    lines = [render_card(item.card, item.pinned, now) for item in selected] or ["None"]
+    found = evidence or {}
+    lines = [render_card(item.card, item.pinned, now, found.get(item.card.agent_id)) for item in selected]
+    lines = lines or ["None"]
     hidden = total - len(selected)
     if hidden > 0:
         lines.append(

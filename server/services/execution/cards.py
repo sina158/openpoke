@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from html import escape
+from html import escape, unescape
 from typing import Collection, Iterable, Protocol, Sequence
 
 PURPOSE_MAX_CHARS = 200
@@ -260,11 +260,18 @@ def _age(last_active_at: str, now: datetime) -> str:
     return f"{hours}h ago" if hours < 24 else f"{hours // 24}d ago"
 
 
-def render_card(card: AgentCard, pinned: str | None = None, now: datetime | None = None) -> str:
+def render_card(
+    card: AgentCard,
+    pinned: str | None = None,
+    now: datetime | None = None,
+    evidence: tuple[int, str] | None = None,
+) -> str:
     """Render one ``<agent ... />`` line with every attribute value escaped.
 
     With ``now`` the last activity is shown as an age derived from it, so a fixed clock gives a
-    byte-stable line; without it, as the timestamp to the minute.
+    byte-stable line; without it, as the timestamp to the minute. ``evidence`` is ``(entry, snippet)``
+    from the agent's own log, shown last as ``evidence="<agent_id>#<entry>: <snippet>"``, where
+    ``entry`` indexes the agent's log entries from 0.
     """
     last_active = _age(card.last_active_at, now) if now else (card.last_active_at or "")[:16]
     parts = [
@@ -279,4 +286,24 @@ def render_card(card: AgentCard, pinned: str | None = None, now: datetime | None
         parts.append(f'purpose="{_attr(card.purpose)}"')
     if card.entities:
         parts.append(f'entities="{_attr("; ".join(card.entities))}"')
+    if evidence:
+        entry, snippet = evidence
+        parts.append(f'evidence="{_attr(f"{card.agent_id}#{entry}: {snippet}")}"')
     return f"<agent {' '.join(parts)} />"
+
+
+_EVIDENCE_ATTR = re.compile(r' evidence="([^"]*)"')
+
+
+def evidence_of(prompt_text: str, agent_id: str) -> str | None:
+    """The evidence snippet on ``agent_id``'s shortlist line in ``prompt_text``, without its cite id.
+
+    None when the agent is not on the shortlist or its line has no evidence. Attribute values are
+    escaped, so a quote inside a purpose can never be read as the start of this attribute.
+    """
+    start = f'<agent id="{escape(agent_id, quote=True)}" '
+    for line in prompt_text.splitlines():
+        if line.startswith(start):
+            match = _EVIDENCE_ATTR.search(line)
+            return unescape(match.group(1)).partition(": ")[2] if match else None
+    return None
