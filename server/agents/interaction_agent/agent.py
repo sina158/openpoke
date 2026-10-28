@@ -7,7 +7,7 @@ from html import escape, unescape
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from ...config import get_settings
+from ...config import get_settings, v2_change_enabled
 from ...logging_config import logger
 from ...services.approvals import get_approval_store
 from ...services.execution import embeddings, get_agent_registry, get_agent_roster
@@ -22,6 +22,8 @@ _PROMPT_DIR = Path(__file__).parent / "prompts"
 # outbound email only proposes a send. Archiving idle agents runs only when the roster is shortlisted.
 # "original" is the upstream prompt byte for byte; "shortlist" rewrites only the routing guidance.
 PROMPT_FILES = {"original": "interaction_full.md", "shortlist": "interaction_shortlist.md"}
+# The v2 shortlist prompt (change c4): reuse only for the same matter, no "parallel as much as possible".
+SHORTLIST_V2_FILE = "interaction_shortlist_v2.md"
 
 
 @lru_cache(maxsize=None)
@@ -31,8 +33,14 @@ def _read_prompt(filename: str) -> str:
 
 # Load and return the pre-defined system prompt from markdown file
 def build_system_prompt(variant: str | None = None) -> str:
-    """Return the system prompt for ``variant``, by default the one ``OPENPOKE_PROMPT_VARIANT`` names."""
-    return _read_prompt(PROMPT_FILES[variant or get_settings().prompt_variant])
+    """Return the system prompt for ``variant``, by default the one ``OPENPOKE_PROMPT_VARIANT`` names.
+
+    The shortlist variant reads its v2 file unless profile v1 is set or c4 is disabled.
+    """
+    variant = variant or get_settings().prompt_variant
+    if variant == "shortlist" and v2_change_enabled("c4"):
+        return _read_prompt(SHORTLIST_V2_FILE)
+    return _read_prompt(PROMPT_FILES[variant])
 
 
 # Build structured message with conversation history, active agents, and current turn
