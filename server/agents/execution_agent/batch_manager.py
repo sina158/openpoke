@@ -10,7 +10,10 @@ from typing import Dict, List, Optional
 
 from .runtime import ExecutionAgentRuntime, ExecutionResult
 from ...logging_config import logger
+from ...services.execution import get_agent_registry
+from ...services.execution.agent_cards import refresh_card
 from ...services.provenance import turn_provenance
+from ...utils.clock import now_utc
 
 
 @dataclass
@@ -58,6 +61,7 @@ class ExecutionBatchManager:
             request_id = str(uuid.uuid4())
 
         batch_id = await self._register_pending_execution(agent_name, instructions, request_id)
+        self._mark_active(agent_name)
 
         try:
             logger.info(f"[{agent_name}] Execution started")
@@ -89,8 +93,31 @@ class ExecutionBatchManager:
         finally:
             self._pending.pop(request_id, None)
 
+        self._record_run(agent_name)
         await self._complete_execution(batch_id, result, agent_name)
         return result
+
+    # Registry bookkeeping around a run; it must never fail the run itself
+    def _mark_active(self, agent_name: str) -> None:
+        """Register the agent if needed and revive it if archived (a trigger can fire for one)."""
+        try:
+            registry = get_agent_registry()
+            record, _ = registry.get_or_create(agent_name)
+            if record.status == "archived":
+                registry.revive(record.id, now=now_utc())
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning(f"[{agent_name}] Could not update the registry: {exc}")
+
+    def _record_run(self, agent_name: str) -> None:
+        """Count the run and refresh the agent's card from its log."""
+        try:
+            registry = get_agent_registry()
+            record = registry.find_by_name(agent_name)
+            if record is not None:
+                registry.touch(record.id, now=now_utc())
+                refresh_card(agent_name)
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning(f"[{agent_name}] Could not refresh the agent card: {exc}")
 
     # Add execution request to current batch or create new batch if none exists
     async def _register_pending_execution(

@@ -183,6 +183,10 @@ class TriggerService:
     def list_triggers(self, *, agent_name: str) -> List[TriggerRecord]:
         return self._store.list_for_agent(agent_name)
 
+    def active_agent_names(self) -> List[str]:
+        """Names of the agents that own at least one active trigger."""
+        return self._store.active_agent_names()
+
     def get_due_triggers(
         self, *, before: datetime, agent_name: Optional[str] = None
     ) -> List[TriggerRecord]:

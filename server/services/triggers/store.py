@@ -101,6 +101,13 @@ class TriggerStore:
             ).fetchall()
         return [self._row_to_record(row) for row in rows]
 
+    def active_agent_names(self) -> List[str]:
+        with self._lock, self._connect() as conn:
+            rows = conn.execute(
+                "SELECT DISTINCT agent_name FROM triggers WHERE status = 'active' ORDER BY agent_name"
+            ).fetchall()
+        return [row[0] for row in rows]
+
     def fetch_due(
         self, agent_name: Optional[str], before_iso: str
     ) -> List[TriggerRecord]:
