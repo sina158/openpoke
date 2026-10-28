@@ -1,0 +1,2 @@
+# Optional: local embeddings for OPENPOKE_SELECTOR=hybrid (CPU, no API key). Not needed to run the server.
+fastembed==0.9.1

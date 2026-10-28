@@ -5,8 +5,8 @@ score(a) = 1.0 * bm25(q, card_text(a)) + 2.0 * |entities(q) & entities(a)| + 0.5
 Pinned agents come first (the agent whose result is being handled, agents with a pending action,
 agents named in the last few turns), then the best scores, until k agents or the token budget.
 Everything here is pure and deterministic: the same cards and query give the same list in the same
-order, whatever order the cards arrive in. Another scorer (embeddings, say) would be one more entry
-in ``_components`` with its own weight.
+order, whatever order the cards arrive in. ``scorers="hybrid"`` fuses that ranking with a cosine
+ranking over caller-supplied embeddings (reciprocal rank fusion, see ``embeddings.py``).
 """
 
 from __future__ import annotations
@@ -16,12 +16,14 @@ import re
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Iterable, Sequence
+from typing import Iterable, Mapping, Sequence
 
 from .cards import AgentCard, card_text, extract_entities, render_card
+from .embeddings import hybrid_scores
 
 RECENCY_HALF_LIFE_DAYS = 14.0
 SCORERS = ("bm25", "entities", "recency")
+HYBRID = "hybrid"
 DEFAULT_WEIGHTS = (1.0, 2.0, 0.5)
 
 _STOPWORDS = frozenset(
@@ -158,7 +160,7 @@ def _parse_scorers(scorers: str) -> frozenset[str]:
     names = frozenset(part.strip() for part in scorers.split("+") if part.strip())
     unknown = names - set(SCORERS)
     if not names or unknown:
-        raise ValueError(f"unknown scorers {sorted(unknown)!r}; choose from {SCORERS}")
+        raise ValueError(f"unknown scorers {sorted(unknown)!r}; join {SCORERS} with '+', or use {HYBRID!r}")
     return names
 
 
@@ -203,6 +205,8 @@ def select(
     now: datetime | None = None,
     weights: tuple[float, float, float] = DEFAULT_WEIGHTS,
     scorers: str = "bm25+entities+recency",
+    vectors: Mapping[str, Sequence[float]] | None = None,
+    query_vector: Sequence[float] | None = None,
 ) -> list[Scored]:
     """Return the shortlist: pins first (at most ``max_pins``), then by score desc, then by id.
 
@@ -210,11 +214,23 @@ def select(
     when the next card would push the rendered size (chars / 4) past ``token_budget``; the first
     card is always kept. ``scorers`` picks the score components for ablation; ``max_pins=0``
     turns pinning off. Every card given is a candidate, so the caller leaves out archived agents.
+
+    ``scorers="hybrid"`` needs ``query_vector`` and ``vectors`` (agent id -> vector, from
+    ``embeddings.embed``); the score is then the RRF of the full lexical ranking and the cosine
+    ranking. No embedding happens here.
     """
     if not cards or k <= 0:
         return []
     now = now or datetime.now(timezone.utc)
-    totals = _combine(_components(query, cards, now, _parse_scorers(scorers)), weights, len(cards))
+    hybrid = scorers == HYBRID
+    use = frozenset(SCORERS) if hybrid else _parse_scorers(scorers)
+    totals = _combine(_components(query, cards, now, use), weights, len(cards))
+    if hybrid:
+        if query_vector is None or vectors is None:
+            raise ValueError("scorers='hybrid' needs query_vector and vectors")
+        lexical = sorted(range(len(cards)), key=lambda i: (-totals[i], cards[i].agent_id))
+        fused = hybrid_scores([cards[i].agent_id for i in lexical], query_vector, vectors)
+        totals = [fused[card.agent_id] for card in cards]
     by_id = {card.agent_id: (card, total) for card, total in zip(cards, totals)}
 
     pinned = pins(tail_text, cards, pending_ids, current_id)[: max(max_pins, 0)]
