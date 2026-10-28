@@ -289,8 +289,8 @@ all three. Only these two runs had more than one trial, so the other rows have n
 
 Dollars are list-price equivalents from the provider's usage block, per routing decision (all LLM calls of the
 turn). In the fix arm the extra calls are `search_agents` rounds (the model needs another call to read the
-results) and second tries after the duplicate check; one response can hold several searches. Total spend behind the <!-- n:spend.files -->8<!-- /n --> result files:
-$<!-- n:spend.total_usd -->4.65<!-- /n -->.
+results) and second tries after the duplicate check; one response can hold several searches. Total spend behind the <!-- n:spend.files -->10<!-- /n --> result files:
+$<!-- n:spend.total_usd -->5.36<!-- /n -->.
 
 ### What the fix arm did with the shortlist
 
@@ -365,8 +365,8 @@ wants, so this proves the gate, not the model's judgement.
 
 | arm | model | n | accuracy | 95% CI |
 |---|---|---|---|---|
-| baseline | <!-- n:TODO.report.by_key.baseline_deepseek-v4-pro_k8_n500.model -->TBD<!-- /n --> | <!-- n:TODO.report.by_key.baseline_deepseek-v4-pro_k8_n500.n -->TBD<!-- /n --> | <!-- n:TODO.report.by_key.baseline_deepseek-v4-pro_k8_n500.accuracy.rate -->TBD<!-- /n --> | <!-- n:TODO.report.by_key.baseline_deepseek-v4-pro_k8_n500.accuracy.ci95.0 -->TBD<!-- /n --> to <!-- n:TODO.report.by_key.baseline_deepseek-v4-pro_k8_n500.accuracy.ci95.1 -->TBD<!-- /n --> |
-| fix | <!-- n:TODO.report.by_key.fix_deepseek-v4-pro_k8_n500.model -->TBD<!-- /n --> | <!-- n:TODO.report.by_key.fix_deepseek-v4-pro_k8_n500.n -->TBD<!-- /n --> | <!-- n:TODO.report.by_key.fix_deepseek-v4-pro_k8_n500.accuracy.rate -->TBD<!-- /n --> | <!-- n:TODO.report.by_key.fix_deepseek-v4-pro_k8_n500.accuracy.ci95.0 -->TBD<!-- /n --> to <!-- n:TODO.report.by_key.fix_deepseek-v4-pro_k8_n500.accuracy.ci95.1 -->TBD<!-- /n --> |
+| baseline | <!-- n:report.by_key.baseline_deepseek-v4-pro_k8_n500.model -->deepseek-v4-pro<!-- /n --> | <!-- n:report.by_key.baseline_deepseek-v4-pro_k8_n500.n -->86<!-- /n --> | <!-- n:report.by_key.baseline_deepseek-v4-pro_k8_n500.accuracy.rate -->59.3%<!-- /n --> | <!-- n:report.by_key.baseline_deepseek-v4-pro_k8_n500.accuracy.ci95.0 -->48.7%<!-- /n --> to <!-- n:report.by_key.baseline_deepseek-v4-pro_k8_n500.accuracy.ci95.1 -->69.1%<!-- /n --> |
+| fix | <!-- n:report.by_key.fix_deepseek-v4-pro_k8_n500.model -->deepseek-v4-pro<!-- /n --> | <!-- n:report.by_key.fix_deepseek-v4-pro_k8_n500.n -->86<!-- /n --> | <!-- n:report.by_key.fix_deepseek-v4-pro_k8_n500.accuracy.rate -->79.1%<!-- /n --> | <!-- n:report.by_key.fix_deepseek-v4-pro_k8_n500.accuracy.ci95.0 -->69.3%<!-- /n --> to <!-- n:report.by_key.fix_deepseek-v4-pro_k8_n500.accuracy.ci95.1 -->86.3%<!-- /n --> |
 
 ### Not measured
 
@@ -380,7 +380,7 @@ wants, so this proves the gate, not the model's judgement.
   templates, with no second-model phrasing pass and no hand review yet.
 - The report split is 86 cases from 19 templates, so the template-clustered intervals are wide; only baseline and
   fix at N=500 ran three trials, everything else one.
-- One model family so far; the second-model table is filled in after that run.
+- The second model family (deepseek-v4-pro) ran one trial per arm, at N=500 only.
 - The baseline cannot win ambiguous or paraphrase cases by construction; both views are reported above.
 - The eval grades one routing decision per case with execution stubbed; it says nothing about what the execution
   agent then does.
