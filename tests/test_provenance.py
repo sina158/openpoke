@@ -12,7 +12,12 @@ from server.agents.interaction_agent.runtime import InteractionAgentRuntime, _Lo
 from server.services import trigger_scheduler
 from server.services.gmail import importance_watcher
 from server.services.gmail.seen_store import GmailSeenStore
-from server.services.provenance import current_provenance, current_turn_id, turn_provenance
+from server.services.provenance import (
+    current_provenance,
+    current_turn_id,
+    current_turn_text,
+    turn_provenance,
+)
 
 
 class _NullLog:
@@ -30,6 +35,7 @@ class _ProbeRuntime(InteractionAgentRuntime):
     """The real entry points with the model loop replaced by a provenance probe."""
 
     seen: list = []
+    texts: list = []
 
     def __init__(self) -> None:  # no API key needed: the loop below never calls a model
         self.conversation_log = _NullLog()
@@ -39,12 +45,14 @@ class _ProbeRuntime(InteractionAgentRuntime):
 
     async def _run_interaction_loop(self, system_prompt, messages):
         _ProbeRuntime.seen.append(current_provenance())
+        _ProbeRuntime.texts.append(current_turn_text())
         return _LoopSummary()
 
 
 @pytest.fixture(autouse=True)
 def _reset_probe():
     _ProbeRuntime.seen = []
+    _ProbeRuntime.texts = []
 
 
 def test_default_is_none_and_blocks_restore():
@@ -65,10 +73,12 @@ def test_unknown_provenance_is_rejected():
             pass
 
 
-def test_user_chat_is_user():
-    result = asyncio.run(_ProbeRuntime().execute("hello"))
+def test_user_chat_is_user_and_carries_what_the_user_typed():
+    result = asyncio.run(_ProbeRuntime().execute("yes, send it K7MX"))
     assert result.success, result.error
     assert _ProbeRuntime.seen == ["user"]
+    assert _ProbeRuntime.texts == ["yes, send it K7MX"]
+    assert current_turn_text() is None
     assert current_provenance() is None
 
 

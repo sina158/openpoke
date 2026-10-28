@@ -391,7 +391,7 @@ def _propose_send(kind: str, arguments: Dict[str, Any], agent_name: Optional[str
         "status": "pending_approval",
         "action_id": action.id,
         "summary": action.summary,
-        "message": "Not sent. Report the action_id and summary back so the user can approve it.",
+        "message": "Not sent. Report the action_id and summary back; the user is asked to approve it.",
     }
 
 

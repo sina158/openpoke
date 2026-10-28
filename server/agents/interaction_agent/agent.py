@@ -176,8 +176,8 @@ def _render_pending_actions() -> str:
         return ""
     now = now_utc()
     lines = [
-        f'<action id="{escape(action.id, quote=True)}" kind="{escape(action.kind, quote=True)}"'
-        f' age="{_pending_age(action.created_at, now)}">'
+        f'<action id="{escape(action.id, quote=True)}" code="{escape(action.confirm_code or "", quote=True)}"'
+        f' kind="{escape(action.kind, quote=True)}" age="{_pending_age(action.created_at, now)}">'
         f"{escape(action.summary or 'no summary recorded', quote=False)}</action>"
         for action in reversed(pending[-PENDING_ACTIONS_SHOWN:])
     ]

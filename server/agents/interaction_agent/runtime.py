@@ -89,7 +89,7 @@ class InteractionAgentRuntime:
             )
 
             logger.info("Processing user message through interaction agent")
-            with turn_provenance("user"):
+            with turn_provenance("user", text=user_message):
                 summary = await self._run_interaction_loop(system_prompt, messages)
 
             final_response = self._finalize_response(summary)

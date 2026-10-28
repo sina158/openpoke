@@ -8,7 +8,7 @@ from typing import Any, Optional
 from ...config import get_settings
 from ...logging_config import logger
 from ...services.approvals import ApprovalError, get_approval_store
-from ...services.provenance import current_provenance, current_turn_id
+from ...services.provenance import current_provenance, current_turn_id, current_turn_text
 from ...services.conversation import get_conversation_log
 from ...services.execution import get_agent_registry, get_execution_agent_logs
 from ...services.execution.card_store import cards_for, refresh_card
@@ -118,13 +118,13 @@ CONFIRM_ACTION_SCHEMA = {
     "type": "function",
     "function": {
         "name": "confirm_action",
-        "description": "Send a pending email action (reply, forward, or draft send) that the user has just confirmed in their own message. Refused on any turn the user did not send.",
+        "description": "Send a pending email action (reply, forward, or draft send) from <pending_actions>. Works only when the user's own latest message contains that action's code; refused on any turn the user did not send.",
         "parameters": {
             "type": "object",
             "properties": {
                 "action_id": {
                     "type": "string",
-                    "description": "The action_id an agent reported for the pending send.",
+                    "description": "The id of the pending action, as listed in <pending_actions>.",
                 },
             },
             "required": ["action_id"],
@@ -405,11 +405,13 @@ def send_draft(
 
 # Approve a pending outbound action on the user's word and send it once
 def confirm_action(action_id: str) -> ToolResult:
-    """Approve a pending action if this turn came from the user, then execute it."""
+    """Approve a pending action if the user's own message carries its code, then execute it."""
     try:
         # Checked before approving, so a send that cannot run never leaves a stranded approval.
         ensure_gmail_connected()
-        action = get_approval_store().approve(action_id, current_provenance(), current_turn_id())
+        action = get_approval_store().approve(
+            action_id, current_provenance(), current_turn_id(), current_turn_text()
+        )
         result = execute_approved_action(action.id)
     except ApprovalError as exc:
         logger.warning("action not approved", extra={"action_id": action_id, "reason": str(exc)})

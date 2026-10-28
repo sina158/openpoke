@@ -51,10 +51,13 @@ def _propose(tool="gmail_reply_to_thread"):
     return result["action_id"]
 
 
-def _confirm(action_id, provenance):
+def _confirm(action_id, provenance, text=None):
+    """Call confirm_action on a turn from ``provenance`` whose text is ``text`` (default: it gives the code)."""
+    if text is None:
+        text = f"Yes, send it ({get_approval_store().get(action_id).confirm_code})"
     if provenance is None:
         return handle_tool_call("confirm_action", {"action_id": action_id})
-    with turn_provenance(provenance):
+    with turn_provenance(provenance, text=text):
         return handle_tool_call("confirm_action", {"action_id": action_id})
 
 
@@ -104,6 +107,28 @@ def test_non_user_turns_cannot_confirm(sends, provenance):
     assert not result.success
     assert "only the user" in result.payload["error"]
     assert sends == []
+
+
+@pytest.mark.parametrize("text", ["what's on my calendar tomorrow?", "yes", "sounds good, go ahead"])
+def test_a_user_turn_is_not_consent_without_the_code(sends, text):
+    action_id = _propose()
+
+    result = _confirm(action_id, "user", text=text)
+
+    assert not result.success
+    assert "confirmation code" in result.payload["error"]
+    assert get_approval_store().get(action_id).state == "proposed"
+    assert sends == []
+
+
+def test_the_code_binds_consent_to_one_action(sends):
+    reply = _propose("gmail_reply_to_thread")
+    forward = _propose("gmail_forward_email")
+    forward_code = get_approval_store().get(forward).confirm_code
+
+    assert not _confirm(reply, "user", text=f"yes {forward_code}").success
+    assert _confirm(forward, "user", text=f"yes {forward_code}").success
+    assert sends == [("GMAIL_FORWARD_MESSAGE", SEND_TOOLS["gmail_forward_email"])]
 
 
 def test_disconnected_gmail_does_not_strand_an_approval(sends, monkeypatch):

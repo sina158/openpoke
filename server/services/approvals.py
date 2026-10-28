@@ -1,8 +1,9 @@
 """Single-use, hash-bound approvals for outbound actions.
 
 An execution agent can only propose a send. The proposal is stored with a hash of its canonical
-arguments. Only a user-provenance turn can approve it, and the executor consumes the approval
-exactly once, re-checking the hash, before anything is sent. Consuming happens before the send,
+arguments and a short confirmation code. Only a user-provenance turn whose own text carries that
+code can approve it, and the executor consumes the approval exactly once, re-checking the hash,
+before anything is sent. Consuming happens before the send,
 so a retry after a timeout cannot send twice (at most once, not at least once).
 """
 
@@ -10,6 +11,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+import secrets
 import sqlite3
 import uuid
 from contextlib import closing, contextmanager
@@ -28,6 +31,7 @@ CREATE TABLE IF NOT EXISTS pending_actions (
     args_json TEXT NOT NULL,
     args_hash TEXT NOT NULL,
     summary TEXT,
+    confirm_code TEXT,
     state TEXT NOT NULL CHECK (state IN ('proposed', 'approved', 'executed', 'rejected', 'expired')),
     created_at TEXT NOT NULL,
     approved_at TEXT,
@@ -35,6 +39,13 @@ CREATE TABLE IF NOT EXISTS pending_actions (
     executed_at TEXT
 )
 """
+
+
+# Columns added after the table first shipped, migrated in place on open.
+_ADDED_COLUMNS = ("summary", "confirm_code")
+# No 0/O/Q, 1/I/L, 2/Z, 5/S, 6/G, 8/B or U/V, so a code survives being read aloud or retyped.
+_CODE_ALPHABET = "ACDEFHJKMNPRTWXY3479"
+_CODE_LENGTH = 4
 
 
 class ApprovalError(Exception):
@@ -64,6 +75,7 @@ class PendingAction:
     approved_turn_id: Optional[str] = None
     executed_at: Optional[str] = None
     summary: Optional[str] = None
+    confirm_code: Optional[str] = None
 
 
 class ApprovalStore:
@@ -76,8 +88,9 @@ class ApprovalStore:
         with self._connect() as conn:
             conn.execute(_SCHEMA)
             columns = {row["name"] for row in conn.execute("PRAGMA table_info(pending_actions)")}
-            if "summary" not in columns:  # a table created before summaries were stored
-                conn.execute("ALTER TABLE pending_actions ADD COLUMN summary TEXT")
+            for column in _ADDED_COLUMNS:
+                if column not in columns:
+                    conn.execute(f"ALTER TABLE pending_actions ADD COLUMN {column} TEXT")
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -96,10 +109,19 @@ class ApprovalStore:
         """Store a proposed action. ``summary`` is what the user is shown; build it in code from ``args``."""
         action_id = f"act_{uuid.uuid4().hex[:12]}"
         with self._connect() as conn:
+            live_codes = {
+                row["confirm_code"]
+                for row in conn.execute(
+                    "SELECT confirm_code FROM pending_actions WHERE state IN ('proposed', 'approved')"
+                )
+            }
+            code = _new_code()
+            while code in live_codes:
+                code = _new_code()
             conn.execute(
                 "INSERT INTO pending_actions"
-                " (id, agent_id, kind, args_json, args_hash, summary, state, created_at)"
-                " VALUES (?, ?, ?, ?, ?, ?, 'proposed', ?)",
+                " (id, agent_id, kind, args_json, args_hash, summary, confirm_code, state, created_at)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, 'proposed', ?)",
                 (
                     action_id,
                     agent_id,
@@ -107,15 +129,25 @@ class ApprovalStore:
                     json.dumps(args, sort_keys=True, ensure_ascii=False),
                     canonical_hash(kind, args),
                     summary,
+                    code,
                     _utc_now().isoformat(),
                 ),
             )
         return self._require(action_id)
 
     def approve(
-        self, action_id: str, provenance: Optional[str], turn_id: Optional[str] = None
+        self,
+        action_id: str,
+        provenance: Optional[str],
+        turn_id: Optional[str] = None,
+        user_text: Optional[str] = None,
     ) -> PendingAction:
-        """Approve a proposed action. Refuses unless the approving turn came from the user."""
+        """Approve a proposed action.
+
+        Refuses unless the approving turn came from the user and ``user_text``, what the user typed on
+        that turn, contains the action's confirmation code: a user turn alone is not consent to every
+        pending send.
+        """
         if provenance != "user":
             raise ApprovalError(
                 f"only the user can approve an action; this turn came from {provenance or 'an unknown source'}"
@@ -123,6 +155,11 @@ class ApprovalStore:
         action = self._require_live(action_id)
         if action.state != "proposed":
             raise ApprovalError(f"action {action_id} is {action.state}, not awaiting approval")
+        if not _mentions(user_text, action.confirm_code):
+            raise ApprovalError(
+                f"the user's message does not contain the confirmation code for {action_id};"
+                " show the user the pending action and ask them to reply with its code"
+            )
         self._transition(
             action_id,
             "proposed",
@@ -206,7 +243,19 @@ def _from_row(row: sqlite3.Row) -> PendingAction:
         approved_turn_id=row["approved_turn_id"],
         executed_at=row["executed_at"],
         summary=row["summary"],
+        confirm_code=row["confirm_code"],
     )
+
+
+def _new_code() -> str:
+    return "".join(secrets.choice(_CODE_ALPHABET) for _ in range(_CODE_LENGTH))
+
+
+def _mentions(text: Optional[str], code: Optional[str]) -> bool:
+    """True when ``code`` appears in ``text`` as a whole token, in any case."""
+    if not text or not code:
+        return False
+    return re.search(rf"(?<![A-Za-z0-9]){re.escape(code)}(?![A-Za-z0-9])", text, re.IGNORECASE) is not None
 
 
 _store: Optional[ApprovalStore] = None

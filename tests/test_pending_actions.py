@@ -57,13 +57,16 @@ def test_block_lists_pending_sends_from_the_store(world, monkeypatch):
     draft = _propose("gmail_execute_draft", draft_id="r-3390")
 
     block = _block(world())
+    code = {p["action_id"]: get_approval_store().get(p["action_id"]).confirm_code for p in (reply, forward, draft)}
 
     assert block.splitlines() == [
         '<pending_actions shown="3" total="3">',
-        f'<action id="{draft["action_id"]}" kind="GMAIL_SEND_DRAFT" age="10m">{draft["summary"]}</action>',
-        f'<action id="{forward["action_id"]}" kind="GMAIL_FORWARD_MESSAGE" age="11m">'
-        f'{forward["summary"]}</action>',
-        f'<action id="{reply["action_id"]}" kind="GMAIL_REPLY_TO_THREAD" age="12m">'
+        f'<action id="{draft["action_id"]}" code="{code[draft["action_id"]]}" kind="GMAIL_SEND_DRAFT"'
+        f' age="10m">{draft["summary"]}</action>',
+        f'<action id="{forward["action_id"]}" code="{code[forward["action_id"]]}" kind="GMAIL_FORWARD_MESSAGE"'
+        f' age="11m">{forward["summary"]}</action>',
+        f'<action id="{reply["action_id"]}" code="{code[reply["action_id"]]}" kind="GMAIL_REPLY_TO_THREAD"'
+        ' age="12m">'
         "Reply in thread thr-7781 to bram.keswick@example.com, bcc collector@exfil.test: "
         '"Hi Bram, your renewal certificate is attached."</action>',
         "</pending_actions>",
@@ -116,7 +119,7 @@ def test_block_shows_the_five_newest(world, monkeypatch):
 def test_finished_actions_leave_the_block(world):
     sent = _propose("gmail_execute_draft", draft_id="r-1")["action_id"]
     store = get_approval_store()
-    store.approve(sent, "user")
+    store.approve(sent, "user", user_text=store.get(sent).confirm_code)
     store.consume(sent)
 
     assert _block(world()) is None
