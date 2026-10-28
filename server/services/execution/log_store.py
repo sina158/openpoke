@@ -6,23 +6,12 @@ import re
 import threading
 from html import escape, unescape
 from pathlib import Path
-from typing import Dict, Iterator, List, Tuple
+from typing import Dict, Iterator, List, Optional, Tuple
 
 from ...logging_config import logger
 from ...utils.timezones import now_in_user_timezone
 from ...utils.paths import data_dir
-
-
-_DATA_DIR = data_dir()
-_EXECUTION_LOG_DIR = _DATA_DIR / "execution_agents"
-
-
-def _slugify(name: str) -> str:
-    """Convert agent name to filesystem-safe slug."""
-    slug = "".join(ch.lower() if ch.isalnum() else "-" for ch in name.strip()).strip("-")
-    while "--" in slug:
-        slug = slug.replace("--", "-")
-    return slug or "agent"
+from .registry import slugify
 
 
 def _encode_payload(payload: str) -> str:
@@ -57,15 +46,15 @@ class ExecutionAgentLogStore:
 
     def _lock_for(self, agent_name: str) -> threading.Lock:
         """Get or create a lock for an agent."""
-        slug = _slugify(agent_name)
+        slug = slugify(agent_name)
         with self._global_lock:
             if slug not in self._locks:
                 self._locks[slug] = threading.Lock()
             return self._locks[slug]
 
     def _log_path(self, agent_name: str) -> Path:
-        """Get log file path for an agent."""
-        return self._base_dir / f"{_slugify(agent_name)}.log"
+        """Log file path for an agent: its registry slug, which is unique per agent."""
+        return self._base_dir / f"{slugify(agent_name)}.log"
 
     def _append(self, agent_name: str, tag: str, payload: str) -> None:
         """Append an entry with the given tag."""
@@ -177,9 +166,18 @@ class ExecutionAgentLogStore:
             logger.error(f"Failed to clear execution logs: {exc}")
 
 
-_execution_agent_logs = ExecutionAgentLogStore(_EXECUTION_LOG_DIR)
+_execution_agent_logs: Optional[ExecutionAgentLogStore] = None
 
 
 def get_execution_agent_logs() -> ExecutionAgentLogStore:
-    """Get the singleton log store instance."""
+    """Get the singleton log store instance, created under ``data_dir()`` on first use."""
+    global _execution_agent_logs
+    if _execution_agent_logs is None:
+        _execution_agent_logs = ExecutionAgentLogStore(data_dir() / "execution_agents")
     return _execution_agent_logs
+
+
+def reset_execution_agent_logs() -> None:
+    """Drop the singleton so the next call re-reads ``data_dir()`` (tests)."""
+    global _execution_agent_logs
+    _execution_agent_logs = None

@@ -1,82 +1,39 @@
-"""Simple agent roster management - just a list of agent names."""
+"""Names-only view of the agent registry, kept so existing callers work unchanged."""
 
-import json
-import os
-import tempfile
-import threading
-from pathlib import Path
+from __future__ import annotations
 
-from ...logging_config import logger
-from ...utils.paths import data_dir
+from typing import Optional
 
-
-_SAVE_LOCK = threading.Lock()
+from .registry import AgentRegistry, get_agent_registry
 
 
 class AgentRoster:
-    """Simple roster that stores agent names in a JSON file."""
+    """The old roster API (a list of active agent names) backed by the SQLite registry."""
 
-    def __init__(self, roster_path: Path):
-        self._roster_path = roster_path
-        self._agents: list[str] = []
-        self.load()
+    def __init__(self, registry: Optional[AgentRegistry] = None) -> None:
+        self._registry = registry
+
+    def _store(self) -> AgentRegistry:
+        return self._registry or get_agent_registry()
 
     def load(self) -> None:
-        """Load agent names from roster.json."""
-        if self._roster_path.exists():
-            try:
-                with open(self._roster_path, 'r') as f:
-                    data = json.load(f)
-                    if isinstance(data, list):
-                        self._agents = [str(name) for name in data]
-            except Exception as exc:
-                logger.warning(f"Failed to load roster.json: {exc}")
-                self._agents = []
-        else:
-            self._agents = []
-            self.save()
-
-    def save(self) -> None:
-        """Save agent names to roster.json atomically (write a temp file, then replace)."""
-        with _SAVE_LOCK:
-            try:
-                self._roster_path.parent.mkdir(parents=True, exist_ok=True)
-                fd, tmp = tempfile.mkstemp(dir=self._roster_path.parent, suffix=".tmp")
-                try:
-                    with os.fdopen(fd, "w", encoding="utf-8") as f:
-                        json.dump(self._agents, f, indent=2)
-                    os.replace(tmp, self._roster_path)
-                except BaseException:
-                    Path(tmp).unlink(missing_ok=True)
-                    raise
-            except Exception as exc:
-                logger.warning(f"Failed to save roster.json: {exc}")
+        """No-op: the registry is read on every call."""
 
     def add_agent(self, agent_name: str) -> None:
-        """Add an agent to the roster if not already present."""
-        if agent_name not in self._agents:
-            self._agents.append(agent_name)
-            self.save()
+        """Register an agent by name; reusing an archived agent's name revives it."""
+        record, _ = self._store().get_or_create(agent_name)
+        if record.status == "archived":
+            self._store().revive(record.id)
 
     def get_agents(self) -> list[str]:
-        """Get list of all agent names."""
-        return list(self._agents)
+        """Names of the active agents in creation order."""
+        return [record.name for record in self._store().list("active")]
 
     def clear(self) -> None:
-        """Clear the agent roster."""
-        self._agents = []
-        try:
-            if self._roster_path.exists():
-                self._roster_path.unlink()
-            logger.info("Cleared agent roster")
-        except Exception as exc:
-            logger.warning(f"Failed to clear roster.json: {exc}")
+        self._store().clear()
 
 
-_DATA_DIR = data_dir()
-_ROSTER_PATH = _DATA_DIR / "execution_agents" / "roster.json"
-
-_agent_roster = AgentRoster(_ROSTER_PATH)
+_agent_roster = AgentRoster()
 
 
 def get_agent_roster() -> AgentRoster:

@@ -17,10 +17,6 @@ if TYPE_CHECKING:  # pragma: no cover - used for type checkers only
     from .summarization import WorkingMemoryLog
 
 
-_DATA_DIR = data_dir()
-_CONVERSATION_LOG_PATH = _DATA_DIR / "conversation" / "poke_conversation.log"
-
-
 class TranscriptFormatter(Protocol):
     def __call__(self, tag: str, timestamp: str, payload: str) -> str:  # pragma: no cover - typing protocol
         ...
@@ -212,11 +208,21 @@ class ConversationLog:
             )
 
 
-_conversation_log = ConversationLog(_CONVERSATION_LOG_PATH)
+_conversation_log: Optional[ConversationLog] = None
 
 
 def get_conversation_log() -> ConversationLog:
+    """Get the singleton conversation log, created under ``data_dir()`` on first use."""
+    global _conversation_log
+    if _conversation_log is None:
+        _conversation_log = ConversationLog(data_dir() / "conversation" / "poke_conversation.log")
     return _conversation_log
 
 
-__all__ = ["ConversationLog", "get_conversation_log"]
+def reset_conversation_log() -> None:
+    """Drop the singleton so the next call re-reads ``data_dir()`` (tests)."""
+    global _conversation_log
+    _conversation_log = None
+
+
+__all__ = ["ConversationLog", "get_conversation_log", "reset_conversation_log"]
