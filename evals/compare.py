@@ -25,6 +25,9 @@ from evals.stats import agreement, cluster_bootstrap, mcnemar_exact, pass_k, rul
 
 CATEGORIES = ("explicit", "entity", "paraphrase", "pronoun", "near_duplicate", "should_create", "ambiguous",
               "parallel", "agent_message")
+# The baseline cannot win these by construction: it has no clarify tool, and paraphrase cases are built so the
+# agent's name lacks the discriminator. Accuracy without them compares the arms on fair ground.
+BASELINE_UNWINNABLE = ("ambiguous", "paraphrase")
 TABLES = ("report", "all")
 BOOTSTRAP_RESAMPLES = 2000
 BOOTSTRAP_SEED = 20261028
@@ -110,11 +113,13 @@ def summarise(records: List[Dict[str, Any]], templates: Dict[str, str]) -> Dict[
     tokens = [r["prompt_tokens"] for r in records]
     latency = [r["latency_ms"] for r in records]
     costs = [r["cost_usd"] for r in records if r["cost_usd"] is not None]
+    fair = [r for r in records if r["category"] not in BASELINE_UNWINNABLE]
     summary = {
         "n": len(records),
         "cells": cells,
         "accuracy": {**_rate(sum(r["correct"] for r in records), len(records)),
                      "clustered": _clustered(records, templates)},
+        "accuracy_excl_ambiguous_paraphrase": _rate(sum(r["correct"] for r in fair), len(fair)),
         "wrong_reuse": _rate(cells["wrong_reuse"], n_existing),
         "spray": {**_rate(len(spray), n_existing), "cross_client": sum(r["cross_client"] for r in spray)},
         "wrong_only": {**_rate(len(wrong_only), n_existing),
@@ -317,9 +322,11 @@ def render_markdown(report: Dict[str, Any]) -> str:
               "messaged at all."]
     lines += _paired_table(head)
     lines += ["", "### Accuracy by category (report split)", "",
-              "| model | N | arm | k | " + " | ".join(CATEGORIES) + " |", "|" + "---|" * (4 + len(CATEGORIES))]
+              "| model | N | arm | k | " + " | ".join(CATEGORIES) + " | without ambiguous, paraphrase |",
+              "|" + "---|" * (5 + len(CATEGORIES))]
     for row in head["groups"]:
         cells = [_short_rate(row["by_category"].get(c)) for c in CATEGORIES]
+        cells.append(_rate_cell(row["accuracy_excl_ambiguous_paraphrase"]))
         lines.append(f"| {row['model']} | {row['size']} | {row['arm']} | {row['k']} | " + " | ".join(cells) + " |")
     guarded = [row for row in head["groups"] if row["guard"]["fired"]]
     if guarded:

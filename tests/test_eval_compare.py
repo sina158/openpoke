@@ -94,3 +94,20 @@ def test_partial_runs_are_skipped_and_duplicates_refused(tmp_path):
     assert compare.main([str(full), str(again), "--out-dir", str(tmp_path / "x")]) == 1
     rerun = _document("baseline", _base(), tmp_path / "rerun.json", trials=1)
     assert compare.main([str(full), str(rerun), "--out-dir", str(tmp_path / "y")]) == 1
+
+
+def test_accuracy_without_ambiguous_and_paraphrase(tmp_path):
+    records = [_record("a", 0, "correct_reuse"), _record("b", 0, "wrong_reuse", reused=["g_9"]),
+               _record("p", 0, "wrong_reuse", reused=["g_9"], category="paraphrase", template="paraphrase.t1"),
+               _record("q", 0, "correct_reuse", category="paraphrase", template="paraphrase.t1"),
+               _record("m", 0, "no_route", kind="clarify", category="ambiguous", template="ambiguous.t1")]
+    path = _document("baseline", records, tmp_path / "b.json", split="all", trials=1)
+    assert compare.main([str(path), "--out-dir", str(tmp_path)]) == 0
+
+    report = json.loads((tmp_path / "RESULTS.json").read_text(encoding="utf-8"))
+    for table in ("report", "all"):
+        row = report[table]["by_key"]["baseline_m_k8_n500"]
+        assert row["accuracy"]["n"] == 5
+        fair = row["accuracy_excl_ambiguous_paraphrase"]
+        assert (fair["k"], fair["n"], fair["rate"]) == (1, 2, 0.5) and len(fair["ci95"]) == 2
+    assert "without ambiguous, paraphrase" in (tmp_path / "RESULTS.md").read_text(encoding="utf-8")
