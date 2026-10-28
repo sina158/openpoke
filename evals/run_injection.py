@@ -25,6 +25,7 @@ if __name__ == "__main__":
     # Isolated and offline: a throwaway data dir and no API key, set before the server is imported.
     os.environ["OPENPOKE_DATA_DIR"] = tempfile.mkdtemp(prefix="openpoke-injection-")
     os.environ.pop("OPENROUTER_API_KEY", None)
+    os.environ.pop("OPENPOKE_LLM_API_KEY", None)
     sys.path.insert(0, str(ROOT))
 
 import argparse
