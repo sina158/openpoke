@@ -312,9 +312,10 @@ def test_v2_report_grades_the_bars_it_has_runs_for(tmp_path):
     verdict = {v["bar"]: v["verdict"] for v in report["verdicts"]}
     assert verdict["B1"] == "pass"  # 6 of 6 discordant pairs favour fix_v2: McNemar p = 0.031
     assert verdict["B2a"] == "pass" and verdict["B7"] == "pass"
-    assert verdict["B2b"] == "fail"  # 0 against 0 is not below fix_v1, as registered
+    assert verdict["B2b"] == "pass"  # 0 against 0 counts as below fix_v1 (lead's ruling)
     assert verdict["B6"] == "pending" and verdict["A1"] == "pending" and verdict["B8"] == "pending"
-    assert verdict["B9"] == "pending tier 2" and verdict["Ablation"] == "pending tier 2"
+    assert verdict["B9"] == "pending tier 2"
+    assert all(verdict[f"Ablation: no {c}"] == "pending tier 2" for c in ("c1", "c3", "c4"))
     assert "## Bars (BARS-v2)" in (tmp_path / "RESULTS_v2.md").read_text(encoding="utf-8")
 
 
@@ -334,3 +335,33 @@ def test_a_replay_miss_aborts_unless_misses_are_graded_as_errors(tmp_path):
     errors = [r for r in document["records"] if r["cell"] == "error"]
     assert [r["case_id"] for r in errors] == [ids[10]] and errors[0]["error"].startswith("CassetteMiss")
     assert document["header"]["cassette_misses"] == [ids[10]]
+
+
+def test_b9_and_the_ablations_from_tier_two_runs(tmp_path):
+    cases = [c for c in load_cases(GOLDEN_V2_PATH) if c["category"] == "explicit"][:6]
+
+    def document(arm, cells, model=run_routing.DEFAULT_MODEL, cross=0, later=None):
+        trials = 1 + len(later or [])
+        rows = [cells, *(later or [])]
+        records = [_record(c, t, rows[t][i], cross_client=i < cross) for i, c in enumerate(cases) for t in range(trials)]
+        for r in records:
+            if r["cross_client"]:
+                r["cell"], r["correct"] = "wrong_reuse", False
+        return _document(arm, records, tmp_path / f"{arm}_{model}.json", set="v2", model=model, trials=trials)
+
+    right, wrong = ["correct_reuse"] * 6, ["wrong_reuse"] * 6
+    # fix_v2's later trials miss the last two cases, so its majority differs from its first trial there.
+    paths = [document("fix_v1", wrong, cross=2), document("fix_v2", right, later=[right[:4] + wrong[:2]] * 2),
+             document("fix_v1", wrong, model="deepseek-v4-pro", cross=3),
+             document("fix_v2", right[:5] + ["wrong_reuse"], model="deepseek-v4-pro", cross=1),
+             document("fix_v2_no_c1", right), document("fix_v2_no_c3", right[:4] + wrong[:2])]
+    assert compare.main([str(p) for p in paths] + ["--out-dir", str(tmp_path), "--set", "v2"]) == 0
+    report = json.loads((tmp_path / "RESULTS_v2.json").read_text(encoding="utf-8"))
+    verdict = {v["bar"]: v for v in report["verdicts"]}
+    assert verdict["B9"]["verdict"] == "pass" and "trials 2 and 3 were cut for quota" in verdict["B9"]["detail"]
+    # Ablations pair with fix_v2's first trial (all right here), not its majority (all wrong past trial 1).
+    assert verdict["Ablation: no c1"]["verdict"] == "not needed on this set"
+    assert verdict["Ablation: no c3"]["verdict"].startswith("needed")
+    assert verdict["Ablation: no c4"]["verdict"] == "pending tier 2"
+    pair = report["report"]["paired_by_key"]["fix_v2_no_c3_vs_fix_v2_minimax-m3_k8_n500"]
+    assert (pair["b"], pair["c"]) == (2, 0)

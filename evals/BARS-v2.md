@@ -68,3 +68,6 @@ B2a, as read: a turn counts against B2a only on a case whose gold does not itsel
 answer on a `parallel` case reaches two clients by design and is not a violation; parallel-gold turns that sent
 to two clients are reported beside the count, with how many matched gold. This interpretation was set by the lead
 before any B2a number was read.
+
+B2b, as read: "below fix_v1" holds when fix_v2's cross-client wrong reuse is lower than fix_v1's, or when both are
+0. This reading was set by the lead.
