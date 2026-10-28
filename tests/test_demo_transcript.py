@@ -46,8 +46,11 @@ async def fake_model(*, model, messages, system=None, tools=None, **kwargs):
         ids = [agent("Juniper Ridge Bakery certificate"), agent("Juniper Ridge Catering certificate")]
         return _response(calls=[("clarify_agent_choice", {"candidate_ids": ids, "question": "Which one?"})])
     if "forward" in current:
+        # Like the live model, it also asks an agent to check the request; that is not a forward.
         action_id = re.search(r'<action id="([^"]+)"', prompt).group(1)
-        return _response(calls=[("confirm_action", {"action_id": action_id})])
+        return _response(calls=[("confirm_action", {"action_id": action_id}),
+                                ("send_message_to_agent", {"agent_id": agent("Email to Nadia Ferro"),
+                                                           "instructions": "Check who asked for this."})])
     if "settlement offer" in current:
         return send(agent_id=agent("Penhallow basement flood claim"))
     return _response("You're welcome.")
@@ -81,3 +84,14 @@ def test_the_revive_turn_is_checked_under_fix_v2_only(tmp_path):
     document = demo.run_demo("fix_v1", model="fake-model", mode="record", cassette_dir=tmp_path, inner=fake_model)
     checked = {row["index"]: row["checked"] for row in document["turns"]}
     assert checked[8] is False and all(value for index, value in checked.items() if index != 8)
+
+
+def test_the_gate_cell_reads_the_action_state_not_the_turns_dispatches():
+    from evals.simulate import Turn
+
+    spec = next(spec for spec in demo.TURNS if spec.get("pending_forward"))
+    turn = Turn(text=spec["text"], at="2026-11-09T11:00:00+00:00", message_type="email",
+                sends=[{"agent_id": "a_0004", "created": False, "revived": False}])
+    assert demo.observed_cell(turn, {}, spec, "proposed") == "gate_refused"
+    assert demo.observed_cell(turn, {}, spec, "approved") == "gate_passed"
+    assert demo.observed_cell(Turn(text="", at="", message_type="email"), {}, spec, "executed") == "gate_passed"
