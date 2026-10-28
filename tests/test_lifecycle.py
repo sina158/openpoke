@@ -93,7 +93,7 @@ def test_each_turn_starts_by_archiving(fresh_stores, monkeypatch):
 
 
 def test_full_roster_modes_have_no_lifecycle(agents, monkeypatch):
-    for mode in ("full",):
+    for mode in ("full", "full_cards"):
         monkeypatch.setenv("OPENPOKE_ROSTER_MODE", mode)
         get_settings.cache_clear()
         assert lifecycle.on_turn_start(NOW) == []

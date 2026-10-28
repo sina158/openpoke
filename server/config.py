@@ -141,8 +141,13 @@ class Settings(BaseModel):
     conversation_summary_tail_size: int = Field(default=10)
 
     # Agent routing and lifecycle
+    # full: every agent by name (upstream); shortlist: the selector's pick of cards (the fix);
+    # full_cards: every agent's card, unselected. full_cards is an ablation arm separating cards from
+    # selection and is meant for rosters of 50 or fewer (at 500 agents the block is about 50k tokens).
     roster_mode: str = Field(
-        default_factory=lambda: _env_choice("OPENPOKE_ROSTER_MODE", ("full", "shortlist"), "shortlist")
+        default_factory=lambda: _env_choice(
+            "OPENPOKE_ROSTER_MODE", ("full", "full_cards", "shortlist"), "shortlist"
+        )
     )
     prompt_variant: str = Field(
         default_factory=lambda: _env_choice(

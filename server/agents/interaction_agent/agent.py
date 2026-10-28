@@ -11,7 +11,7 @@ from ...logging_config import logger
 from ...services.approvals import get_approval_store
 from ...services.execution import embeddings, get_agent_registry, get_agent_roster
 from ...services.execution.card_store import cards_for
-from ...services.execution.cards import AgentCard, card_text
+from ...services.execution.cards import AgentCard, card_text, render_card
 from ...services.execution.selector import render_shortlist, select
 from ...utils.clock import now_utc
 
@@ -44,8 +44,11 @@ def prepare_message_with_history(
     sections: List[str] = []
 
     sections.append(_render_conversation_history(transcript))
-    if get_settings().roster_mode == "full":
+    roster_mode = get_settings().roster_mode
+    if roster_mode == "full":
         sections.append(f"<active_agents>\n{_render_active_agents()}\n</active_agents>")
+    elif roster_mode == "full_cards":
+        sections.append(_render_all_cards())
     else:
         sections.append(_render_shortlist(latest_text, transcript, message_type))
     sections.append(_render_current_turn(latest_text, message_type))
@@ -92,6 +95,14 @@ def _render_active_agents() -> str:
 _TURN = re.compile(r"<(user_message|agent_message|poke_reply)\b[^>]*>(.*?)</\1>", re.DOTALL)
 _REPORTED_AGENT = re.compile(r"^\[(?:SUCCESS|FAILED)\] (.+?): ", re.MULTILINE)
 _hybrid_warned = False
+
+
+def _render_all_cards() -> str:
+    """Every active agent as its card, with no selection (the full_cards ablation arm)."""
+    now = now_utc()
+    cards = cards_for(get_agent_registry().list("active"))
+    body = "\n".join(render_card(card, now=now) for card in cards) or "None"
+    return f'<active_agents mode="full_cards" total="{len(cards)}">\n{body}\n</active_agents>'
 
 
 def _render_shortlist(latest_text: str, transcript: str, message_type: str) -> str:

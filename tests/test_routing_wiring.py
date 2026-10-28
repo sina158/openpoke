@@ -15,6 +15,7 @@ ARMS = {
     "baseline": ("full", "original"),
     "prompt_only": ("full", "shortlist"),
     "fix": ("shortlist", "shortlist"),
+    "full_cards": ("full_cards", "shortlist"),
 }
 NAMES = [f"Renewal for Client {n:02d}" for n in range(12)]
 # sha256 of the compact sorted-key JSON of TOOL_SCHEMAS in server/agents/interaction_agent/tools.py at
@@ -139,3 +140,15 @@ def test_an_archived_agent_never_appears_in_the_shortlist(seeded):
 
     assert target.id not in content and "Renewal for Client 03" not in content
     assert '<active_agents mode="shortlist" shown="8" total="11">' in content
+
+
+def test_full_cards_shows_every_card_without_selection_or_search(seeded):
+    content, schemas, prompt = seeded("full_cards")
+
+    assert '<active_agents mode="full_cards" total="12">' in content
+    shown = re.findall(r'<agent id="(a_\d+)" name="[^"]+" status="active" last_active="0h ago" purpose=', content)
+    assert shown == [record.id for record in get_agent_registry().list()]
+    assert "pinned=" not in content and "not shown" not in content
+    names = [s["function"]["name"] for s in schemas]
+    assert "clarify_agent_choice" in names and "search_agents" not in names
+    assert prompt == build_system_prompt("shortlist")
