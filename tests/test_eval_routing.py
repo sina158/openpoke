@@ -136,3 +136,9 @@ def test_offline_run_through_the_real_loop(tmp_path):
     assert [r["cell"] for r in replayed["records"]] == [r["cell"] for r in document["records"]]
     assert replayed["header"]["live_calls"] == 0
 
+
+
+def test_clarify_and_reuse_together_is_not_a_correct_clarify():
+    case = _case("clarify", ["g_1", "g_2"])
+    calls = [("clarify_agent_choice", {"candidate_ids": ["g_1", "g_2"]}), _send(agent_id="g_1")]
+    assert _cell(case, *calls) == ("wrong_guess", False)
