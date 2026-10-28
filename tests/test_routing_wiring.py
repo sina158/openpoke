@@ -152,3 +152,13 @@ def test_full_cards_shows_every_card_without_selection_or_search(seeded):
     names = [s["function"]["name"] for s in schemas]
     assert "clarify_agent_choice" in names and "search_agents" not in names
     assert prompt == build_system_prompt("shortlist")
+
+
+def test_the_agent_whose_result_is_handled_is_pinned_as_current(seeded):
+    seeded("fix")
+    report = "[SUCCESS] Renewal for Client 11: the renewal forms were signed and sent back."
+
+    content = prepare_message_with_history(report, "", message_type="agent")[0]["content"]
+
+    current = re.findall(r'<agent id="(a_\d+)" name="([^"]+)"[^>]* pinned="current"', content)
+    assert current == [(get_agent_registry().find_by_name("Renewal for Client 11").id, "Renewal for Client 11")]
