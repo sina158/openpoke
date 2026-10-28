@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+from functools import partial
 from typing import Any, Callable, Dict, List, Optional
 
+from server.services.approvals import ApprovalError, get_approval_store
 from server.services.execution import get_execution_agent_logs
 from server.services.gmail import execute_gmail_tool, get_active_gmail_user_id
 
@@ -71,7 +73,7 @@ _SCHEMAS: List[Dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "gmail_execute_draft",
-            "description": "Send a previously created Gmail draft using Composio.",
+            "description": "Request sending a previously created Gmail draft. Nothing is sent until the user approves.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -89,7 +91,7 @@ _SCHEMAS: List[Dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "gmail_forward_email",
-            "description": "Forward an existing Gmail message with optional additional context.",
+            "description": "Request forwarding an existing Gmail message with optional additional context. Nothing is sent until the user approves.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -115,7 +117,7 @@ _SCHEMAS: List[Dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "gmail_reply_to_thread",
-            "description": "Send a reply within an existing Gmail thread via Composio.",
+            "description": "Request a reply within an existing Gmail thread. Nothing is sent until the user approves.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -343,6 +345,43 @@ def _execute(tool_name: str, composio_user_id: str, arguments: Dict[str, Any]) -
     return result
 
 
+_SEND_KINDS = {
+    "GMAIL_SEND_DRAFT": "Send draft",
+    "GMAIL_FORWARD_MESSAGE": "Forward message",
+    "GMAIL_REPLY_TO_THREAD": "Reply in thread",
+}
+
+
+# Register an outbound email as a pending action instead of sending it
+def _propose_send(kind: str, arguments: Dict[str, Any], agent_name: Optional[str]) -> Dict[str, Any]:
+    payload = {k: v for k, v in arguments.items() if v is not None}
+    action = get_approval_store().propose(kind, payload, agent_id=agent_name)
+    payload_str = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    _LOG_STORE.record_action(
+        _GMAIL_AGENT_NAME,
+        description=f"{kind} proposed | action_id={action.id} | args={payload_str}",
+    )
+    return {
+        "status": "pending_approval",
+        "action_id": action.id,
+        "summary": f"{_SEND_KINDS[kind]}: {payload_str}",
+        "message": "Not sent. Report the action_id and summary back so the user can approve it.",
+    }
+
+
+def execute_approved_action(action_id: str) -> Dict[str, Any]:
+    """Send a proposed email exactly as proposed, once, after the user approved it."""
+    store = get_approval_store()
+    action = store.get(action_id)
+    if action is None or action.kind not in _SEND_KINDS:
+        raise ApprovalError(f"unknown action {action_id}")
+    composio_user_id = get_active_gmail_user_id()
+    if not composio_user_id:
+        raise ApprovalError("Gmail not connected. Please connect Gmail in settings first.")
+    action = store.consume(action_id)
+    return _execute(action.kind, composio_user_id, action.args)
+
+
 # Create a Gmail draft via Composio with support for HTML, attachments, and threading
 def gmail_create_draft(
     recipient_email: str,
@@ -372,22 +411,26 @@ def gmail_create_draft(
     return _execute("GMAIL_CREATE_EMAIL_DRAFT", composio_user_id, arguments)
 
 
-# Send a previously created Gmail draft using Composio
+# Propose sending a previously created Gmail draft; it is sent only after user approval
 def gmail_execute_draft(
     draft_id: str,
+    *,
+    agent_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     arguments = {"draft_id": draft_id}
     composio_user_id = get_active_gmail_user_id()
     if not composio_user_id:
         return {"error": "Gmail not connected. Please connect Gmail in settings first."}
-    return _execute("GMAIL_SEND_DRAFT", composio_user_id, arguments)
+    return _propose_send("GMAIL_SEND_DRAFT", arguments, agent_name)
 
 
-# Forward an existing Gmail message with optional additional context
+# Propose forwarding an existing Gmail message; it is sent only after user approval
 def gmail_forward_email(
     message_id: str,
     recipient_email: str,
     additional_text: Optional[str] = None,
+    *,
+    agent_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     arguments = {
         "message_id": message_id,
@@ -397,10 +440,10 @@ def gmail_forward_email(
     composio_user_id = get_active_gmail_user_id()
     if not composio_user_id:
         return {"error": "Gmail not connected. Please connect Gmail in settings first."}
-    return _execute("GMAIL_FORWARD_MESSAGE", composio_user_id, arguments)
+    return _propose_send("GMAIL_FORWARD_MESSAGE", arguments, agent_name)
 
 
-# Send a reply within an existing Gmail thread via Composio
+# Propose a reply within an existing Gmail thread; it is sent only after user approval
 def gmail_reply_to_thread(
     thread_id: str,
     recipient_email: str,
@@ -410,6 +453,8 @@ def gmail_reply_to_thread(
     extra_recipients: Optional[List[str]] = None,
     is_html: Optional[bool] = None,
     attachment: Optional[Dict[str, Any]] = None,
+    *,
+    agent_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     arguments = {
         "thread_id": thread_id,
@@ -424,7 +469,7 @@ def gmail_reply_to_thread(
     composio_user_id = get_active_gmail_user_id()
     if not composio_user_id:
         return {"error": "Gmail not connected. Please connect Gmail in settings first."}
-    return _execute("GMAIL_REPLY_TO_THREAD", composio_user_id, arguments)
+    return _propose_send("GMAIL_REPLY_TO_THREAD", arguments, agent_name)
 
 
 # Delete a specific Gmail draft using the Composio Gmail integration
@@ -516,16 +561,16 @@ def gmail_search_people(
     return _execute("GMAIL_SEARCH_PEOPLE", composio_user_id, arguments)
 
 
-# Return Gmail tool callables
-def build_registry(agent_name: str) -> Dict[str, Callable[..., Any]]:  # noqa: ARG001
+# Return Gmail tool callables; send-class tools are bound to the agent that proposes
+def build_registry(agent_name: str) -> Dict[str, Callable[..., Any]]:
     """Return Gmail tool callables."""
     
     return {
         "gmail_create_draft": gmail_create_draft,
-        "gmail_execute_draft": gmail_execute_draft,
+        "gmail_execute_draft": partial(gmail_execute_draft, agent_name=agent_name),
         "gmail_delete_draft": gmail_delete_draft,
-        "gmail_forward_email": gmail_forward_email,
-        "gmail_reply_to_thread": gmail_reply_to_thread,
+        "gmail_forward_email": partial(gmail_forward_email, agent_name=agent_name),
+        "gmail_reply_to_thread": partial(gmail_reply_to_thread, agent_name=agent_name),
         "gmail_get_contacts": gmail_get_contacts,
         "gmail_get_people": gmail_get_people,
         "gmail_list_drafts": gmail_list_drafts,
@@ -535,6 +580,7 @@ def build_registry(agent_name: str) -> Dict[str, Callable[..., Any]]:  # noqa: A
 
 __all__ = [
     "build_registry",
+    "execute_approved_action",
     "get_schemas",
     "gmail_create_draft",
     "gmail_execute_draft",

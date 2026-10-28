@@ -6,9 +6,12 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 from ...logging_config import logger
+from ...services.approvals import ApprovalError, get_approval_store
+from ...services.provenance import current_provenance, current_turn_id
 from ...services.conversation import get_conversation_log
 from ...services.execution import get_agent_roster, get_execution_agent_logs
 from ..execution_agent.batch_manager import ExecutionBatchManager
+from ..execution_agent.tools.gmail import execute_approved_action
 
 
 @dataclass
@@ -105,6 +108,27 @@ TOOL_SCHEMAS = [
     },
 ]
 
+TOOL_SCHEMAS.append(
+    {
+        "type": "function",
+        "function": {
+            "name": "confirm_action",
+            "description": "Send a pending email action (reply, forward, or draft send) that the user has just confirmed in their own message. Refused on any turn the user did not send.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "action_id": {
+                        "type": "string",
+                        "description": "The action_id an agent reported for the pending send.",
+                    },
+                },
+                "required": ["action_id"],
+                "additionalProperties": False,
+            },
+        },
+    }
+)
+
 _EXECUTION_BATCH_MANAGER = ExecutionBatchManager()
 
 
@@ -189,6 +213,22 @@ def send_draft(
     )
 
 
+# Approve a pending outbound action on the user's word and send it once
+def confirm_action(action_id: str) -> ToolResult:
+    """Approve a pending action if this turn came from the user, then execute it."""
+    try:
+        action = get_approval_store().approve(action_id, current_provenance(), current_turn_id())
+        result = execute_approved_action(action.id)
+    except ApprovalError as exc:
+        logger.warning("action not approved", extra={"action_id": action_id, "reason": str(exc)})
+        return ToolResult(success=False, payload={"error": str(exc), "action_id": action_id})
+
+    return ToolResult(
+        success=True,
+        payload={"status": "sent", "action_id": action.id, "kind": action.kind, "result": result},
+    )
+
+
 # Record silent wait state to avoid duplicate responses
 def wait(reason: str) -> ToolResult:
     """Wait silently and add a wait log entry that is not visible to the user."""
@@ -225,6 +265,8 @@ def handle_tool_call(name: str, arguments: Any) -> ToolResult:
         else:
             return ToolResult(success=False, payload={"error": "Invalid arguments format"})
 
+        if name == "confirm_action":
+            return confirm_action(**args)
         if name == "send_message_to_agent":
             return send_message_to_agent(**args)
         if name == "send_message_to_user":
