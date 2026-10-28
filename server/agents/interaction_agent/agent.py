@@ -1,6 +1,7 @@
 """Interaction agent helpers for prompt construction."""
 
 import re
+from datetime import datetime
 from functools import lru_cache
 from html import escape, unescape
 from pathlib import Path
@@ -51,6 +52,10 @@ def prepare_message_with_history(
         sections.append(_render_all_cards())
     else:
         sections.append(_render_shortlist(latest_text, transcript, message_type))
+    if get_settings().prompt_variant == "shortlist":
+        pending = _render_pending_actions()
+        if pending:
+            sections.append(pending)
     sections.append(_render_current_turn(latest_text, message_type))
 
     content = "\n\n".join(sections)
@@ -155,6 +160,34 @@ def _hybrid_arguments(query: str, cards: List[AgentCard]) -> Dict[str, Any]:
         "query_vector": vectors[0],
         "vectors": {card.agent_id: vector for card, vector in zip(cards, vectors[1:])},
     }
+
+
+PENDING_ACTIONS_SHOWN = 5
+
+
+def _render_pending_actions() -> str:
+    """Sends awaiting approval, newest first, as the approval store holds them.
+
+    The summary was built in code from the exact arguments when the action was proposed, so what the
+    user is asked to confirm never depends on how an agent described it. Empty when nothing is pending.
+    """
+    pending = get_approval_store().list_pending()
+    if not pending:
+        return ""
+    now = now_utc()
+    lines = [
+        f'<action id="{escape(action.id, quote=True)}" kind="{escape(action.kind, quote=True)}"'
+        f' age="{_pending_age(action.created_at, now)}">'
+        f"{escape(action.summary or 'no summary recorded', quote=False)}</action>"
+        for action in reversed(pending[-PENDING_ACTIONS_SHOWN:])
+    ]
+    header = f'<pending_actions shown="{len(lines)}" total="{len(pending)}">'
+    return "\n".join([header, *lines, "</pending_actions>"])
+
+
+def _pending_age(created_at: str, now: datetime) -> str:
+    minutes = max(int((now - datetime.fromisoformat(created_at)).total_seconds() // 60), 0)
+    return f"{minutes}m" if minutes < 120 else f"{minutes // 60}h"
 
 
 # Wrap the current message in appropriate XML tags based on sender type
