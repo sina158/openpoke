@@ -308,11 +308,13 @@ def check_turn_sends(calls: list[tuple[str, dict[str, Any]]]) -> dict[int, ToolR
     ``calls`` are the turn's ``(tool name, arguments)`` pairs. Sends whose targets share an
     identifying entity are all refused with the same payload; every other call is left alone.
     """
-    targets = {
-        index: _existing_target(args)
-        for index, (name, args) in enumerate(calls)
+    sends = [
+        index for index, (name, args) in enumerate(calls)
         if name == "send_message_to_agent" and "__invalid_arguments__" not in args
-    }
+    ]
+    if len(sends) < 2:
+        return {}
+    targets = {index: _existing_target(calls[index][1]) for index in sends}
     if len({target for target in targets.values() if target}) < 2:
         return {}
     cards = cards_for(get_agent_registry().list(status=None))

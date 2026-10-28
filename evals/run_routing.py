@@ -352,7 +352,7 @@ def _recording_runtime_class() -> type:
 
         def _turn_refusals(self, routing):
             """The server's whole-turn check (v2 shared-client sends), run against this case's sandbox."""
-            if self._sandbox is None:
+            if self._sandbox is None or sum(c.name == "send_message_to_agent" for c in routing) < 2:
                 return {}
             # Synchronous, so nothing else runs on the loop while the stores point at this case.
             point_stores_at(self._sandbox)
