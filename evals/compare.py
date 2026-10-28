@@ -5,7 +5,8 @@
 
 The headline tables use the report split (BARS.md); all 130 cases are a secondary table. Runs made with
 --limit or --cases are skipped, and two files with the same configuration are refused rather than one silently
-replacing the other. Rates use the denominator that matches the question: wrong reuse and duplicates over cases
+replacing the other. The one exception is the report table: a report-split run with more trials replaces the
+report cases of a full run of the same configuration. Rates use the denominator that matches the question: wrong reuse and duplicates over cases
 whose gold is an existing agent, correct create and hijacks over should-create cases, clarify recall over
 ambiguous cases. Cases built from one template are not independent, so every group also reports its number of
 templates (the effective n) and a template-clustered bootstrap interval. The injection suite's counts are
@@ -211,6 +212,7 @@ def group_key(arm: str, model: str, k: int, size: int) -> str:
 def _table(documents: List[Dict[str, Any]], split: str, templates: Dict[str, str]) -> Dict[str, Any]:
     groups: Dict[RowKey, List[Dict[str, Any]]] = defaultdict(list)
     sources: Dict[RowKey, Dict[str, Any]] = {}
+    run_splits: Dict[RowKey, str] = {}
     for document in documents:
         header = document["header"]
         run_split = header.get("split", "all")
@@ -219,11 +221,18 @@ def _table(documents: List[Dict[str, Any]], split: str, templates: Dict[str, str
         records = [r for r in document["records"] if split == "all" or r["split"] == split]
         for size in sorted({r["size"] for r in records}):
             key = (header["arm"], header["model"], header["k"], header.get("openpoke_roster_mode"), size)
+            trials = header.get("trials", 1)
             if key in sources:
-                raise MixedResults(f"{sources[key]['file']} and {document['source']} both supply {key}")
+                # A report-split run with more trials supersedes the report cases of a full run, either way round.
+                held = sources[key]["trials"]
+                if split == "all" or run_splits[key] == run_split or held == trials:
+                    raise MixedResults(f"{sources[key]['file']} and {document['source']} both supply {key}")
+                if held > trials:
+                    continue
+            run_splits[key] = run_split
             groups[key] = [r for r in records if r["size"] == size]
             sources[key] = {"file": document["source"], "date": header["date"], "commit": header["commit"],
-                            "trials": header.get("trials", 1)}
+                            "trials": trials}
     rows = [{"arm": a, "model": m, "k": k, "roster_mode": mode, "size": s, **sources[key],
              **summarise(groups[key], templates)}
             for key in sorted(groups, key=lambda key: (key[1], key[4], key[0])) for a, m, k, mode, s in [key]]

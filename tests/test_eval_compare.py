@@ -178,3 +178,47 @@ def test_default_inputs_are_the_top_level_routing_runs(tmp_path, monkeypatch):
     results = json.loads((tmp_path / "RESULTS.json").read_text(encoding="utf-8"))
     assert [row["file"] for row in results["report"]["groups"]] == ["20261028_baseline_m_k8_report_abc1234.json"]
     assert results["injection"] == injection
+
+
+def test_report_row_prefers_the_run_with_more_trials(tmp_path):
+    one = _document("baseline", [_record(c, 0, "correct_reuse") for c in "ab"], tmp_path / "t1.json", split="all",
+                    trials=1)
+    three = _document("baseline", [_record(c, t, "wrong_reuse", reused=["g_9"]) for c in "ab" for t in range(3)],
+                      tmp_path / "t3.json", trials=3)
+    for order in ([one, three], [three, one]):
+        assert compare.main([str(p) for p in order] + ["--out-dir", str(tmp_path)]) == 0
+        results = json.loads((tmp_path / "RESULTS.json").read_text(encoding="utf-8"))
+        report_row, all_row = (results[table]["by_key"]["baseline_m_k8_n500"] for table in ("report", "all"))
+        assert (report_row["file"], report_row["trials"], report_row["n"]) == ("t3.json", 3, 6)
+        assert (all_row["file"], all_row["trials"], all_row["n"]) == ("t1.json", 1, 2)
+
+    tie = _document("baseline", [_record(c, t, "correct_reuse") for c in "ab" for t in range(3)],
+                    tmp_path / "tie.json", split="all", trials=3)
+    assert compare.main([str(three), str(tie), "--out-dir", str(tmp_path / "x")]) == 1
+
+
+def test_the_full_set_of_runs_compares_by_default(tmp_path, monkeypatch):
+    monkeypatch.setattr(compare, "RESULTS_DIR", tmp_path)
+
+    def run(arm, split="report", trials=1, k=8, model="m"):
+        records = [_record(c, t, "correct_reuse", split=s) for c, s in (("a", "report"), ("h", "heldout"))
+                   for t in range(trials) if split == "all" or s == split]
+        _document(arm, records, tmp_path / f"20261028_{arm}_{model}_k{k}_{split}_t{trials}.json", split=split,
+                  trials=trials, k=k, model=model)
+
+    for arm in ("baseline", "prompt_only", "fix", "cards_full"):
+        run(arm, split="all")
+    run("baseline", trials=3)
+    run("fix", trials=3)
+    run("fix", k=3)
+    run("fix", k=16)
+    run("baseline", model="m2")
+    run("fix", model="m2")
+    assert compare.main([]) == 0
+
+    results = json.loads((tmp_path / "RESULTS.json").read_text(encoding="utf-8"))
+    report, everything = results["report"], results["all"]
+    assert report["by_key"]["baseline_m_k8_n500"]["trials"] == 3 and report["by_key"]["fix_m_k8_n500"]["trials"] == 3
+    assert {"fix_m_k3_n500", "fix_m_k16_n500", "fix_m2_k8_n500", "cards_full_m_k8_n500"} <= set(report["by_key"])
+    assert "fix_vs_baseline_m2_k8_n500" in report["paired_by_key"]
+    assert everything["by_key"]["baseline_m_k8_n500"]["trials"] == 1 and len(everything["groups"]) == 4
