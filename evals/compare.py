@@ -1,6 +1,6 @@
 """Summarise routing result files into evals/results/RESULTS.md and RESULTS.json.
 
-    python -m evals.compare                    # every full result file in evals/results
+    python -m evals.compare                    # every full routing result file directly in evals/results
     python -m evals.compare a.json b.json      # just these
 
 The headline tables use the report split (BARS.md); all 130 cases are a secondary table. Runs made with
@@ -8,7 +8,8 @@ The headline tables use the report split (BARS.md); all 130 cases are a secondar
 replacing the other. Rates use the denominator that matches the question: wrong reuse and duplicates over cases
 whose gold is an existing agent, correct create and hijacks over should-create cases, clarify recall over
 ambiguous cases. Cases built from one template are not independent, so every group also reports its number of
-templates (the effective n) and a template-clustered bootstrap interval.
+templates (the effective n) and a template-clustered bootstrap interval. The injection suite's counts are
+carried over from INJECTION.json (``make injection``) when it is present.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ TABLES = ("report", "all")
 BOOTSTRAP_RESAMPLES = 2000
 BOOTSTRAP_SEED = 20261028
 RowKey = Tuple[str, str, int, str, int]  # arm, model, k, roster mode, size
+INJECTION_FILE = "INJECTION.json"
 
 
 class MixedResults(ValueError):
@@ -268,7 +270,7 @@ def _token_bars(by_key: Dict[str, Any], size: int = 500) -> Dict[str, Optional[f
 
 
 def build(documents: List[Dict[str, Any]], selector: Optional[Dict[str, Any]] = None,
-          skipped: Sequence[str] = ()) -> Dict[str, Any]:
+          skipped: Sequence[str] = (), injection: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     templates = _template_of()
     report: Dict[str, Any] = {split: _table(documents, split, templates) for split in TABLES}
     report["spend"] = _spend(documents)
@@ -276,6 +278,8 @@ def build(documents: List[Dict[str, Any]], selector: Optional[Dict[str, Any]] = 
     report["skipped_partial_runs"] = list(skipped)
     if selector is not None:
         report["selector"] = selector
+    if injection is not None:
+        report["injection"] = injection
     return report
 
 
@@ -404,6 +408,14 @@ def render_markdown(report: Dict[str, Any]) -> str:
         for row in consistent:
             lines.append(f"| {row['model']} | {row['size']} | {row['arm']} | {row['k']} | {row['trials']} | "
                          f"{_pct(row['pass_k'])} | {_pct(row['agreement'])} |")
+    injection = report.get("injection")
+    if injection:
+        bound = injection["upper95"]
+        lines += ["", "## Injection suite", "",
+                  f"{injection['attacks']} attacks, {injection['unauthorised_sends']} sends without a consumed approval"
+                  + (f" (95% upper bound {_pct(bound)}, rule of three)" if bound is not None else "")
+                  + f"; {injection['positive_controls_sent']} of {injection['positive_controls']} positive controls "
+                  "sent exactly what the user approved. From `INJECTION.json` (`make injection`)."]
     if report["all"]["groups"]:
         lines += ["", "## Secondary: all 130 cases (report and held-out splits)", ""]
         lines += _main_table(report["all"]) + _paired_table(report["all"])
@@ -423,8 +435,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("paths", nargs="*", type=Path)
     parser.add_argument("--out-dir", type=Path, default=RESULTS_DIR)
     args = parser.parse_args(argv)
-    paths = args.paths or sorted(p for p in RESULTS_DIR.glob("*.json")
-                                 if p.name != "RESULTS.json" and "_selector_" not in p.name)
+    # Routing runs are named <date>_<arm>_..., so this skips the summaries and stays out of subdirectories.
+    paths = args.paths or sorted(p for p in RESULTS_DIR.glob("[0-9]*.json") if "_selector_" not in p.name)
     if not paths:
         print("no result files")
         return 1
@@ -432,7 +444,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         documents, skipped = load_documents(paths)
         selector_files = sorted(args.out_dir.glob("*_selector_*.json"))
         selector = json.loads(selector_files[-1].read_text(encoding="utf-8"))["summary"] if selector_files else None
-        report = build(documents, selector, skipped)
+        injection_file = args.out_dir / INJECTION_FILE
+        injection = json.loads(injection_file.read_text(encoding="utf-8")) if injection_file.exists() else None
+        report = build(documents, selector, skipped, injection)
     except MixedResults as exc:
         print(f"refused: {exc}")
         return 1

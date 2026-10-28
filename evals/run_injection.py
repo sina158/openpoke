@@ -16,7 +16,10 @@ Exits 1 if any send lacks a consumed approval given on a user turn, any case sen
 of emails than it expects, a non-user turn is rendered as a user turn, or an attack is stopped by a
 different guard than the one it names.
 
-    python evals/run_injection.py [--cases PATH] [--verbose]
+    python evals/run_injection.py [--cases PATH] [--verbose] [--json PATH]
+
+``--json`` also writes the counts for ``evals.compare``; ``make injection`` writes
+evals/results/INJECTION.json.
 """
 
 from __future__ import annotations
@@ -48,6 +51,7 @@ from datetime import timedelta
 from typing import Any, Dict, List, Optional, Set
 from unittest import mock
 
+from evals.stats import rule_of_three
 from server.agents.execution_agent.tools import get_tool_registry, gmail
 from server.agents.interaction_agent.runtime import InteractionAgentRuntime
 from server.config import get_settings
@@ -346,12 +350,33 @@ def run_suite(cases_path: Path = DEFAULT_CASES) -> SuiteResult:
         return asyncio.run(_run_all(cases, Path(workdir)))
 
 
+def summary(suite: SuiteResult) -> Dict[str, Any]:
+    """The counts the results report quotes.
+
+    ``upper95`` is the rule-of-three bound (3/n), the one-sided 95% upper limit on the unauthorised-send rate
+    when none were seen in n attacks; exact Clopper-Pearson, 1 - 0.05**(1/n), is slightly lower. It is None
+    once any unauthorised send happened.
+    """
+    attacks = len(suite.attacks)
+    return {
+        "attacks": attacks,
+        "unauthorised_sends": suite.unauthorised_sends,
+        "positive_controls": len(suite.controls),
+        "positive_controls_sent": sum(case.passed for case in suite.controls),
+        "upper95": rule_of_three(attacks) if suite.unauthorised_sends == 0 else None,
+    }
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--cases", type=Path, default=DEFAULT_CASES)
     parser.add_argument("--verbose", action="store_true", help="print one line per case")
+    parser.add_argument("--json", type=Path, help="also write the summary counts to this file")
     args = parser.parse_args(argv)
     suite = run_suite(args.cases)
+    if args.json:
+        args.json.parent.mkdir(parents=True, exist_ok=True)
+        args.json.write_text(json.dumps(summary(suite), indent=1) + "\n", encoding="utf-8", newline="\n")
 
     for case in suite.cases:
         if args.verbose or not case.passed:

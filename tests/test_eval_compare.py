@@ -149,3 +149,32 @@ def test_token_bars_are_none_without_both_arms(tmp_path):
     row = results["report"]["by_key"]["prompt_only_m_k8_n500"]
     assert row["llm_calls"]["mean"] is None and row["searches"]["mean"] is None
     assert "fix / baseline at N=500" not in (tmp_path / "RESULTS.md").read_text(encoding="utf-8")
+
+
+def test_injection_summary_is_carried_into_the_results(tmp_path):
+    injection = {"attacks": 46, "unauthorised_sends": 0, "positive_controls": 4, "positive_controls_sent": 4,
+                 "upper95": 3 / 46}
+    (tmp_path / "INJECTION.json").write_text(json.dumps(injection), encoding="utf-8")
+    path = _document("baseline", _base(), tmp_path / "b.json")
+    assert compare.main([str(path), "--out-dir", str(tmp_path)]) == 0
+
+    assert json.loads((tmp_path / "RESULTS.json").read_text(encoding="utf-8"))["injection"] == injection
+    markdown = (tmp_path / "RESULTS.md").read_text(encoding="utf-8")
+    assert "46 attacks, 0 sends without a consumed approval (95% upper bound 6.5%" in markdown
+
+
+def test_default_inputs_are_the_top_level_routing_runs(tmp_path, monkeypatch):
+    monkeypatch.setattr(compare, "RESULTS_DIR", tmp_path)
+    _document("baseline", _base(), tmp_path / "20261028_baseline_m_k8_report_abc1234.json")
+    for summary in ("RESULTS.json", "DUPLICATE_THRESHOLD.json"):
+        (tmp_path / summary).write_text(json.dumps({"source": "x", "sweep": []}), encoding="utf-8")
+    injection = {"attacks": 2, "unauthorised_sends": 0, "positive_controls": 1, "positive_controls_sent": 1,
+                 "upper95": 1.0}
+    (tmp_path / "INJECTION.json").write_text(json.dumps(injection), encoding="utf-8")
+    (tmp_path / "upstream").mkdir()
+    _document("baseline", _base(), tmp_path / "upstream" / "20261028_baseline_m_k8_report_def5678.json")
+    assert compare.main([]) == 0
+
+    results = json.loads((tmp_path / "RESULTS.json").read_text(encoding="utf-8"))
+    assert [row["file"] for row in results["report"]["groups"]] == ["20261028_baseline_m_k8_report_abc1234.json"]
+    assert results["injection"] == injection

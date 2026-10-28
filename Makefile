@@ -33,7 +33,7 @@ eval-live:
 
 # Offline: replays the prompt-injection cases against the send gate.
 injection:
-	$(PYTHON) -m evals.run_injection
+	$(PYTHON) -m evals.run_injection --json evals/results/INJECTION.json
 
 # Summarise the routing result files into a table.
 compare:
