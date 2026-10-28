@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import sys
 import time
 from collections import defaultdict
@@ -23,9 +24,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from evals.cassette import CASSETTE_DIR, Cassette, CassetteMiss
+from evals.cassette import CASSETTE_DIR, Cassette, CassetteMiss, LiveCallLimit
 from evals.lifecycle_scenario import DAYS, build_scenario, ideal_timeline, tick_time
-from evals.run_routing import DEFAULT_MODEL, _git_sha, _model_slug, default_model
+from evals.run_routing import (DEFAULT_MODEL, FIRST_CALLS_CHECKED, ProviderFailure, _git_sha, _model_slug,
+                                default_model)
 from evals.simulate import ARMS, HISTORY_ENTRIES, Simulation
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
@@ -39,11 +41,12 @@ CHARS_PER_TOKEN = 4  # only to express the execution prompt's size in rough toke
 
 def simulate(arm: str, model: Optional[str] = None, mode: str = "replay", days: int = DAYS, k: int = 8,
              cassette_dir: Path = CASSETTE_DIR, inner: Optional[Callable[..., Any]] = None,
-             scenario: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Run one arm over the first `days` days; return {header, seeded, records, days, exec_prompt}."""
+             scenario: Optional[Dict[str, Any]] = None, max_live_calls: Optional[int] = None) -> Dict[str, Any]:
+    """Run one arm over the first `days` days; return {header, seeded, names, records, days, exec_prompt}."""
     scenario = scenario or build_scenario()
-    model = model or (DEFAULT_MODEL if mode == "replay" else default_model(None))
-    cassette = Cassette(f"lifecycle_{arm}_{_model_slug(model)}_k{k}", mode, cassette_dir, inner=inner)
+    model = model or (DEFAULT_MODEL if mode == "replay" else default_model(os.environ.get("OPENPOKE_LLM_BASE_URL")))
+    cassette = Cassette(f"lifecycle_{arm}_{_model_slug(model)}_k{k}", mode, cassette_dir, inner=inner,
+                        max_live_calls=max_live_calls)
     sim = Simulation(arm, model, cassette, k=k)
     started = time.perf_counter()
     records: List[Dict[str, Any]] = []
@@ -58,12 +61,16 @@ def simulate(arm: str, model: Optional[str] = None, mode: str = "replay", days: 
                 turn = sim.turn(message["text"], datetime.fromisoformat(message["at"]))
                 records.append({key: message[key] for key in ("msg_id", "day", "client_key", "gold")}
                                | turn.to_dict())
+                first = records[:FIRST_CALLS_CHECKED]
+                if len(records) == FIRST_CALLS_CHECKED and all(_provider_error(r["error"]) for r in first):
+                    raise ProviderFailure(f"the first {FIRST_CALLS_CHECKED} turns all failed: {first[0]['error']}")
             statuses = sim.statuses()
             series.append({"day": day, "tick_archived": archived,
                            "active": sum(s == "active" for s in statuses.values()),
                            "archived": sum(s == "archived" for s in statuses.values())})
         last_day_agents = sorted({s["agent_id"] for r in records if r["day"] == days for s in r["sends"]})
         exec_prompt = sim.execution_prompt_chars(last_day_agents)
+        names = sim.names()
     header = {
         "date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "arm": arm,
         **{key.lower(): value for key, value in ARMS[arm].items()}, "model": model, "k": k, "days": days,
@@ -71,7 +78,13 @@ def simulate(arm: str, model: Optional[str] = None, mode: str = "replay", days: 
         "cassette": cassette.path.name, "cassette_hits": cassette.hits, "live_calls": cassette.live_calls,
         "history_entries": HISTORY_ENTRIES, "seconds": round(time.perf_counter() - started, 1),
     }
-    return {"header": header, "seeded": seeded, "records": records, "days": series, "exec_prompt": exec_prompt}
+    return {"header": header, "seeded": seeded, "names": names, "records": records, "days": series,
+            "exec_prompt": exec_prompt}
+
+
+def _provider_error(error: Optional[str]) -> bool:
+    """A failed call at the provider, not the model running out of tool iterations."""
+    return bool(error) and "iteration limit" not in error
 
 
 # ---- scoring (pure) -----------------------------------------------------------------------------------------
@@ -215,7 +228,8 @@ def write_outputs(run: Dict[str, Any], summary: Dict[str, Any], directory: Path 
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / f"lifecycle_{header['arm']}_{_model_slug(header['model'])}_d{header['days']}.jsonl"
     with path.open("w", encoding="utf-8", newline="\n") as handle:
-        handle.write(json.dumps({"header": header, "seeded": run["seeded"]}, ensure_ascii=False) + "\n")
+        handle.write(json.dumps({"header": header, "seeded": run["seeded"], "names": run["names"]},
+                                ensure_ascii=False) + "\n")
         for record in run["records"]:
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
     summary_path = directory / SUMMARY_JSON
@@ -277,6 +291,43 @@ def render_markdown(document: Dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+_LABELS = (("correct_create", "new agent, right"), ("correct_reuse", "reused the right agent"),
+           ("revived", "revived"), ("duplicates", "DUPLICATE"), ("wrong_reuse", "WRONG REUSE"),
+           ("cross_client", "CROSS-CLIENT"), ("ambiguous_guess", "guessed"), ("clarified", "clarified"),
+           ("over_clarified", "clarified needlessly"), ("no_route", "no route"))
+
+
+def render_transcript(run: Dict[str, Any], scenario: Dict[str, Any]) -> str:
+    """The arm's month turn by turn: message, gold, the routing calls made and how each was graded."""
+    header, names, matters = run["header"], run["names"], scenario["matters"]
+    graded = grade_turns(run["records"], run["seeded"], matters)
+    lines = [f"# Lifecycle transcript: {header['arm']}", "",
+             f"Model `{header['model']}`, {header['days']} days, {header['mode']}; agents are named as at the end."]
+    for row in run["days"]:
+        lines += ["", f"## Day {row['day']}: {row['active']} live, {row['archived']} archived", ""]
+        if row["tick_archived"]:
+            lines.append("Archived at 07:00: " + ", ".join(names.get(i, i) for i in row["tick_archived"]) + ".")
+            lines.append("")
+        for record, g in zip(run["records"], graded):
+            if record["day"] != row["day"]:
+                continue
+            gold = record["gold"]
+            wanted = " or ".join(matters[m].get("agent_name", m) for m in gold["matter_ids"])
+            lines.append(f"- **{record['msg_id']}** {record['at'][11:16]} \"{record['text']}\" "
+                         f"(gold: {gold['kind']}, {wanted})")
+            for call in record["tool_calls"]:
+                args = call["arguments"] or {}
+                target = next((args[key] for key in ("agent_id", "agent_name", "candidate_ids", "query")
+                               if args.get(key)), "")
+                result = call["result"] if isinstance(call["result"], dict) else {}
+                landed = names.get(result.get("agent_id", ""), "")
+                lines.append(f"  - `{call['tool']}` {target!r} -> {call['status']}"
+                             + (f" ({landed})" if landed else ""))
+            labels = [label for key, label in _LABELS if g.get(key)]
+            lines.append(f"  - graded: {', '.join(labels) or 'nothing routed'}")
+    return "\n".join(lines) + "\n"
+
+
 def summary_line(arm: str, summary: Dict[str, Any]) -> str:
     return (f"{arm}: {summary['turns']} turns, live {summary['live_end']} (ideal {summary['ideal_live_end']}), "
             f"duplicates {summary['duplicates']}, wrong reuse {summary['wrong_reuse']} "
@@ -298,6 +349,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.set_defaults(mode="replay")
     parser.add_argument("--cassette-dir", type=Path, default=CASSETTE_DIR)
     parser.add_argument("--out-dir", type=Path, default=RESULTS_DIR)
+    parser.add_argument("--max-live-calls", type=int, default=None, help="stop a live run after this many calls")
+    parser.add_argument("--transcript", action="store_true", help="also write each arm's month as Markdown")
     args = parser.parse_args(argv)
     arms = [arm.strip() for arm in args.arms.split(",") if arm.strip()]
     unknown = [arm for arm in arms if arm not in ARMS]
@@ -307,12 +360,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     scenario = build_scenario()
     for arm in arms:
         try:
-            run = simulate(arm, args.model, args.mode, args.days, args.k, args.cassette_dir, scenario=scenario)
-        except CassetteMiss as exc:
-            print(f"{arm}: replay miss, nothing written ({exc}); record it first with --record", file=sys.stderr)
+            run = simulate(arm, args.model, args.mode, args.days, args.k, args.cassette_dir, scenario=scenario,
+                           max_live_calls=args.max_live_calls)
+        except (CassetteMiss, LiveCallLimit, ProviderFailure) as exc:
+            print(f"{arm}: stopped, nothing written: {exc}", file=sys.stderr)
             return 2
         summary = score(run, scenario)
         path = write_outputs(run, summary, args.out_dir)
+        if args.transcript:
+            path.with_suffix(".md").write_text(render_transcript(run, scenario), encoding="utf-8", newline="\n")
         print(summary_line(arm, summary))
         print(f"  live calls {run['header']['live_calls']}, cassette hits {run['header']['cassette_hits']}, "
               f"{run['header']['seconds']} s; wrote {path.name}, {SUMMARY_JSON}, {SUMMARY_MD}")

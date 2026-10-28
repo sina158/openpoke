@@ -168,3 +168,17 @@ def test_the_real_month_runs_under_a_fake_model(tmp_path):
     assert summary["errors"] == 0
     assert run["days"][0]["tick_archived"]  # the agents seeded more than 30 days back go on day 1
     assert summary["archive_events"] == 9
+
+
+def test_the_command_line_replays_a_recorded_run_and_refuses_a_missing_one(tmp_path, capsys):
+    run_lifecycle.simulate("fix_v2", model="fake-model", mode="record", days=2, cassette_dir=tmp_path / "c",
+                           inner=scripted_model)
+    out = tmp_path / "out"
+    common = ["--days", "2", "--model", "fake-model", "--replay", "--cassette-dir", str(tmp_path / "c"),
+              "--out-dir", str(out)]
+    assert run_lifecycle.main(["--arms", "fix_v2", "--transcript", *common]) == 0
+    assert "fix_v2: " in capsys.readouterr().out
+    transcript = (out / "lifecycle_fix_v2_fake-model_d2.md").read_text(encoding="utf-8")
+    assert "## Day 2:" in transcript and "graded:" in transcript and "Archived at 07:00" in transcript
+    assert run_lifecycle.main(["--arms", "baseline", *common]) == 2
+    assert "stopped, nothing written" in capsys.readouterr().err

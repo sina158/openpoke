@@ -42,10 +42,9 @@ ARMS: Dict[str, Dict[str, str]] = {
                "OPENPOKE_ROUTING_PROFILE": "v2"},
 }
 HISTORY_ENTRIES = 30
-ROUTING_TOOLS = ("send_message_to_agent", "clarify_agent_choice")
-_AGENT_ID = re.compile(r"\ba_\d{4}\b")
-_ACTIVE_BLOCK = re.compile(r"<active_agents\b.*?</active_agents>", re.DOTALL)
-_ROSTER_NAME = re.compile(r'<agent name="([^"]*)" />')
+# History is escaped in the prompt, so a literal <agent ...> tag is always a roster or shortlist line.
+_AGENT_TAG = re.compile(r"<agent\b([^>]*)>")
+_ATTR = re.compile(r'\b(id|name)="([^"]*)"')
 
 
 @dataclass
@@ -280,19 +279,17 @@ def _tail_runtime_class() -> type:
 
 
 def _shown_ids(messages: List[Dict[str, Any]], registry: Any) -> List[str]:
-    """Agent ids in the first prompt's <active_agents> block (by id, or by name for the upstream roster)."""
-    if not messages:
-        return []
-    block = _ACTIVE_BLOCK.search(str(messages[0].get("content") or ""))
-    if not block:
-        return []
-    ids = _AGENT_ID.findall(block.group(0))
-    if ids:
-        return ids
+    """Ids of the agents listed in the first prompt (by id, or by name in the upstream roster)."""
     from html import unescape
 
-    found = [registry.find_by_name(unescape(name)) for name in _ROSTER_NAME.findall(block.group(0))]
-    return [record.id for record in found if record is not None]
+    shown: List[str] = []
+    for tag in _AGENT_TAG.findall(str(messages[0].get("content") or "") if messages else ""):
+        attrs = dict(_ATTR.findall(tag))
+        record = None if "id" in attrs else registry.find_by_name(unescape(attrs.get("name", "")))
+        agent_id = attrs.get("id") or (record.id if record else None)
+        if agent_id and agent_id not in shown:
+            shown.append(agent_id)
+    return shown
 
 
 def _read_tool_results(turn: Turn, messages: List[Dict[str, Any]], before: Dict[str, str]) -> None:
