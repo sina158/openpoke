@@ -5,11 +5,16 @@ import json
 from dataclasses import dataclass
 from typing import Any, Optional
 
+from ...config import get_settings
 from ...logging_config import logger
 from ...services.approvals import ApprovalError, get_approval_store
 from ...services.provenance import current_provenance, current_turn_id
 from ...services.conversation import get_conversation_log
-from ...services.execution import get_agent_roster, get_execution_agent_logs
+from ...services.execution import get_agent_registry, get_execution_agent_logs
+from ...services.execution.agent_cards import cards_for
+from ...services.execution.registry import AgentRecord
+from ...services.execution.selector import search, tokenize
+from ...utils.clock import now_utc
 from ..execution_agent.batch_manager import ExecutionBatchManager
 from ..execution_agent.tools.gmail import execute_approved_action
 
@@ -129,19 +134,138 @@ TOOL_SCHEMAS.append(
     }
 )
 
+# The routing tools the "shortlist" prompt variant describes: send_message_to_agent takes an id,
+# the duplicate check can be overridden, and the model can ask the user or search the roster.
+_SEND_BY_ID_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "send_message_to_agent",
+        "description": "Deliver instructions to an execution agent. Pass agent_id to reuse an existing agent, or agent_name to start a new one; if similar agents exist the result lists them as possible_duplicates and nothing is sent.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "instructions": {"type": "string", "description": "Instructions for the agent to execute."},
+                "agent_id": {
+                    "type": "string",
+                    "description": "Id of an existing agent to reuse (e.g. 'a_0042'), from <active_agents> or search_agents.",
+                },
+                "agent_name": {
+                    "type": "string",
+                    "description": "Name for a new agent describing its matter (e.g. 'COI for Example Plumbing'). An existing agent's exact name reuses it.",
+                },
+                "confirm_new": {
+                    "type": "boolean",
+                    "description": "Create the new agent even though possible_duplicates were returned for this name.",
+                },
+            },
+            "required": ["instructions"],
+            "additionalProperties": False,
+        },
+    },
+}
+
+_CLARIFY_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "clarify_agent_choice",
+        "description": "Ask the user which matter they mean when more than one agent could fit. Sends the question to the user; no agent is contacted.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "candidate_ids": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Ids of the agents that could fit.",
+                },
+                "question": {"type": "string", "description": "The question shown to the user."},
+            },
+            "required": ["candidate_ids", "question"],
+            "additionalProperties": False,
+        },
+    },
+}
+
+_SEARCH_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "search_agents",
+        "description": "Search all agents, including ones not shown in <active_agents> and archived ones, by name, email, id or topic.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Words to search for."},
+            },
+            "required": ["query"],
+            "additionalProperties": False,
+        },
+    },
+}
+
 _EXECUTION_BATCH_MANAGER = ExecutionBatchManager()
 
 
-# Create or reuse execution agent and dispatch instructions asynchronously
-def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
-    """Send instructions to an execution agent."""
-    roster = get_agent_roster()
-    roster.load()
-    existing_agents = set(roster.get_agents())
-    is_new = agent_name not in existing_agents
+def name_similarity(a: str, b: str) -> float:
+    """Jaccard similarity of two names' word sets (lowercased, English stopwords dropped)."""
+    left, right = set(tokenize(a)), set(tokenize(b))
+    if not left or not right:
+        return 0.0
+    return len(left & right) / len(left | right)
 
-    if is_new:
-        roster.add_agent(agent_name)
+
+def possible_duplicates(name: str, records: list[AgentRecord], threshold: float) -> list[AgentRecord]:
+    """Existing agents whose name is close enough to ``name`` to be the same matter, closest first."""
+    scored = [(name_similarity(name, record.name), record) for record in records]
+    close = [(score, record) for score, record in scored if score >= threshold]
+    close.sort(key=lambda item: (-item[0], item[1].id))
+    return [record for _, record in close[:5]]
+
+
+def _resolve_agent(
+    agent_id: Optional[str], agent_name: Optional[str], confirm_new: bool
+) -> tuple[Optional[AgentRecord], bool, Optional[ToolResult]]:
+    """Find or create the target agent: ``(record, created, refusal)``."""
+    registry = get_agent_registry()
+    if agent_id:
+        record = registry.get(agent_id.strip())
+        if record is None:
+            error = f"Unknown agent_id {agent_id!r}. Use an id from <active_agents> or search_agents, or pass agent_name to start a new agent."
+            return None, False, ToolResult(success=False, payload={"error": error})
+        return record, False, None
+    if not agent_name or not agent_name.strip():
+        error = "Pass agent_id to reuse an agent or agent_name to start a new one."
+        return None, False, ToolResult(success=False, payload={"error": error})
+
+    record = registry.find_by_name(agent_name)
+    if record is not None:
+        return record, False, None
+    # Only the shortlist prompt explains confirm_new; under the upstream prompt a name always creates.
+    if get_settings().prompt_variant == "shortlist" and not confirm_new:
+        similar = possible_duplicates(agent_name, registry.list(status=None), get_settings().duplicate_threshold)
+        if similar:
+            payload = {
+                "status": "possible_duplicates",
+                "possible_duplicates": [{"agent_id": r.id, "name": r.name, "status": r.status} for r in similar],
+                "message": "Nothing was sent. Reuse one of these by agent_id if it is the same matter, or call again with confirm_new=true.",
+            }
+            return None, False, ToolResult(success=False, payload=payload)
+    record, created = registry.get_or_create(agent_name)
+    return record, created, None
+
+
+# Create or reuse execution agent and dispatch instructions asynchronously
+def send_message_to_agent(
+    instructions: str,
+    agent_id: Optional[str] = None,
+    agent_name: Optional[str] = None,
+    confirm_new: bool = False,
+) -> ToolResult:
+    """Send instructions to an execution agent, chosen by id or by name (with a duplicate check)."""
+    record, is_new, refusal = _resolve_agent(agent_id, agent_name, confirm_new)
+    if refusal is not None:
+        return refusal
+    if record.status == "archived":
+        get_agent_registry().revive(record.id, now=now_utc())
+    agent_name = record.name
 
     get_execution_agent_logs().record_request(agent_name, instructions)
 
@@ -168,10 +292,46 @@ def send_message_to_agent(agent_name: str, instructions: str) -> ToolResult:
         success=True,
         payload={
             "status": "submitted",
+            "agent_id": record.id,
             "agent_name": agent_name,
             "new_agent_created": is_new,
         },
     )
+
+
+# Ask the user to choose between candidate agents; nothing is dispatched
+def clarify_agent_choice(candidate_ids: list[str], question: str) -> ToolResult:
+    """Send the user a question about which agent they mean."""
+    registry = get_agent_registry()
+    unknown = [agent_id for agent_id in candidate_ids if registry.get(str(agent_id)) is None]
+    if not candidate_ids or unknown:
+        return ToolResult(success=False, payload={"error": f"Unknown candidate_ids: {unknown or 'none given'}"})
+    get_conversation_log().record_reply(question)
+    return ToolResult(
+        success=True,
+        payload={"status": "asked", "candidate_ids": list(candidate_ids)},
+        user_message=question,
+        recorded_reply=True,
+    )
+
+
+# Search every agent, archived ones included, by name, email, id or topic
+def search_agents(query: str) -> ToolResult:
+    """Return the best-matching agents' cards."""
+    now = now_utc()
+    cards = cards_for(get_agent_registry().list(status=None))
+    results = [
+        {
+            "agent_id": hit.card.agent_id,
+            "name": hit.card.name,
+            "status": hit.card.status,
+            "last_active_at": hit.card.last_active_at,
+            "purpose": hit.card.purpose,
+            "entities": list(hit.card.entities),
+        }
+        for hit in search(query, cards, now=now)
+    ]
+    return ToolResult(success=True, payload={"query": query, "agents": results})
 
 
 # Send immediate message to user and record in conversation history
@@ -248,10 +408,20 @@ def wait(reason: str) -> ToolResult:
     )
 
 
-# Return predefined tool schemas for LLM function calling
+# Return the tool schemas for the configured prompt variant and roster mode
 def get_tool_schemas():
-    """Return OpenAI-compatible tool schemas."""
-    return TOOL_SCHEMAS
+    """Return OpenAI-compatible tool schemas.
+
+    The "original" variant gets the upstream schemas; "shortlist" gets id-based routing and
+    clarify_agent_choice, plus search_agents when the roster is shortlisted.
+    """
+    settings = get_settings()
+    if settings.prompt_variant == "original":
+        return TOOL_SCHEMAS
+    routing = [_SEND_BY_ID_SCHEMA, _CLARIFY_SCHEMA]
+    if settings.roster_mode == "shortlist":
+        routing.append(_SEARCH_SCHEMA)
+    return [*routing, *TOOL_SCHEMAS[1:]]
 
 
 # Route tool calls to appropriate handlers with argument validation and error handling
@@ -269,6 +439,10 @@ def handle_tool_call(name: str, arguments: Any) -> ToolResult:
             return confirm_action(**args)
         if name == "send_message_to_agent":
             return send_message_to_agent(**args)
+        if name == "clarify_agent_choice":
+            return clarify_agent_choice(**args)
+        if name == "search_agents":
+            return search_agents(**args)
         if name == "send_message_to_user":
             return send_message_to_user(**args)
         if name == "send_draft":

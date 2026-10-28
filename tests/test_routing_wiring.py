@@ -60,6 +60,11 @@ def test_prompt_only_keeps_the_full_roster_but_switches_prompt_and_tools(seeded)
     baseline_content, _, _ = seeded("baseline")
 
     assert content == baseline_content
+    names = [s["function"]["name"] for s in schemas]
+    assert "clarify_agent_choice" in names and "search_agents" not in names
+    send = _send_schema(schemas)
+    assert set(send["properties"]) == {"instructions", "agent_id", "agent_name", "confirm_new"}
+    assert send["required"] == ["instructions"]
     assert "clarify_agent_choice" in prompt
 
 
@@ -72,6 +77,7 @@ def test_fix_renders_a_shortlist_with_ids_and_offers_search(seeded):
     assert lines[0] == ("a_0004", "Renewal for Client 03")
     assert "4 more agents are not shown" in content and "search_agents(query)" in content
     assert 'last_active="0h ago"' in content
+    assert "search_agents" in [s["function"]["name"] for s in schemas]
     assert prompt == build_system_prompt("shortlist")
 
 
