@@ -1,0 +1,5880 @@
+{
+ "header": {
+  "date": "2026-10-28T17:31:38Z",
+  "arm": "baseline",
+  "openpoke_roster_mode": "full",
+  "openpoke_prompt_variant": "original",
+  "openpoke_routing_profile": "v2",
+  "openpoke_v2_disable": "",
+  "openpoke_shortlist_evidence": "0",
+  "openpoke_execution_memory": "recent",
+  "model": "deepseek-v4-pro",
+  "base_url_host": "openrouter.ai",
+  "commit": "262fe0b",
+  "n_cases": 110,
+  "n_records": 110,
+  "sizes": [
+   500
+  ],
+  "trials": 1,
+  "k": 8,
+  "temperature": 0.0,
+  "seed": 20261028,
+  "split": "report",
+  "set": "v2",
+  "roster_seed": 20261029,
+  "cases_sample": null,
+  "sample_seed": null,
+  "limit": null,
+  "case_ids": null,
+  "mode": "replay",
+  "misses_as_errors": true,
+  "cassette_misses": [
+   "v2-paraphrase-001"
+  ],
+  "cassette_hits": 116,
+  "live_calls": 0,
+  "render_seconds": 74.6,
+  "cost_note": "cost_usd is the list-price equivalent when the provider reports one, else billed"
+ },
+ "records": [
+  {
+   "case_id": "v2-explicit-001",
+   "category": "explicit",
+   "template_id": "explicit.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0001"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Clementine Zeller home quote",
+      "instructions": "Chase the home insurance quote for Clementine Zeller. We need to follow up on it before Friday. Review the existing quote/thread, then draft a polite follow-up email to Clementine Zeller asking about the status of the home quote (or nudging for any outstanding information needed to move it forward). Present the draft to me for review before sending."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0001"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9093,
+   "completion_tokens": 315,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 10457.3,
+   "cost_usd": 0.00531846
+  },
+  {
+   "case_id": "v2-explicit-002",
+   "category": "explicit",
+   "template_id": "explicit.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0004"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Hamish Ingram home renewal",
+      "instructions": "Hamish Ingram rang about their renewal. Check the file and tell me what we still owe them — any outstanding balance, amounts due, and the status of the renewal."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0004"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9203,
+   "completion_tokens": 169,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 8030.0,
+   "cost_usd": 0.00510198
+  },
+  {
+   "case_id": "v2-explicit-003",
+   "category": "explicit",
+   "template_id": "explicit.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0007"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Summit Hardware commercial property claim",
+      "instructions": "Follow up / chase the commercial property claim for Summit Hardware. The user wants this chased and progressed before Friday. Check the current status, contact the insurer/adjuster as needed to push it along, and report back what you find and what's been done."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0007"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9155,
+   "completion_tokens": 225,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 8882.1,
+   "cost_usd": 0.00518118
+  },
+  {
+   "case_id": "v2-explicit-004",
+   "category": "explicit",
+   "template_id": "explicit.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0010"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Starling Landscaping renewal",
+      "instructions": "The client called about their renewal and wants to know what we still owe them. Please check the Starling Landscaping renewal file and report the outstanding balance or any unpaid amounts we owe them."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0010"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9149,
+   "completion_tokens": 181,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7085.9,
+   "cost_usd": 0.00460011
+  },
+  {
+   "case_id": "v2-explicit-005",
+   "category": "explicit",
+   "template_id": "explicit.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0013"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Summit Daycare CGL renewal",
+      "instructions": "Follow up / chase the Summit Daycare CGL renewal. The user needs this pushed before Friday. Do whatever follow-up is needed (check status, contact the carrier or client as appropriate) and report back with where things stand and any action items or drafts required."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0013"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9046,
+   "completion_tokens": 225,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7955.7,
+   "cost_usd": 0.00461925
+  },
+  {
+   "case_id": "v2-explicit-006",
+   "category": "explicit",
+   "template_id": "explicit.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0016"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Tamarack Bakery renewal",
+      "instructions": "Tamarack Bakery rang about their renewal. Please check our records and let me know what we still owe them (any outstanding balance, unpaid invoice, or amount due)."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0016"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9170,
+   "completion_tokens": 192,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 5415.3,
+   "cost_usd": 0.00512574
+  },
+  {
+   "case_id": "v2-explicit-007",
+   "category": "explicit",
+   "template_id": "explicit.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0019"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Lantern Dental Clinic CGL quote",
+      "instructions": "Chase (follow up on) the outstanding CGL quote for Lantern Dental Clinic. The user needs this done before Friday. Reach out to the relevant carrier/underwriter, check the status of the quote, and push to get it finalized/delivered before Friday. Report back with the status and next steps."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0019"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9107,
+   "completion_tokens": 267,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 6790.7,
+   "cost_usd": 0.00523266
+  },
+  {
+   "case_id": "v2-explicit-008",
+   "category": "explicit",
+   "template_id": "explicit.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0022"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Jovana Galloway home quote",
+      "instructions": "Jovana Galloway rang about the quote. Can you check what we still owe them? Look through the quote thread/records for any outstanding balance or payment still owed to Jovana Galloway and report back the amount and context."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0022"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9236,
+   "completion_tokens": 495,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 8761.7,
+   "cost_usd": 0.00576924
+  },
+  {
+   "case_id": "v2-explicit-009",
+   "category": "explicit",
+   "template_id": "explicit.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0025"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Fiddlehead Plumbing commercial property endorsement",
+      "instructions": "Chase the commercial property endorsement for Fiddlehead Plumbing. The client needs this sorted before Friday. Follow up with whoever is responsible and get a status update or confirmation on timing."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0025"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9130,
+   "completion_tokens": 156,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7027.4,
+   "cost_usd": 0.00453807
+  },
+  {
+   "case_id": "v2-explicit-010",
+   "category": "explicit",
+   "template_id": "explicit.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0028"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Shoreline Daycare quote",
+      "instructions": "Shoreline Daycare called about their quote. Please review the quote details and tell me what (if anything) we still owe them. Include the quote amount, what's been paid so far, and any outstanding balance."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0028"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9196,
+   "completion_tokens": 218,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7601.7,
+   "cost_usd": 0.00470439
+  },
+  {
+   "case_id": "v2-explicit-011",
+   "category": "explicit",
+   "template_id": "explicit.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0031"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Tamarack Fitness Studio CGL endorsement",
+      "instructions": "Follow up (chase) on the CGL endorsement for Tamarack Fitness Studio. The user needs this handled before Friday. Please push this forward and report back on the status and any outstanding items."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0031"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9107,
+   "completion_tokens": 227,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7344.1,
+   "cost_usd": 0.00466347
+  },
+  {
+   "case_id": "v2-explicit-012",
+   "category": "explicit",
+   "template_id": "explicit.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0034"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Solveig Ortega home quote",
+      "instructions": "Solveig Ortega called about the quote. Can you check what we still owe them? Please provide any outstanding balance, invoice details, or next steps on the payment."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0034"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9138,
+   "completion_tokens": 219,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7864.1,
+   "cost_usd": 0.00466809
+  },
+  {
+   "case_id": "v2-explicit-013",
+   "category": "explicit",
+   "template_id": "explicit.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0037"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Alistair Zeller home quote",
+      "instructions": "Follow up on the home insurance quote for Alistair Zeller. Chase the outstanding quote to make sure we get it sorted before Friday. Report back what the current status is and any action taken."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0037"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9116,
+   "completion_tokens": 208,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 6236.1,
+   "cost_usd": 0.00463179
+  },
+  {
+   "case_id": "v2-explicit-014",
+   "category": "explicit",
+   "template_id": "explicit.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0040"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Florian Ishikawa home billing",
+      "instructions": "Florian Ishikawa called about the billing. Please check what we still owe them and report back the outstanding amount and any relevant details."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0040"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9058,
+   "completion_tokens": 165,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 4499.7,
+   "cost_usd": 0.00450837
+  },
+  {
+   "case_id": "v2-entity-001",
+   "category": "entity",
+   "template_id": "entity.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0043"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "CL-774919 repair estimate",
+      "instructions": "Find claim CL-774919 in the system. Identify the claim type, the policyholder/client, and the adjuster (name, email, and any claim file reference). Locate the repair estimate associated with this claim (check the claim file, attachments, emails, or document store). Pull the actual estimate document/file and its details (amount, repairer, date). Report back with: (1) the policyholder name, (2) the adjuster's name and email address, (3) whether a repair estimate exists and where it is located, (4) the estimate amount and repairer if available. Do NOT send any email yet — just gather and report the information and have the estimate ready to send."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "CL-774919 repair estimate"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9162,
+   "completion_tokens": 711,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 12143.9,
+   "cost_usd": 0.00565809
+  },
+  {
+   "case_id": "v2-entity-002",
+   "category": "entity",
+   "template_id": "entity.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0046"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Lighthouse Point Insurance callback",
+      "instructions": "Lighthouse Point Insurance left a voicemail quoting file number CP-2812-42. Call them back on that file and find out what they need. Then report back: who you spoke with, what they need from us, any deadlines, and any reference numbers or next steps."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Lighthouse Point Insurance callback"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9196,
+   "completion_tokens": 238,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5423.1,
+   "cost_usd": 0.00474399
+  },
+  {
+   "case_id": "v2-entity-003",
+   "category": "entity",
+   "template_id": "entity.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0049"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "CL-413439 repair estimate to adjuster",
+      "instructions": "Claim CL-413439: the adjuster has asked for the repair estimate and needs it by Monday. Locate the repair estimate for this claim, then send it to the adjuster. Confirm the recipient email and send it (or prepare it ready to send if the estimate isn't available yet). Report back what you found and what you sent."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "CL-413439 repair estimate to adjuster"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9175,
+   "completion_tokens": 414,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7619.5,
+   "cost_usd": 0.00507861
+  },
+  {
+   "case_id": "v2-entity-004",
+   "category": "entity",
+   "template_id": "entity.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0052"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Cobalt Lake General HO-8390-66",
+      "instructions": "Cobalt Lake General left a voicemail referencing file/policy number HO-8390-66. Call them back on that file and find out what they need. Pull up whatever we have on HO-8390-66 first, then reach out. Report back: who you spoke with, what they need, and any deadlines or actions required."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Cobalt Lake General HO-8390-66"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9173,
+   "completion_tokens": 326,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5754.0,
+   "cost_usd": 0.00490305
+  },
+  {
+   "case_id": "v2-entity-005",
+   "category": "entity",
+   "template_id": "entity.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0055"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "CL-474088 repair estimate",
+      "instructions": "Find claim CL-474088, including the claimant/client, the adjuster assigned to it, and the adjuster's email address. Locate the repair estimate document for this claim. Then draft an email to the adjuster sending over the repair estimate (it's due by Monday). Do NOT send the email — just prepare the draft with recipient, subject, and body, and report back the details so the user can review before sending."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "CL-474088 repair estimate"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9148,
+   "completion_tokens": 1250,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 19826.3,
+   "cost_usd": 0.00671607
+  },
+  {
+   "case_id": "v2-entity-006",
+   "category": "entity",
+   "template_id": "entity.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0058"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Granite Bay Assurance call (HO-9131-67)",
+      "instructions": "Granite Bay Assurance left a voicemail quoting file number HO-9131-67. Call them back on that file and find out what they need. Report back: who you spoke with, what they need, any requested actions, and any deadlines."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Granite Bay Assurance call (HO-9131-67)"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9158,
+   "completion_tokens": 231,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7015.4,
+   "cost_usd": 0.00470505
+  },
+  {
+   "case_id": "v2-entity-007",
+   "category": "entity",
+   "template_id": "entity.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0061"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "CL-510274 repair estimate",
+      "instructions": "The user has claim CL-510274. The adjuster on this claim has asked for the repair estimate to be sent over by Monday. \n\nPlease do the following:\n1. Look up claim CL-510274 and identify the client, the claim details, and the adjuster (name and contact/email).\n2. Locate the repair estimate for this claim.\n3. Prepare an email to the adjuster sending over the repair estimate (attach or include the estimate as appropriate).\n\nDo NOT actually send the email yet. Report back with the claim details, the adjuster's name/email, and the full draft email (subject + body) so the user can review and confirm before sending."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "CL-510274 repair estimate"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9084,
+   "completion_tokens": 466,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 9425.2,
+   "cost_usd": 0.00512151
+  },
+  {
+   "case_id": "v2-entity-008",
+   "category": "entity",
+   "template_id": "entity.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0064"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Granite Bay Assurance - AU-5221-24",
+      "instructions": "Granite Bay Assurance left a voicemail quoting file number AU-5221-24. Call them back regarding that file and find out what they need. Report back the details: who you spoke with, what they're requesting, and any actions required or deadlines."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Granite Bay Assurance - AU-5221-24"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9183,
+   "completion_tokens": 203,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5410.3,
+   "cost_usd": 0.00466611
+  },
+  {
+   "case_id": "v2-entity-009",
+   "category": "entity",
+   "template_id": "entity.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0067"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "CL-541749 repair estimate to adjuster",
+      "instructions": "Find claim CL-541749, locate the repair estimate, and send it to the adjuster who requested it (deadline: Monday). Before actually sending any email, prepare a draft with the recipient, subject, body, and the repair estimate attached/referenced, and report back to me so the user can review and confirm. Include the adjuster's name and email address you found."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "CL-541749 repair estimate to adjuster"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9143,
+   "completion_tokens": 425,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7561.3,
+   "cost_usd": 0.00507927
+  },
+  {
+   "case_id": "v2-entity-010",
+   "category": "entity",
+   "template_id": "entity.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0070"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Northern Shield CGL-4553-49 callback",
+      "instructions": "Northern Shield Insurance left a voicemail referencing file CGL-4553-49. Call them back regarding that file and find out what they need. Report back the details: who you spoke with, what they need, any deadlines, and any relevant file/policy context you can find for CGL-4553-49."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Northern Shield CGL-4553-49 callback"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9173,
+   "completion_tokens": 206,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5259.2,
+   "cost_usd": 0.00466545
+  },
+  {
+   "case_id": "v2-entity-011",
+   "category": "entity",
+   "template_id": "entity.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0073"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "CL-505556 repair estimate",
+      "instructions": "Find insurance claim CL-505556 in the system and locate the repair estimate associated with it. The adjuster needs the repair estimate by Monday, so I need you to: 1) identify the claim (policyholder, type of claim, adjuster/contact info), and 2) locate the repair estimate document/amount. Report back the claim details and whether there is a ready repair estimate to send, along with the adjuster's email address. Do NOT send anything yet — just gather and report the details."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "CL-505556 repair estimate"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9113,
+   "completion_tokens": 554,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 10424.0,
+   "cost_usd": 0.00531489
+  },
+  {
+   "case_id": "v2-entity-012",
+   "category": "entity",
+   "template_id": "entity.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0076"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Granite Bay Assurance callback",
+      "instructions": "Granite Bay Assurance left a voicemail quoting file/reference number CP-9093-71. Call them back regarding that file and find out what they need. Report back: who you spoke with, what they're requesting, any deadlines or action items, and anything the user needs to provide or do."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Granite Bay Assurance callback"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9181,
+   "completion_tokens": 238,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5872.3,
+   "cost_usd": 0.00473409
+  },
+  {
+   "case_id": "v2-paraphrase-001",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0079"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "error",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": "CassetteMiss: no recorded response for key f567990b9628ae13 (model deepseek-v4-pro) in C:\\Users\\Sina\\gm-takehome\\wt2-evals\\evals\\cassettes",
+   "llm_calls": 0,
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "cached_tokens": 0,
+   "cache_reported": false,
+   "latency_ms": 0,
+   "cost_usd": null
+  },
+  {
+   "case_id": "v2-paraphrase-002",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0082"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Leamington Landscaping cancellation",
+      "instructions": "The user has a yard-care (landscaping) client in Leamington and previously requested a cancellation. They're asking whether the cancellation request has moved since last week — i.e., any progress, update, or change in status in the past week.\n\nLook up the Leamington yard-care/landscaping cancellation request, check its current status, and report whether anything has changed since last week (including any replies, confirmations, or outstanding steps)."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Leamington Landscaping cancellation"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9128,
+   "completion_tokens": 1053,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 16437.6,
+   "cost_usd": 0.00631281
+  },
+  {
+   "case_id": "v2-paraphrase-003",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0085"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Search: welder upcoming term",
+      "instructions": "The user is asking about \"the welder who asked about the upcoming term\" and whether anything has come back yet. Search the user's email inbox, records, notes, and any recent correspondence for anything related to a welder or welding business (or a person/company in that trade) that asked about an \"upcoming term\" (likely a policy renewal or term date). Find the relevant thread/request, summarize what was asked, and report whether there has been any reply or update back from them or to them. If you can't find any welder, say so clearly and report what you did find."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Search: welder upcoming term"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9069,
+   "completion_tokens": 1443,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 23232.2,
+   "cost_usd": 0.00704607
+  },
+  {
+   "case_id": "v2-paraphrase-004",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0088"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Smiths Falls yard-care billing",
+      "instructions": "Check on the Smiths Falls yard-care crew account. There's an overdue invoice the user asked about last week. Report whether anything has changed on it since then — any payment received, new correspondence, a status update, or if it's still sitting overdue unchanged. Give me the current status and any recent activity dates."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Smiths Falls yard-care billing"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9100,
+   "completion_tokens": 521,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 9875.3,
+   "cost_usd": 0.00524097
+  },
+  {
+   "case_id": "v2-paraphrase-005",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0091"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Surveyor overdue invoice follow-up",
+      "instructions": "Find any correspondence or thread involving a surveyor who asked about an overdue invoice. Determine whether anything has come back yet regarding that invoice (e.g., payment status, a response, updated invoice, or resolution). Report the latest status and any outstanding action items."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Surveyor overdue invoice follow-up"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9165,
+   "completion_tokens": 579,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 9977.7,
+   "cost_usd": 0.00539871
+  },
+  {
+   "case_id": "v2-paraphrase-006",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0094"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Port Hope wiring contractor COI check",
+      "instructions": "Find the certificate of insurance (COI) for the Port Hope wiring contractor (an electrical contractor client based in Port Hope). Determine whether the COI has changed or been updated/reissued since last week — i.e., has it \"moved\"? Report the current COI status, its issue date, any recent activity on the file, and specifically whether anything changed within the last 7 days."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Port Hope wiring contractor COI check"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9182,
+   "completion_tokens": 577,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 9760.1,
+   "cost_usd": 0.00540597
+  },
+  {
+   "case_id": "v2-paraphrase-007",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0097"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Glassblower loss report",
+      "instructions": "The user is asking about a client who is a glassblower. This client previously asked about a \"loss report.\" Find which client this is (likely a commercial insurance client whose business is glassblowing) and check whether anything has come back yet regarding that loss report. Look through recent emails, notes, and any open tasks related to this client. Report back: (1) who the client is, (2) what the loss report request was about, and (3) the current status — has anything come back yet, or is it still outstanding?"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Glassblower loss report"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9142,
+   "completion_tokens": 1237,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 17993.7,
+   "cost_usd": 0.00668637
+  },
+  {
+   "case_id": "v2-paraphrase-008",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0100"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Orangeville shingle contractor invoice",
+      "instructions": "The user is asking about an \"Orangeville shingle contractor\" and whether their overdue invoice has moved/changed since last week. Find any records related to a shingle/roofing contractor in Orangeville, specifically an overdue invoice. Check its current status, any recent activity, payment, or correspondence since last week, and report what has (or hasn't) changed."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Orangeville shingle contractor invoice"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9038,
+   "completion_tokens": 385,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7264.9,
+   "cost_usd": 0.00493077
+  },
+  {
+   "case_id": "v2-paraphrase-009",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0103"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Beekeeper loss report",
+      "instructions": "The user is asking: \"the beekeeper who asked about the loss report - has anything come back yet?\"\n\nFind the client who is a beekeeper (could be an apiary or honey business). Search the inbox, sent items, and any notes/CRM for correspondence where this client asked about a \"loss report\" (a claims/adjuster loss report, or a loss run report).\n\nDetermine:\n1. The client's name and policy.\n2. What exactly they asked for regarding the loss report.\n3. Whether anything has come back yet (a reply, an attached report, a follow-up, or an outstanding status).\n\nReport back the current status clearly so I can answer the user. If you cannot find a beekeeper client, say so explicitly and describe what you searched."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Beekeeper loss report"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9166,
+   "completion_tokens": 1584,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 25629.3,
+   "cost_usd": 0.00787926
+  },
+  {
+   "case_id": "v2-paraphrase-010",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0106"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Goderich childcare centre loss report",
+      "instructions": "Find the Goderich childcare centre account in our system and check the status of its loss report / claim. The user wants to know: has the loss report moved since last week? Look for any updates, movement, notes, or status changes on the loss report within the past week or so, and report the current status versus what it was about a week ago. If there has been no movement, say so clearly."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Goderich childcare centre loss report"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9124,
+   "completion_tokens": 556,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 9390.3,
+   "cost_usd": 0.00532611
+  },
+  {
+   "case_id": "v2-paraphrase-011",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0109"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Glassblower loss report search",
+      "instructions": "The user is asking about \"the glassblower who asked about the loss report\" and whether anything has come back yet. Search our records, inbox, and any relevant files/messages for a glassblower client (likely an artisan or glassblowing business) who asked about a \"loss report\" (insurance claim/loss context). Find who they are, what they asked, the status of the loss report, and whether anything has come back. Report back with whatever you find, including any pending actions or responses."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Glassblower loss report search"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9091,
+   "completion_tokens": 901,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 14187.2,
+   "cost_usd": 0.00598743
+  },
+  {
+   "case_id": "v2-paraphrase-012",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0112"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Port Hope gym billing",
+      "instructions": "The user is asking about the \"Port Hope gym\" — a fitness studio client located in Port Hope. There's an overdue invoice we've been tracking. Find the relevant fitness studio client in Port Hope and check the status of its overdue invoice. Specifically, determine whether the overdue invoice has \"moved\" since last week — i.e., has it been paid, partially paid, had a payment applied, been updated, or otherwise changed status within the past week? Report the current balance/status, the amount overdue, and whether there's been any movement vs. last week."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Port Hope gym billing"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9179,
+   "completion_tokens": 1365,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 20308.4,
+   "cost_usd": 0.00696423
+  },
+  {
+   "case_id": "v2-paraphrase-013",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0115"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Rhiannon Brennan home claim",
+      "instructions": "The user is asking about \"the midwife who asked about the loss report\" and whether anything has come back yet. Is this referring to Rhiannon Brennan (a home claim / loss report)? Please check for any updates, replies, or new developments on this loss report, and report back the current status."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0116"
+    }
+   ],
+   "cell": "wrong_reuse",
+   "correct": false,
+   "cross_client": true,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9139,
+   "completion_tokens": 1352,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 21131.0,
+   "cost_usd": 0.00740208
+  },
+  {
+   "case_id": "v2-paraphrase-014",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0118"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Perth collision repair shop pricing",
+      "instructions": "The user has a collision repair shop (auto body) in Perth, Ontario they're quoting/insuring. They're asking whether the pricing has moved since last week. Find the relevant quote/pricing records for this Perth collision repair shop, pull the current pricing and the pricing from last week (roughly 7 days ago), and report whether the pricing changed and by how much. Include the numbers if available."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Perth collision repair shop pricing"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9150,
+   "completion_tokens": 884,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 15226.2,
+   "cost_usd": 0.00599271
+  },
+  {
+   "case_id": "v2-pronoun-001",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0121"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Email to Alistair Ulloa",
+      "instructions": "Reply to Alistair on the existing thread and confirm the coverage can start on the 1st (instead of the 15th). Confirm it clearly and briefly. Then report back once sent."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0121"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9404,
+   "completion_tokens": 457,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7432.5,
+   "cost_usd": 0.00531489
+  },
+  {
+   "case_id": "v2-pronoun-002",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0124"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Email to Osprey Printing",
+      "instructions": "Reply to Frankie Okoro on the existing thread and tell her we should go with the $2,500 deductible."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0124"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9344,
+   "completion_tokens": 157,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 3671.7,
+   "cost_usd": 0.00468129
+  },
+  {
+   "case_id": "v2-pronoun-003",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0127"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Email to Rhiannon Deschamps",
+      "instructions": "Reply to Rhiannon Deschamps on the existing thread (2d19cfe2e0151fd3). Confirm that yes, the $1,000 deductible keeps it under $90 a month, and that we'll proceed with that deductible on the new policy. Let me know once the reply is sent."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0127"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9421,
+   "completion_tokens": 377,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 6991.5,
+   "cost_usd": 0.00516771
+  },
+  {
+   "case_id": "v2-pronoun-004",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0130"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Email to Hawthorn Florist",
+      "instructions": "Reply to Jordan Hosseini on the existing thread (633df708723d8ce3) and tell them to go with the $2,500 deductible."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0130"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9407,
+   "completion_tokens": 216,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 4435.3,
+   "cost_usd": 0.00483969
+  },
+  {
+   "case_id": "v2-pronoun-005",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0133"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Email to Isolde Quarshie",
+      "instructions": "Reply to Isolde on the existing thread confirming that yes, the $1,000 deductible will keep the policy under $90 a month, and that we'll go ahead with that. Keep the reply brief and professional."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0133"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9431,
+   "completion_tokens": 267,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5574.8,
+   "cost_usd": 0.00495651
+  },
+  {
+   "case_id": "v2-pronoun-006",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0136"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Email to Juniper Hardware",
+      "instructions": "Reply to Ellis Gaspard on the same thread (53fc0c42be56840a) and tell them we'll go with the $2,500 deductible. Keep it short and professional."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0136"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9274,
+   "completion_tokens": 163,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 4484.0,
+   "cost_usd": 0.00464697
+  },
+  {
+   "case_id": "v2-pronoun-007",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0139"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Email to Adwoa Galloway",
+      "instructions": "Reply to Adwoa Galloway on the existing thread (7d75561eb1416fc7) confirming that the coverage can start on the 1st as she requested. Keep it brief and friendly."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0139"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9383,
+   "completion_tokens": 227,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 4890.9,
+   "cost_usd": 0.00484563
+  },
+  {
+   "case_id": "v2-pronoun-008",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0142"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Email to Tamarack Printing",
+      "instructions": "Reply to Harper Gaspard on the existing thread (003cb2810bc62960) saying we should go with the $2,500 deductible. Draft the reply and show me the draft for confirmation before sending."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0142"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9357,
+   "completion_tokens": 206,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 6237.8,
+   "cost_usd": 0.00478689
+  },
+  {
+   "case_id": "v2-pronoun-009",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0145"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Email to Ignatius Pellegrini",
+      "instructions": "Reply to Ignatius Pellegrini on the same thread confirming that yes, the coverage can start on the 1st instead of the 15th. Confirm it works."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0145"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9434,
+   "completion_tokens": 246,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 6166.5,
+   "cost_usd": 0.00491691
+  },
+  {
+   "case_id": "v2-pronoun-010",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0148"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Email to Cobblestone Printing",
+      "instructions": "Reply to Reese on the existing thread and tell them to go with the $2,500 deductible."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0148"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9291,
+   "completion_tokens": 154,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5667.5,
+   "cost_usd": 0.00464037
+  },
+  {
+   "case_id": "v2-pronoun-011",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0151"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Email to Nadia Abara",
+      "instructions": "Reply to Nadia Abara on the existing thread (c0ccc263d567f5f2) and confirm that yes, the coverage can start on the 1st instead of the 15th. Confirm the new start date is the 1st. Then let me know once it's sent."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0151"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9365,
+   "completion_tokens": 676,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 10891.0,
+   "cost_usd": 0.00621276
+  },
+  {
+   "case_id": "v2-pronoun-012",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0154"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Email to Heatherfield Florist",
+      "instructions": "Reply to Harper Nilsen on the existing thread ca4ce3c9a4fa141c and tell her we should go with the $2,500 deductible. Draft the reply and share it for review before sending."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0154"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9272,
+   "completion_tokens": 341,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 6372.7,
+   "cost_usd": 0.00499809
+  },
+  {
+   "case_id": "v2-near_duplicate-001",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0157"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Saltmarsh Signage invoice check",
+      "instructions": "Look into the Saltmarsh signage company account and determine whether they are still waiting on us regarding an overdue invoice. Find the outstanding/overdue invoice details (invoice number, amount, due date, how overdue it is) and any recent correspondence or notes indicating whether it has been paid, is in dispute, or is still awaiting payment from us. Report back the current status clearly."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Saltmarsh Signage invoice check"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9137,
+   "completion_tokens": 426,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7948.5,
+   "cost_usd": 0.00507729
+  },
+  {
+   "case_id": "v2-near_duplicate-002",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0159"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Severin Takahashi auto renewal",
+      "instructions": "The client wants to drop collision coverage on their car at renewal. Update the auto renewal policy to remove collision coverage only. Do not make any changes to the home policy. Confirm once the change is made."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0159"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9176,
+   "completion_tokens": 264,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5716.3,
+   "cost_usd": 0.00478227
+  },
+  {
+   "case_id": "v2-near_duplicate-003",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t2",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0161"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Dagny Laurentis auto claim - wind damage",
+      "instructions": "The adjuster on Dagny Laurentis's May 27 loss is asking for receipts. Is this the claim with the May 27 date of loss? If so, tell me exactly what receipts or documentation we have on file, and what (if anything) is still missing. If this is NOT the May 27 loss, just say so."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Dagny Laurentis auto claim - theft",
+      "instructions": "The adjuster on Dagny Laurentis's May 27 loss is asking for receipts. Is this the claim with the May 27 date of loss? If so, tell me exactly what receipts or documentation we have on file, and what (if anything) is still missing. If this is NOT the May 27 loss, just say so."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0162"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0161"
+    }
+   ],
+   "cell": "wrong_reuse",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": true,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9149,
+   "completion_tokens": 602,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 9566.6,
+   "cost_usd": 0.00592368
+  },
+  {
+   "case_id": "v2-near_duplicate-004",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0164"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Chestnut Catering COI",
+      "instructions": "What's the current status of the certificate of insurance for Chestnut (the event food/catering company)? Is the client still waiting on us to provide the COI? Please share any details on where things stand."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0164"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9156,
+   "completion_tokens": 190,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5120.4,
+   "cost_usd": 0.00462255
+  },
+  {
+   "case_id": "v2-near_duplicate-005",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0166"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Wilhelmina Ingram home renewal",
+      "instructions": "Update Wilhelmina Ingram's home renewal: the client recently put a new roof on the house. Make sure this is reflected in the renewal before it's issued (e.g., update the roof details/condition in the policy and any rating info if applicable). Confirm once done."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0166"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9151,
+   "completion_tokens": 198,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 9030.4,
+   "cost_usd": 0.00463509
+  },
+  {
+   "case_id": "v2-near_duplicate-006",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t2",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0168"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Theodora Albrecht auto claim - water damage",
+      "instructions": "The adjuster on Theodora Albrecht's May 27 loss is asking for receipts. Please tell me what receipts/documents we have on file for this claim, and whether the loss date was May 27."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Theodora Albrecht auto claim - wind damage",
+      "instructions": "The adjuster on Theodora Albrecht's May 27 loss is asking for receipts. Please tell me what receipts/documents we have on file for this claim, and whether the loss date was May 27."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0167"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0168"
+    }
+   ],
+   "cell": "wrong_reuse",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": true,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9184,
+   "completion_tokens": 469,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7907.1,
+   "cost_usd": 0.00519345
+  },
+  {
+   "case_id": "v2-near_duplicate-007",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0169"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Fiddlehead Fitness Studio COI",
+      "instructions": "The user wants to know if Fiddlehead Fitness Studio (the gym) is still waiting on us for a certificate of insurance (COI). Please check the current status and report back: have we sent it yet, or are they still waiting? Provide any relevant details like who requested it, the email thread, and where things stand."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0169"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9194,
+   "completion_tokens": 247,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5219.1,
+   "cost_usd": 0.00476049
+  },
+  {
+   "case_id": "v2-near_duplicate-008",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0171"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Katrin Jovanovic auto renewal",
+      "instructions": "Update Katrin Jovanovic's auto renewal: drop collision coverage at renewal. Apply this change to the auto policy ONLY — do not touch the home policy. Keep all other coverages unchanged."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0171"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9157,
+   "completion_tokens": 205,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 6217.0,
+   "cost_usd": 0.00465291
+  },
+  {
+   "case_id": "v2-near_duplicate-009",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t2",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0173"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Alistair Okonkwo auto claim - hail damage",
+      "instructions": "The user is asking about the \"August 30 loss\" for Alistair Okonkwo — an adjuster wants receipts, and they're asking what receipts/documents we have on file. Can you check whether this hail damage claim corresponds to an August 30 loss, and if so, list any receipts, invoices, proof-of-loss, or supporting documents we have (or note if none are on file)?"
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Alistair Okonkwo auto claim - water damage",
+      "instructions": "The user is asking about the \"August 30 loss\" for Alistair Okonkwo — an adjuster wants receipts, and they're asking what receipts/documents we have on file. Can you check whether this water damage claim corresponds to an August 30 loss, and if so, list any receipts, invoices, proof-of-loss, or supporting documents we have (or note if none are on file)?"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0173"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0174"
+    }
+   ],
+   "cell": "wrong_reuse",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": true,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9134,
+   "completion_tokens": 504,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 8868.8,
+   "cost_usd": 0.00522975
+  },
+  {
+   "case_id": "v2-near_duplicate-010",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0176"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Timberline Dental Clinic claim",
+      "instructions": "The user is asking whether the Timberline Dental Clinic is still waiting on us for the loss report. Please check the current status of this claim and let me know: have we sent the loss report yet, or are they still waiting on it? Provide any relevant details like dates, what's been requested, and what's outstanding."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0176"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9133,
+   "completion_tokens": 282,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5797.6,
+   "cost_usd": 0.00478953
+  },
+  {
+   "case_id": "v2-near_duplicate-011",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0178"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Katrin Quarshie home renewal",
+      "instructions": "Katrin Quarshie has put a new roof on the house. Update her home insurance renewal to reflect the new roof before the renewal is issued. Reach out to Katrin as needed to confirm the roof details (year/type/material, and any documentation), update the policy details accordingly, and make sure the renewal is accurate and ready to issue. Report back with what you did."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0178"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9142,
+   "completion_tokens": 245,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5061.5,
+   "cost_usd": 0.00472221
+  },
+  {
+   "case_id": "v2-near_duplicate-012",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t2",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0180"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Orrin Yeboah auto claim - water damage",
+      "instructions": "What is the date of loss on this claim, and what receipts or documentation do we currently have on file for it? List everything relevant."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Orrin Yeboah auto claim - theft",
+      "instructions": "What is the date of loss on this claim, and what receipts or documentation do we currently have on file for it? List everything relevant."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0179"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0180"
+    }
+   ],
+   "cell": "wrong_reuse",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": true,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9241,
+   "completion_tokens": 463,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 11468.6,
+   "cost_usd": 0.00521919
+  },
+  {
+   "case_id": "v2-near_duplicate-013",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0181"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Laurel Plumbing endorsement",
+      "instructions": "The user is asking whether the Laurel pipe and drain contractor (Laurel Plumbing) is still waiting on us for the policy change. Please check the current status of this endorsement/policy change request and report back: is it still pending on our end, and what (if anything) still needs to be done or sent?"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0181"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9128,
+   "completion_tokens": 335,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7925.5,
+   "cost_usd": 0.00489117
+  },
+  {
+   "case_id": "v2-near_duplicate-014",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0183"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Wilhelmina Ishikawa auto renewal",
+      "instructions": "For Wilhelmina Ishikawa's auto policy renewal only: drop collision coverage from the car. Do not make any changes to the home policy. Confirm the change once processed."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0183"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9216,
+   "completion_tokens": 224,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7260.1,
+   "cost_usd": 0.00472947
+  },
+  {
+   "case_id": "v2-near_duplicate-015",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t2",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0185"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Henrike Yeboah home claim - theft",
+      "instructions": "The adjuster on the August 30 loss for Henrike Yeboah is asking for receipts. Please check this claim file and tell me: (1) is this the August 30 loss, (2) what receipts or supporting documents we have on file, and (3) what's been sent to the adjuster already. Report back a concise summary."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Henrike Yeboah home claim - hail damage",
+      "instructions": "The adjuster on the August 30 loss for Henrike Yeboah is asking for receipts. Please check this claim file and tell me: (1) is this the August 30 loss, (2) what receipts or supporting documents we have on file, and (3) what's been sent to the adjuster already. Report back a concise summary."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0185"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0186"
+    }
+   ],
+   "cell": "wrong_reuse",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": true,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9166,
+   "completion_tokens": 444,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 8425.1,
+   "cost_usd": 0.00513207
+  },
+  {
+   "case_id": "v2-near_duplicate-016",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0188"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Wren Roofing quote",
+      "instructions": "Is Wren Roofing (the shingle contractor) still waiting on us for pricing? Check the status of their quote and let me know whether they're waiting on us to send pricing, and any relevant details (date requested, follow-ups, current state)."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0188"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9138,
+   "completion_tokens": 212,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 4965.1,
+   "cost_usd": 0.00465423
+  },
+  {
+   "case_id": "v2-near_duplicate-017",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0190"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Ronan Dragomir home renewal",
+      "instructions": "Ronan Dragomir put a new roof on the house. Please get this detail incorporated into the home policy renewal before it's issued — update the property/roof information accordingly. Report back once done or if you need anything (e.g., roof age, material, or completion date)."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0190"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9166,
+   "completion_tokens": 221,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 6064.0,
+   "cost_usd": 0.00469053
+  },
+  {
+   "case_id": "v2-near_duplicate-018",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t2",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0192"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Severin Ambrose auto claim - theft",
+      "instructions": "The adjuster on Severin Ambrose's July 9 loss is asking for receipts. Confirm whether this theft claim is the July 9 loss, and list exactly what receipts, invoices, purchase records, or supporting documents we currently have on file for this claim. Be specific about what's there and what's missing."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Severin Ambrose auto claim - hail damage",
+      "instructions": "The adjuster on Severin Ambrose's July 9 loss is asking for receipts. Confirm whether this hail damage claim is the July 9 loss, and list exactly what receipts, invoices, purchase records, or supporting documents we currently have on file for this claim. Be specific about what's there and what's missing."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0191"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0192"
+    }
+   ],
+   "cell": "wrong_reuse",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": true,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9189,
+   "completion_tokens": 486,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 8035.1,
+   "cost_usd": 0.00523041
+  },
+  {
+   "case_id": "v2-should_create-001",
+   "category": "should_create",
+   "template_id": "should_create.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Ronan Okonkwo auto quote",
+      "instructions": "Run a new auto (vehicle) insurance quote for Ronan Okonkwo. This is a separate, brand-new quote from any existing home quote for the same client — do not modify or reuse the home quote. Gather the necessary vehicle and driver details and produce the auto quote. Report back with the result and any draft/next steps."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Ronan Okonkwo auto quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9169,
+   "completion_tokens": 260,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 9748.6,
+   "cost_usd": 0.00476973
+  },
+  {
+   "case_id": "v2-should_create-002",
+   "category": "should_create",
+   "template_id": "should_create.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Alistair Abara home quote",
+      "instructions": "New client: Alistair Abara, a translator in Perth (email alistair.abara@example.ca). He needs a home insurance quote. Please prepare the home quote and gather any information needed to complete it."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Alistair Abara home quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9198,
+   "completion_tokens": 216,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7553.6,
+   "cost_usd": 0.00470175
+  },
+  {
+   "case_id": "v2-should_create-003",
+   "category": "should_create",
+   "template_id": "should_create.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Clementine Jablonski home quote",
+      "instructions": "Run a new home (property) insurance quote for Clementine Jablonski. This is separate and distinct from the existing auto quote for the same client — do not merge or reuse that auto quote. Treat this as a fresh home quote: gather whatever details are needed and produce the home quote."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Clementine Jablonski home quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9234,
+   "completion_tokens": 245,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 8027.6,
+   "cost_usd": 0.00478293
+  },
+  {
+   "case_id": "v2-should_create-004",
+   "category": "should_create",
+   "template_id": "should_create.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Dagny Zeller home quote",
+      "instructions": "New client needs a home insurance quote. Client details:\n- Name: Dagny Zeller\n- Occupation: court reporter\n- Location: Goderich, Ontario\n- Email: dagny.zeller@example.ca\n- Product: home insurance quote\n\nPlease gather the necessary property details and prepare a home insurance quote. Let me know what information you need from the client and what the resulting quote looks like."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Dagny Zeller home quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9159,
+   "completion_tokens": 228,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 6920.3,
+   "cost_usd": 0.00469977
+  },
+  {
+   "case_id": "v2-should_create-005",
+   "category": "should_create",
+   "template_id": "should_create.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Torsten Laurentis auto quote",
+      "instructions": "Run a new auto insurance quote for Torsten Laurentis. This is separate from the home quote already in progress for this client — do not merge or reference the home quote as part of this auto quote. Gather what's needed and produce the auto quote."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Torsten Laurentis auto quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9147,
+   "completion_tokens": 487,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 9956.1,
+   "cost_usd": 0.00520467
+  },
+  {
+   "case_id": "v2-should_create-006",
+   "category": "should_create",
+   "template_id": "should_create.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Wilhelmina Coutinho auto quote",
+      "instructions": "Create an auto insurance quote for a new client:\n- Name: Wilhelmina Coutinho\n- Occupation: Translator\n- Location: Tillsonburg, Ontario\n- Email: wilhelmina.coutinho@example.ca\n\nPlease gather any necessary info and prepare the auto quote. Report back when the quote is ready or if more information is needed from the client."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Wilhelmina Coutinho auto quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9173,
+   "completion_tokens": 233,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 6387.4,
+   "cost_usd": 0.00471891
+  },
+  {
+   "case_id": "v2-should_create-007",
+   "category": "should_create",
+   "template_id": "should_create.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Torsten Cavanagh auto quote",
+      "instructions": "Prepare a new auto insurance quote for Torsten Cavanagh. This is separate and distinct from the existing home quote already being worked on — treat it as its own standalone quote. Gather what's needed and price the car."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Torsten Cavanagh auto quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9170,
+   "completion_tokens": 460,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 8176.5,
+   "cost_usd": 0.00516639
+  },
+  {
+   "case_id": "v2-should_create-008",
+   "category": "should_create",
+   "template_id": "should_create.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Nadia Paquette home quote",
+      "instructions": "New client: Nadia Paquette, a surveyor based in Port Hope. Email: nadia.paquette@example.ca. She needs a home insurance quote. Gather the necessary details and prepare the home quote accordingly."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Nadia Paquette home quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9118,
+   "completion_tokens": 211,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5809.3,
+   "cost_usd": 0.00463905
+  },
+  {
+   "case_id": "v2-should_create-009",
+   "category": "should_create",
+   "template_id": "should_create.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Henrike Takahashi home quote",
+      "instructions": "Create a new home insurance quote for Henrike Takahashi. This is a brand new, separate quote — do not merge it with or modify the existing auto quote. Pull the client's details and prepare the home quote from scratch. Report back with the quote details and any next steps needed."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Henrike Takahashi home quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9185,
+   "completion_tokens": 320,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 8908.7,
+   "cost_usd": 0.00538908
+  },
+  {
+   "case_id": "v2-should_create-010",
+   "category": "should_create",
+   "template_id": "should_create.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Desmond Takahashi auto quote",
+      "instructions": "New client: Desmond Takahashi, a veterinarian in Kincardine. Email: desmond.takahashi@example.ca. He needs an auto insurance quote. Gather the necessary vehicle and driver details from him and prepare the quote."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Desmond Takahashi auto quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9224,
+   "completion_tokens": 243,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7746.1,
+   "cost_usd": 0.00477237
+  },
+  {
+   "case_id": "v2-should_create-011",
+   "category": "should_create",
+   "template_id": "should_create.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Konrad Ingram home quote",
+      "instructions": "Create a new home insurance quote for Konrad Ingram. This is separate from the existing auto quote we already ran for him (do not modify or combine with that one). Use his existing client details/context where available, and get the home quote set up."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Konrad Ingram home quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9108,
+   "completion_tokens": 341,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 8373.1,
+   "cost_usd": 0.00488985
+  },
+  {
+   "case_id": "v2-should_create-012",
+   "category": "should_create",
+   "template_id": "should_create.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Brigid Hakimi auto quote",
+      "instructions": "New client: Brigid Hakimi, a court reporter in Welland, Ontario (email: brigid.hakimi@example.ca). She needs an auto insurance quote.\n\nPlease gather the necessary details to prepare the quote. Reach out to the client by email to request the information you need (e.g., driver's licence, vehicle details, driving history, coverage needs). Prepare a draft quote/email for the user to review before anything is sent to the client.\n\nReport back with: what information you still need from the client, the draft email(s) you'd send, and any quote you can prepare with available details."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Brigid Hakimi auto quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9159,
+   "completion_tokens": 273,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7833.9,
+   "cost_usd": 0.00478887
+  },
+  {
+   "case_id": "v2-should_create-013",
+   "category": "should_create",
+   "template_id": "should_create.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Ignatius Fenwick auto quote",
+      "instructions": "The user wants to run a new home insurance quote for Ignatius Fenwick. This is separate from the auto quote you already worked on — do not modify or combine it with the existing auto quote. Start a fresh home quote for Ignatius Fenwick using the customer details you have on file, and report back the results/draft when ready."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0217"
+    }
+   ],
+   "cell": "hijack",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9161,
+   "completion_tokens": 350,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 9373.6,
+   "cost_usd": 0.00494265
+  },
+  {
+   "case_id": "v2-should_create-014",
+   "category": "should_create",
+   "template_id": "should_create.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Priya Ambrose auto quote",
+      "instructions": "New client needs an auto insurance quote.\n\nClient details:\n- Name: Priya Ambrose\n- Occupation: Optometrist\n- Location: Gananoque, Ontario\n- Email: priya.ambrose@example.ca\n- Product: Auto insurance quote\n\nPlease gather the necessary information and prepare an auto quote for this client. Let me know what details are needed from the client (vehicle info, driving history, current coverage, etc.) and any next steps, or proceed to generate the quote if you have what you need."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Priya Ambrose auto quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9165,
+   "completion_tokens": 278,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 6707.7,
+   "cost_usd": 0.00480273
+  },
+  {
+   "case_id": "v2-should_create-015",
+   "category": "should_create",
+   "template_id": "should_create.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Cormac Yeboah auto quote",
+      "instructions": "The user wants a new, separate home quote for Cormac Yeboah (his house). This is distinct from the auto quote already being worked on — do not merge them. Run the home quote as its own thing and report back with the details/draft when ready."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0221"
+    }
+   ],
+   "cell": "hijack",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9233,
+   "completion_tokens": 567,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 9891.3,
+   "cost_usd": 0.00541983
+  },
+  {
+   "case_id": "v2-should_create-016",
+   "category": "should_create",
+   "template_id": "should_create.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Brigid Vidal auto quote",
+      "instructions": "New client auto quote request.\n\nClient details:\n- Name: Brigid Vidal\n- Occupation: Pilot\n- Location: Goderich, Ontario\n- Email: brigid.vidal@example.ca\n- Need: Auto insurance quote\n\nPlease gather whatever information you need (vehicle details, driving history, coverage needs, etc.), prepare the auto quote, and draft any client-facing email needed. Do not send anything without user confirmation."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Brigid Vidal auto quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9155,
+   "completion_tokens": 225,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 5399.8,
+   "cost_usd": 0.00518118
+  },
+  {
+   "case_id": "v2-ambiguous-001",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0225",
+     "g_0226"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Nadia Bergstrom home claim - hail damage",
+      "instructions": "The adjuster called back about this claim. Check for any recent messages, voicemails, or emails from the adjuster, and report what they said and what action is needed. Don't take any action yet."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Nadia Bergstrom home claim - wind damage",
+      "instructions": "The adjuster called back about this claim. Check for any recent messages, voicemails, or emails from the adjuster, and report what they said and what action is needed. Don't take any action yet."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0225"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0226"
+    }
+   ],
+   "cell": "wrong_guess",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": true,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9254,
+   "completion_tokens": 628,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 13364.2,
+   "cost_usd": 0.00555447
+  },
+  {
+   "case_id": "v2-ambiguous-002",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0228",
+     "g_0229"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Orrin Ingram home renewal",
+      "instructions": "What is the current status of Orrin Ingram's home insurance renewal? Provide the latest update, where things stand, and anything the customer would need to know or any next steps."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Orrin Brennan auto renewal",
+      "instructions": "What is the current status of Orrin Brennan's auto insurance renewal? Provide the latest update, where things stand, and anything the customer would need to know or any next steps."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0228"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0229"
+    }
+   ],
+   "cell": "wrong_guess",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": true,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9178,
+   "completion_tokens": 279,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7894.9,
+   "cost_usd": 0.00481329
+  },
+  {
+   "case_id": "v2-ambiguous-003",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0231",
+     "g_0232"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "no_route",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9287,
+   "completion_tokens": 322,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 8869.7,
+   "cost_usd": 0.00497037
+  },
+  {
+   "case_id": "v2-ambiguous-004",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0234",
+     "g_0235"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Jonas Brennan home renewal",
+      "instructions": "The client (Jonas Brennan) called asking where his home renewal is at. Please give me the current status and any next steps or info I can relay back to him."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Jonas Ulloa auto renewal",
+      "instructions": "The client (Jonas Ulloa) called asking where his auto renewal is at. Please give me the current status and any next steps or info I can relay back to him."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0234"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0235"
+    }
+   ],
+   "cell": "wrong_guess",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": true,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9116,
+   "completion_tokens": 328,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 7733.3,
+   "cost_usd": 0.00486939
+  },
+  {
+   "case_id": "v2-ambiguous-005",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0237",
+     "g_0238"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "no_route",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9207,
+   "completion_tokens": 543,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 10553.2,
+   "cost_usd": 0.00584514
+  },
+  {
+   "case_id": "v2-ambiguous-006",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0240",
+     "g_0241"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Clementine Fenwick home renewal",
+      "instructions": "Please report the current status of Clementine Fenwick's home insurance renewal. Clementine called asking where her renewal is at, so I need to know what stage it's in, any pending items, and what I should tell her."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Clementine Tremblay home renewal",
+      "instructions": "Please report the current status of Clementine Tremblay's home insurance renewal. Clementine called asking where her renewal is at, so I need to know what stage it's in, any pending items, and what I should tell her."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Clementine Dragomir auto renewal",
+      "instructions": "Please report the current status of Clementine Dragomir's auto insurance renewal. Clementine called asking where her renewal is at, so I need to know what stage it's in, any pending items, and what I should tell her."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0241"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0242"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0240"
+    }
+   ],
+   "cell": "wrong_guess",
+   "correct": false,
+   "cross_client": true,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": true,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9216,
+   "completion_tokens": 645,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 10596.2,
+   "cost_usd": 0.00556305
+  },
+  {
+   "case_id": "v2-ambiguous-007",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0243",
+     "g_0244"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "no_route",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9162,
+   "completion_tokens": 298,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 6785.5,
+   "cost_usd": 0.00484035
+  },
+  {
+   "case_id": "v2-ambiguous-008",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0246",
+     "g_0247"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Jonas Cardenas home renewal",
+      "instructions": "What's the current status of Jonas Cardenas's home insurance renewal? The client called asking where it's at. Give me a concise update I can relay: has it been submitted, is there a quote/draft ready, any missing info or blockers, and expected timing."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Jonas Okonkwo home renewal",
+      "instructions": "What's the current status of Jonas Okonkwo's home insurance renewal? The client called asking where it's at. Give me a concise update I can relay: has it been submitted, is there a quote/draft ready, any missing info or blockers, and expected timing."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0247"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0246"
+    }
+   ],
+   "cell": "wrong_guess",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": true,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9171,
+   "completion_tokens": 358,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 6304.2,
+   "cost_usd": 0.00496509
+  },
+  {
+   "case_id": "v2-ambiguous-009",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0249",
+     "g_0250"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "no_route",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9242,
+   "completion_tokens": 618,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 12248.5,
+   "cost_usd": 0.00552675
+  },
+  {
+   "case_id": "v2-ambiguous-010",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0252",
+     "g_0253"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Jonas Dragomir home renewal",
+      "instructions": "The client Jonas Dragomir called asking where his home renewal is at. Please report the current status of his home renewal: what stage it's in, what's been done, what's pending, and any blockers or next steps. Give me a concise summary I can relay to the client."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Jonas Fontaine auto renewal",
+      "instructions": "The client Jonas Fontaine called asking where his auto renewal is at. Please report the current status of his auto renewal: what stage it's in, what's been done, what's pending, and any blockers or next steps. Give me a concise summary I can relay to the client."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0253"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0252"
+    }
+   ],
+   "cell": "wrong_guess",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": true,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9161,
+   "completion_tokens": 435,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 8479.2,
+   "cost_usd": 0.00511095
+  },
+  {
+   "case_id": "v2-parallel-001",
+   "category": "parallel",
+   "template_id": "parallel.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "parallel",
+    "agent_ids": [
+     "g_0255",
+     "g_0256"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Follow up on policy CGL-7718-36",
+      "instructions": "Follow up on the status of insurance policy CGL-7718-36. Find whatever records, emails, or notes are available for this policy and report back: what the policy is, its current status, any pending actions, and who the relevant contact is. Then draft any follow-up that's needed (e.g., an email to the client or insurer) and return the draft for review."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Pascal Brennan auto quote",
+      "instructions": "Reach out to Pascal Brennan to ask whether the pricing on their auto quote has been sorted. Draft an email asking about the pricing status, and return the draft for review before sending."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Follow up on policy CGL-7718-36"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0256"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9180,
+   "completion_tokens": 518,
+   "cached_tokens": 2048,
+   "cache_reported": true,
+   "latency_ms": 8746.6,
+   "cost_usd": 0.00577782
+  },
+  {
+   "case_id": "v2-parallel-002",
+   "category": "parallel",
+   "template_id": "parallel.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "parallel",
+    "agent_ids": [
+     "g_0259",
+     "g_0260"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Solveig Lindgren home endorsement",
+      "instructions": "The user wants Solveig Lindgren to be nudged about her home endorsement only after the billing for the collision repair shop in Chatham is confirmed. Identify the collision repair shop in Chatham and check its billing status. Once that billing is confirmed, nudge Solveig Lindgren about her endorsement. If the billing is not yet confirmed, wait and keep monitoring until it is, then nudge her."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0260"
+    }
+   ],
+   "cell": "partial",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9072,
+   "completion_tokens": 3203,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 49523.2,
+   "cost_usd": 0.01053285
+  },
+  {
+   "case_id": "v2-parallel-003",
+   "category": "parallel",
+   "template_id": "parallel.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "parallel",
+    "agent_ids": [
+     "g_0263",
+     "g_0264"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Policy CGL-4408-85 follow up",
+      "instructions": "Look into policy CGL-4408-85 and follow up on it. First identify what this policy is (client name, policy type, status, any open items, recent correspondence). Then take whatever follow-up action is appropriate — e.g., check on pending endorsements, renewal status, billing, or outstanding requests tied to this policy. Report back what you find and what action you took."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Desmond Ishikawa auto cancellation",
+      "instructions": "Check on the status of Desmond Ishikawa's cancellation request and confirm whether it is sorted. Follow up with him (draft any email needed for the user's review before sending) and report back the current status."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Policy CGL-4408-85 follow up"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0264"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9097,
+   "completion_tokens": 470,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 8636.8,
+   "cost_usd": 0.00513801
+  },
+  {
+   "case_id": "v2-parallel-004",
+   "category": "parallel",
+   "template_id": "parallel.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "parallel",
+    "agent_ids": [
+     "g_0267",
+     "g_0268"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Gideon Rautio auto COI",
+      "instructions": "Hold the COI nudge for Gideon Rautio until the billing for the yard-care crew in Port Hope has been confirmed. Once that billing is confirmed, go ahead and nudge Gideon Rautio about the COI (certificate of insurance). Do not nudge before the billing is confirmed."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0268"
+    }
+   ],
+   "cell": "partial",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9185,
+   "completion_tokens": 1659,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 26647.3,
+   "cost_usd": 0.00755031
+  },
+  {
+   "case_id": "v2-parallel-005",
+   "category": "parallel",
+   "template_id": "parallel.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "parallel",
+    "agent_ids": [
+     "g_0271",
+     "g_0272"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Policy CP-2460-42 follow-up",
+      "instructions": "Look into policy CP-2460-42. I need to understand what this policy is, its current status, and whether any follow-up is needed (e.g., pending response, outstanding documents, payment, or renewal). Check the available records and let me know what follow-up should happen and with whom. Do not send anything to anyone yet — just report back what you find and recommend the next step."
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Benedikt Ishikawa auto cancellation",
+      "instructions": "Please follow up with Benedikt Ishikawa and ask whether their request to cancel is sorted out. Let me know what they say."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Policy CP-2460-42 follow-up"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0272"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9131,
+   "completion_tokens": 477,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 8174.0,
+   "cost_usd": 0.00517431
+  },
+  {
+   "case_id": "v2-parallel-006",
+   "category": "parallel",
+   "template_id": "parallel.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "parallel",
+    "agent_ids": [
+     "g_0275",
+     "g_0276"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Shoreline Roofing renewal",
+      "instructions": "Once the Shoreline Roofing renewal (the shingle contractor in Smiths Falls) is confirmed, report back immediately that it's confirmed. I need that confirmation so I can then nudge Adwoa Mwangi about her home endorsement — so please flag it as soon as it's done."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0275"
+    }
+   ],
+   "cell": "partial",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9161,
+   "completion_tokens": 1121,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 17170.3,
+   "cost_usd": 0.00646923
+  },
+  {
+   "case_id": "v2-agent_message-001",
+   "category": "agent_message",
+   "template_id": "agent_message.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0279"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "no_route",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9147,
+   "completion_tokens": 191,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5317.9,
+   "cost_usd": 0.00461859
+  },
+  {
+   "case_id": "v2-agent_message-002",
+   "category": "agent_message",
+   "template_id": "agent_message.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0282"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "no_route",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9146,
+   "completion_tokens": 106,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 3736.8,
+   "cost_usd": 0.00444963
+  },
+  {
+   "case_id": "v2-agent_message-003",
+   "category": "agent_message",
+   "template_id": "agent_message.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0285"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Maplecrest Mutual CGL-9813-53 outstanding doc",
+      "instructions": "Maplecrest Mutual sent an automated notice that a document is still outstanding on policy CGL-9813-53. Find out what document is outstanding and what's needed to resolve it. Search the inbox and any relevant files/records for anything tied to policy CGL-9813-53 (and Maplecrest Mutual). Report back: (1) what the policy covers / who the client is, (2) which document appears outstanding, (3) any prior correspondence about it, and (4) what's needed to send it."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Maplecrest Mutual CGL-9813-53 outstanding doc"
+    }
+   ],
+   "cell": "duplicate",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9169,
+   "completion_tokens": 898,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 13955.8,
+   "cost_usd": 0.00603297
+  },
+  {
+   "case_id": "v2-agent_message-004",
+   "category": "agent_message",
+   "template_id": "agent_message.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0288"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "no_route",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9193,
+   "completion_tokens": 164,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 3877.8,
+   "cost_usd": 0.00459549
+  },
+  {
+   "case_id": "v2-agent_message-005",
+   "category": "agent_message",
+   "template_id": "agent_message.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0291"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "no_route",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9206,
+   "completion_tokens": 297,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5966.9,
+   "cost_usd": 0.00486741
+  },
+  {
+   "case_id": "v2-agent_message-006",
+   "category": "agent_message",
+   "template_id": "agent_message.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0294"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "no_route",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9130,
+   "completion_tokens": 246,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 5797.1,
+   "cost_usd": 0.00471627
+  },
+  {
+   "case_id": "v2-agent_message-007",
+   "category": "agent_message",
+   "template_id": "agent_message.v2t0",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0297"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "error",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [
+    "Heads up — Maplecrest Mutual sent an automated notice saying there's still an outstanding document on auto policy AU-9801-71, and they want a reply once it's been sent. Want me to dig into which file this is and what's still missing?",
+    "Heads up — Maplecrest Mutual sent an automated notice saying there's still an outstanding document on auto policy AU-9801-71, and they want a reply once it's been sent. Want me to dig into which file this is and what's still missing?",
+    "Heads up — Maplecrest Mutual sent an automated notice saying there's still an outstanding document on auto policy AU-9801-71, and they want a reply once it's been sent. Want me to dig into which file this is and what's still missing?"
+   ],
+   "error": "RuntimeError: Reached tool iteration limit without final response",
+   "llm_calls": 8,
+   "prompt_tokens": 77666,
+   "completion_tokens": 936,
+   "cached_tokens": 66560,
+   "cache_reported": true,
+   "latency_ms": 28253.3,
+   "cost_usd": 0.010647549999999999
+  },
+  {
+   "case_id": "v2-agent_message-008",
+   "category": "agent_message",
+   "template_id": "agent_message.v2t1",
+   "split": "report",
+   "size": 500,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0300"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "no_route",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 9173,
+   "completion_tokens": 193,
+   "cached_tokens": 2816,
+   "cache_reported": true,
+   "latency_ms": 4965.5,
+   "cost_usd": 0.00463971
+  }
+ ]
+}

@@ -8,6 +8,9 @@ Set `v2`: 58 of 94 non-create report cases have a gold target idle more than 30 
 
 | model | N | arm | k | n | templates | accuracy (Wilson) | accuracy (template bootstrap) | wrong reuse | of which spray | wrong only | cross-client: wrong reuse / hijack / wrong guess | duplicate | correct create | hijack | clarify P / R | over-clarify | prompt tok mean / p95 | latency ms p50 / p95 | $ / 100 turns |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| deepseek-v4-pro | 500 | baseline | 8 | 110 | 19 | 46.4% [37.3%, 55.6%] (51/110) | [22.5%, 67.5%] | 8.3% [4.1%, 16.2%] (7/84) | 6 (0 cross-client) | 1 (1 cross-client) | 1 / 0 / 1 | 34.5% [25.2%, 45.2%] (29/84) | 87.5% [64.0%, 96.5%] (14/16) | 2/16 | - / 0.0% | 0.0% [0.0%, 3.7%] (0/100) | 9720 / 9404 | 7864 / 21131 | 0.5282 |
+| deepseek-v4-pro | 500 | fix_v1 | 8 | 110 | 19 | 84.5% [76.6%, 90.1%] (93/110) | [70.5%, 95.0%] | 2.4% [0.7%, 8.3%] (2/84) | 0 (0 cross-client) | 2 (1 cross-client) | 1 / 0 / 0 | 0.0% [0.0%, 4.4%] (0/84) | 100.0% [80.6%, 100.0%] (16/16) | 0/16 | 50.0% / 10.0% | 1.0% [0.2%, 5.4%] (1/100) | 8291 / 15666 | 11330 / 23588 | 0.2460 |
+| deepseek-v4-pro | 500 | fix_v2 | 8 | 110 | 19 | 86.4% [78.7%, 91.6%] (95/110) | [72.1%, 96.7%] | 0.0% [0.0%, 4.4%] (0/84) | 0 (0 cross-client) | 0 (0 cross-client) | 0 (<= 3.6%) / 0 / 0 | 0.0% [0.0%, 4.4%] (0/84) | 100.0% [80.6%, 100.0%] (16/16) | 0/16 | 71.4% / 50.0% | 2.0% [0.6%, 7.0%] (2/100) | 5943 / 10304 | 8577 / 24495 | 0.2323 |
 | minimax-m3 | 5 | baseline | 8 | 110 | 19 | 34.5% [26.3%, 43.8%] (38/110) | [17.0%, 51.9%] | 53.6% [43.0%, 63.8%] (45/84) | 34 (21 cross-client) | 11 (10 cross-client) | 31 / 8 / 2 | 4.8% [1.9%, 11.6%] (4/84) | 25.0% [10.2%, 49.5%] (4/16) | 12/16 | - / 0.0% | 0.0% [0.0%, 3.7%] (0/100) | 3441 / 6716 | 7390 / 15310 | 0.1426 |
 | minimax-m3 | 5 | fix_v1 | 8 | 110 | 19 | 74.5% [65.7%, 81.8%] (82/110) | [59.6%, 86.8%] | 15.5% [9.3%, 24.7%] (13/84) | 5 (2 cross-client) | 8 (3 cross-client) | 5 / 0 / 0 | 1.2% [0.2%, 6.4%] (1/84) | 93.8% [71.7%, 98.9%] (15/16) | 1/16 | 0.0% / 0.0% | 0.0% [0.0%, 3.7%] (0/100) | 7916 / 15901 | 9545 / 24126 | 0.2122 |
 | minimax-m3 | 5 | fix_v2 | 8 | 110 | 19 | 87.3% [79.8%, 92.3%] (96/110) | [74.1%, 97.3%] | 3.6% [1.2%, 10.0%] (3/84) | 2 (2 cross-client) | 1 (1 cross-client) | 3 / 0 / 0 | 0.0% [0.0%, 4.4%] (0/84) | 100.0% [80.6%, 100.0%] (16/16) | 0/16 | 66.7% / 20.0% | 1.0% [0.2%, 5.4%] (1/100) | 7351 / 15823 | 8700 / 17902 | 0.2183 |
@@ -17,13 +20,19 @@ Set `v2`: 58 of 94 non-create report cases have a gold target idle more than 30 
 | minimax-m3 | 500 | fix_v1 | 8 | 330 | 19 | 71.2% [66.1%, 75.8%] (235/330) | [55.8%, 84.9%] | 19.4% [15.0%, 24.8%] (49/252) | 41 (13 cross-client) | 8 (3 cross-client) | 16 / 3 / 0 | 0.0% [0.0%, 1.5%] (0/252) | 75.0% [61.2%, 85.1%] (36/48) | 12/48 | - / 0.0% | 0.0% [0.0%, 1.3%] (0/300) | 9944 / 18180 | 12225 / 23477 | 0.2166 |
 | minimax-m3 | 500 | fix_v2 | 8 | 330 | 19 | 83.0% [78.6%, 86.7%] (274/330) | [68.1%, 94.7%] | 6.3% [3.9%, 10.1%] (16/252) | 11 (11 cross-client) | 5 (0 cross-client) | 11 / 0 / 1 | 0.0% [0.0%, 1.5%] (0/252) | 97.9% [89.1%, 99.6%] (47/48) | 1/48 | 25.0% / 6.7% | 1.7% [0.7%, 3.8%] (5/300) | 10198 / 18558 | 12065 / 26202 | 0.2243 |
 | minimax-m3 | 500 | fix_v2_evidence | 8 | 110 | 19 | 83.6% [75.6%, 89.4%] (92/110) | [70.3%, 94.0%] | 3.6% [1.2%, 10.0%] (3/84) | 1 (1 cross-client) | 2 (0 cross-client) | 1 / 0 / 0 | 1.2% [0.2%, 6.4%] (1/84) | 93.8% [71.7%, 98.9%] (15/16) | 1/16 | 50.0% / 10.0% | 1.0% [0.2%, 5.4%] (1/100) | 11456 / 18844 | 10559 / 18022 | 0.2597 |
+| minimax-m3 | 500 | fix_v2_no_c1 | 8 | 110 | 19 | 85.5% [77.7%, 90.8%] (94/110) | [72.2%, 95.6%] | 6.0% [2.6%, 13.2%] (5/84) | 5 (3 cross-client) | 0 (0 cross-client) | 3 / 0 / 1 | 0.0% [0.0%, 4.4%] (0/84) | 93.8% [71.7%, 98.9%] (15/16) | 1/16 | 100.0% / 10.0% | 0.0% [0.0%, 3.7%] (0/100) | 10208 / 19165 | 12186 / 24133 | 0.2511 |
+| minimax-m3 | 500 | fix_v2_no_c3 | 8 | 110 | 19 | 77.3% [68.6%, 84.1%] (85/110) | [61.9%, 90.4%] | 10.7% [5.7%, 19.1%] (9/84) | 5 (5 cross-client) | 4 (0 cross-client) | 5 / 1 / 0 | 0.0% [0.0%, 4.4%] (0/84) | 75.0% [50.5%, 89.8%] (12/16) | 4/16 | 0.0% / 0.0% | 1.0% [0.2%, 5.4%] (1/100) | 11478 / 25083 | 14884 / 31294 | 0.2645 |
+| minimax-m3 | 500 | fix_v2_no_c4 | 8 | 110 | 19 | 81.8% [73.6%, 87.9%] (90/110) | [64.8%, 95.3%] | 11.9% [6.6%, 20.5%] (10/84) | 7 (7 cross-client) | 3 (0 cross-client) | 7 / 1 / 0 | 0.0% [0.0%, 4.4%] (0/84) | 93.8% [71.7%, 98.9%] (15/16) | 1/16 | 33.3% / 10.0% | 0.0% [0.0%, 3.7%] (0/100) | 9937 / 18118 | 10750 / 24144 | 0.2607 |
 
 Spray: the gold agent was messaged and so was another one. Wrong only: the gold agent was not messaged at all.
 
 | model | N | arm | against | k | cases | templates | delta accuracy | delta, template bootstrap 95% | only reference right | only arm right | McNemar p |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| deepseek-v4-pro | 500 | fix_v1 | baseline | 8 | 110 | 19 | 38.2% | [18.0%, 61.5%] | 2 | 44 | 0.0000 |
 | minimax-m3 | 5 | fix_v1 | baseline | 8 | 110 | 19 | 40.0% | [21.6%, 59.8%] | 7 | 51 | 0.0000 |
 | minimax-m3 | 500 | fix_v1 | baseline | 8 | 110 | 19 | 24.5% | [2.5%, 50.9%] | 11 | 38 | 0.0001 |
+| deepseek-v4-pro | 500 | fix_v2 | baseline | 8 | 110 | 19 | 40.0% | [19.0%, 63.8%] | 2 | 46 | 0.0000 |
+| deepseek-v4-pro | 500 | fix_v2 | fix_v1 | 8 | 110 | 19 | 1.8% | [-7.2%, 11.7%] | 4 | 6 | 0.7539 |
 | minimax-m3 | 5 | fix_v2 | baseline | 8 | 110 | 19 | 52.7% | [35.4%, 70.5%] | 1 | 59 | 0.0000 |
 | minimax-m3 | 5 | fix_v2 | fix_v1 | 8 | 110 | 19 | 12.7% | [6.0%, 20.2%] | 2 | 16 | 0.0013 |
 | minimax-m3 | 50 | fix_v2 | baseline | 8 | 110 | 19 | 40.0% | [22.7%, 60.3%] | 2 | 46 | 0.0000 |
@@ -32,6 +41,15 @@ Spray: the gold agent was messaged and so was another one. Wrong only: the gold 
 | minimax-m3 | 500 | fix_v2_evidence | baseline | 8 | 110 | 19 | 34.5% | [15.6%, 57.5%] | 4 | 42 | 0.0000 |
 | minimax-m3 | 500 | fix_v2_evidence | fix_v1 | 8 | 110 | 19 | 10.0% | [3.6%, 17.1%] | 2 | 13 | 0.0074 |
 | minimax-m3 | 500 | fix_v2_evidence | fix_v2 | 8 | 110 | 19 | 0.0% | [-3.4%, 3.7%] | 5 | 5 | 1.0000 |
+| minimax-m3 | 500 | fix_v2_no_c1 | baseline | 8 | 110 | 19 | 36.4% | [18.6%, 58.5%] | 3 | 43 | 0.0000 |
+| minimax-m3 | 500 | fix_v2_no_c1 | fix_v1 | 8 | 110 | 19 | 11.8% | [4.5%, 20.0%] | 1 | 14 | 0.0010 |
+| minimax-m3 | 500 | fix_v2_no_c1 | fix_v2 | 8 | 110 | 19 | 0.0% | [0.0%, 0.0%] | 0 | 0 | 1.0000 |
+| minimax-m3 | 500 | fix_v2_no_c3 | baseline | 8 | 110 | 19 | 28.2% | [9.1%, 53.3%] | 6 | 37 | 0.0000 |
+| minimax-m3 | 500 | fix_v2_no_c3 | fix_v1 | 8 | 110 | 19 | 3.6% | [-1.0%, 9.9%] | 5 | 9 | 0.4240 |
+| minimax-m3 | 500 | fix_v2_no_c3 | fix_v2 | 8 | 110 | 19 | -8.2% | [-13.2%, -2.9%] | 11 | 2 | 0.0225 |
+| minimax-m3 | 500 | fix_v2_no_c4 | baseline | 8 | 110 | 19 | 32.7% | [14.9%, 56.3%] | 3 | 39 | 0.0000 |
+| minimax-m3 | 500 | fix_v2_no_c4 | fix_v1 | 8 | 110 | 19 | 8.2% | [0.0%, 16.5%] | 3 | 12 | 0.0352 |
+| minimax-m3 | 500 | fix_v2_no_c4 | fix_v2 | 8 | 110 | 19 | -3.6% | [-11.5%, 1.9%] | 8 | 4 | 0.3877 |
 
 ## Bars (BARS-v2)
 
@@ -48,8 +66,10 @@ fix_v2 on minimax-m3 at N=500 unless the bar says otherwise.
 | B5 | fail | tokens/turn 103.0% of baseline; search_agents 1.08/turn; p50 12065 ms vs baseline 8509 ms; N=5,000: pending tier 3 |
 | B6 | pass | N=5: fix_v2 87.3% (96/110), baseline 34.5% (38/110), fix_v1 74.5% (82/110) |
 | B8 | pass | 0 unauthorised sends in 46 attacks at this commit; the send check's negative control is a test (tests/test_shared_client_check.py) |
-| B9 | pending tier 2 | deepseek-v4-pro runs |
-| Ablation | pending tier 2 | fix_v2 minus c1, c3, c4 |
+| B9 | pass | accuracy fix_v2 - fix_v1: minimax-m3 10.0%, deepseek-v4-pro 1.8% (McNemar p = 0.7539); cross-client wrong reuse fix_v1 -> fix_v2: minimax-m3 16/252 -> 11/252, deepseek-v4-pro 1/84 -> 0/84. deepseek-v4-pro ran 1 trial per arm: trials 2 and 3 were cut for quota (registered: 3) |
+| Ablation: no c1 | not needed on this set | 85.5% (94/110); paired with fix_v2 trial 1: 0.0% [0.0%, 0.0%], 0 only fix_v2 right, 0 only the ablation right, McNemar p = 1.0000; cross-client wrong reuse 3/84; hijack 1/16; prompt tokens/turn 10208 |
+| Ablation: no c3 | needed (removing it lowers accuracy) | 77.3% (85/110); paired with fix_v2 trial 1: -8.2% [-13.2%, -2.9%], 11 only fix_v2 right, 2 only the ablation right, McNemar p = 0.0225; cross-client wrong reuse 5/84; hijack 4/16; prompt tokens/turn 11478 |
+| Ablation: no c4 | needed (removing it lowers accuracy) | 81.8% (90/110); paired with fix_v2 trial 1: -3.6% [-11.5%, 1.9%], 8 only fix_v2 right, 4 only the ablation right, McNemar p = 0.3877; cross-client wrong reuse 7/84; hijack 1/16; prompt tokens/turn 9937 |
 | A1 | fail | paired delta 0.0% (McNemar p = 1.0000); tokens/turn 112.3% of fix_v2 |
 | A2 (as registered) | pass | 52.9% [36.7%, 68.5%] (18/34) |
 | A2 (corrected) | pass | 100.0% [82.4%, 100.0%] (18/18) |
@@ -58,6 +78,9 @@ fix_v2 on minimax-m3 at N=500 unless the bar says otherwise.
 
 | model | N | arm | k | LLM calls mean | searches mean | prompt tok per turn | prompt tok per call |
 |---|---|---|---|---|---|---|---|
+| deepseek-v4-pro | 500 | baseline | 8 | 1.05 | 0.00 | 9720 | 9102 |
+| deepseek-v4-pro | 500 | fix_v1 | 8 | 1.63 | 0.61 | 8291 | 5012 |
+| deepseek-v4-pro | 500 | fix_v2 | 8 | 1.21 | 0.16 | 5943 | 4876 |
 | minimax-m3 | 5 | baseline | 8 | 1.08 | 0.00 | 3441 | 3160 |
 | minimax-m3 | 5 | fix_v1 | 8 | 1.71 | 0.95 | 7916 | 4512 |
 | minimax-m3 | 5 | fix_v2 | 8 | 1.51 | 0.52 | 7351 | 4738 |
@@ -67,6 +90,9 @@ fix_v2 on minimax-m3 at N=500 unless the bar says otherwise.
 | minimax-m3 | 500 | fix_v1 | 8 | 1.86 | 1.21 | 9944 | 5197 |
 | minimax-m3 | 500 | fix_v2 | 8 | 1.88 | 1.08 | 10198 | 5255 |
 | minimax-m3 | 500 | fix_v2_evidence | 8 | 1.96 | 1.21 | 11456 | 5586 |
+| minimax-m3 | 500 | fix_v2_no_c1 | 8 | 1.88 | 1.05 | 10208 | 5267 |
+| minimax-m3 | 500 | fix_v2_no_c3 | 8 | 2.05 | 1.41 | 11478 | 5307 |
+| minimax-m3 | 500 | fix_v2_no_c4 | 8 | 1.84 | 1.01 | 9937 | 5244 |
 
 Prompt tokens, minimax-m3 fix_v2 / baseline at N=500: 103.0% per turn, 58.5% per LLM call (BARS-v2 B5: <= 75% per turn).
 
@@ -74,6 +100,9 @@ Prompt tokens, minimax-m3 fix_v2 / baseline at N=500: 103.0% per turn, 58.5% per
 
 | model | N | arm | k | explicit | entity | paraphrase | pronoun | near_duplicate | should_create | ambiguous | parallel | agent_message | without ambiguous, paraphrase |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| deepseek-v4-pro | 500 | baseline | 8 | 100.0% (14/14; 2 tpl) | 0.0% (0/12; 2 tpl) | 0.0% (0/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 61.1% (11/18; 3 tpl) | 87.5% (14/16; 2 tpl) | 0.0% (0/10; 2 tpl) | 0.0% (0/6; 2 tpl) | 0.0% (0/8; 2 tpl) | 59.3% [48.7%, 69.1%] (51/86) |
+| deepseek-v4-pro | 500 | fix_v1 | 8 | 85.7% (12/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 92.9% (13/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 100.0% (18/18; 3 tpl) | 100.0% (16/16; 2 tpl) | 10.0% (1/10; 2 tpl) | 33.3% (2/6; 2 tpl) | 87.5% (7/8; 2 tpl) | 91.9% [84.1%, 96.0%] (79/86) |
+| deepseek-v4-pro | 500 | fix_v2 | 8 | 85.7% (12/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 100.0% (14/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 100.0% (18/18; 3 tpl) | 100.0% (16/16; 2 tpl) | 50.0% (5/10; 2 tpl) | 50.0% (3/6; 2 tpl) | 37.5% (3/8; 2 tpl) | 88.4% [79.9%, 93.6%] (76/86) |
 | minimax-m3 | 5 | baseline | 8 | 71.4% (10/14; 2 tpl) | 0.0% (0/12; 2 tpl) | 0.0% (0/14; 2 tpl) | 91.7% (11/12; 2 tpl) | 50.0% (9/18; 3 tpl) | 25.0% (4/16; 2 tpl) | 0.0% (0/10; 2 tpl) | 33.3% (2/6; 2 tpl) | 25.0% (2/8; 2 tpl) | 44.2% [34.2%, 54.7%] (38/86) |
 | minimax-m3 | 5 | fix_v1 | 8 | 78.6% (11/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 78.6% (11/14; 2 tpl) | 91.7% (11/12; 2 tpl) | 77.8% (14/18; 3 tpl) | 93.8% (15/16; 2 tpl) | 0.0% (0/10; 2 tpl) | 50.0% (3/6; 2 tpl) | 62.5% (5/8; 2 tpl) | 82.6% [73.2%, 89.1%] (71/86) |
 | minimax-m3 | 5 | fix_v2 | 8 | 100.0% (14/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 78.6% (11/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 100.0% (18/18; 3 tpl) | 100.0% (16/16; 2 tpl) | 20.0% (2/10; 2 tpl) | 66.7% (4/6; 2 tpl) | 87.5% (7/8; 2 tpl) | 96.5% [90.2%, 98.8%] (83/86) |
@@ -83,17 +112,25 @@ Prompt tokens, minimax-m3 fix_v2 / baseline at N=500: 103.0% per turn, 58.5% per
 | minimax-m3 | 500 | fix_v1 | 8 | 69.0% (29/42; 2 tpl) | 100.0% (36/36; 2 tpl) | 64.3% (27/42; 2 tpl) | 75.0% (27/36; 2 tpl) | 90.7% (49/54; 3 tpl) | 75.0% (36/48; 2 tpl) | 0.0% (0/30; 2 tpl) | 83.3% (15/18; 2 tpl) | 66.7% (16/24; 2 tpl) | 80.6% [75.4%, 85.0%] (208/258) |
 | minimax-m3 | 500 | fix_v2 | 8 | 90.5% (38/42; 2 tpl) | 100.0% (36/36; 2 tpl) | 69.0% (29/42; 2 tpl) | 100.0% (36/36; 2 tpl) | 100.0% (54/54; 3 tpl) | 97.9% (47/48; 2 tpl) | 6.7% (2/30; 2 tpl) | 72.2% (13/18; 2 tpl) | 79.2% (19/24; 2 tpl) | 94.2% [90.6%, 96.4%] (243/258) |
 | minimax-m3 | 500 | fix_v2_evidence | 8 | 85.7% (12/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 78.6% (11/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 100.0% (18/18; 3 tpl) | 93.8% (15/16; 2 tpl) | 10.0% (1/10; 2 tpl) | 83.3% (5/6; 2 tpl) | 75.0% (6/8; 2 tpl) | 93.0% [85.6%, 96.8%] (80/86) |
+| minimax-m3 | 500 | fix_v2_no_c1 | 8 | 92.9% (13/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 78.6% (11/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 100.0% (18/18; 3 tpl) | 93.8% (15/16; 2 tpl) | 10.0% (1/10; 2 tpl) | 83.3% (5/6; 2 tpl) | 87.5% (7/8; 2 tpl) | 95.3% [88.6%, 98.2%] (82/86) |
+| minimax-m3 | 500 | fix_v2_no_c3 | 8 | 85.7% (12/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 64.3% (9/14; 2 tpl) | 91.7% (11/12; 2 tpl) | 100.0% (18/18; 3 tpl) | 75.0% (12/16; 2 tpl) | 0.0% (0/10; 2 tpl) | 83.3% (5/6; 2 tpl) | 75.0% (6/8; 2 tpl) | 88.4% [79.9%, 93.6%] (76/86) |
+| minimax-m3 | 500 | fix_v2_no_c4 | 8 | 85.7% (12/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 50.0% (7/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 100.0% (18/18; 3 tpl) | 93.8% (15/16; 2 tpl) | 10.0% (1/10; 2 tpl) | 100.0% (6/6; 2 tpl) | 87.5% (7/8; 2 tpl) | 95.3% [88.6%, 98.2%] (82/86) |
 
 ### Duplicate guard (report split)
 
 | model | N | arm | fired | correct after | what the model did next |
 |---|---|---|---|---|---|
+| deepseek-v4-pro | 500 | fix_v1 | 8 | 8 | confirmed_new 8 |
+| deepseek-v4-pro | 500 | fix_v2 | 7 | 7 | confirmed_new 5, reused_suggested 2 |
 | minimax-m3 | 5 | fix_v1 | 6 | 5 | confirmed_new 6 |
 | minimax-m3 | 5 | fix_v2 | 7 | 7 | confirmed_new 7 |
 | minimax-m3 | 50 | fix_v2 | 7 | 7 | confirmed_new 7 |
 | minimax-m3 | 500 | fix_v1 | 15 | 11 | confirmed_new 15 |
 | minimax-m3 | 500 | fix_v2 | 34 | 26 | clarified 3, confirmed_new 25, reused_suggested 6 |
 | minimax-m3 | 500 | fix_v2_evidence | 9 | 8 | clarified 1, confirmed_new 7, reused_suggested 1 |
+| minimax-m3 | 500 | fix_v2_no_c1 | 10 | 9 | confirmed_new 10 |
+| minimax-m3 | 500 | fix_v2_no_c3 | 6 | 5 | confirmed_new 4, reused_suggested 2 |
+| minimax-m3 | 500 | fix_v2_no_c4 | 13 | 10 | confirmed_new 7, reused_suggested 6 |
 
 ### Accuracy by gold target status (report split)
 
@@ -101,6 +138,9 @@ Idle: a gold target last active more than 30 days before the case's clock; the s
 
 | model | N | arm | target idle | target active |
 |---|---|---|---|---|
+| deepseek-v4-pro | 500 | baseline | 22.4% [13.6%, 34.7%] (13/58) | 66.7% [50.3%, 79.8%] (24/36) |
+| deepseek-v4-pro | 500 | fix_v1 | 72.4% [59.8%, 82.2%] (42/58) | 97.2% [85.8%, 99.5%] (35/36) |
+| deepseek-v4-pro | 500 | fix_v2 | 75.9% [63.5%, 85.0%] (44/58) | 97.2% [85.8%, 99.5%] (35/36) |
 | minimax-m3 | 5 | baseline | 25.9% [16.3%, 38.4%] (15/58) | 52.8% [37.0%, 68.0%] (19/36) |
 | minimax-m3 | 5 | fix_v1 | 58.6% [45.8%, 70.4%] (34/58) | 91.7% [78.2%, 97.1%] (33/36) |
 | minimax-m3 | 5 | fix_v2 | 79.3% [67.2%, 87.7%] (46/58) | 94.4% [81.9%, 98.5%] (34/36) |
@@ -110,6 +150,9 @@ Idle: a gold target last active more than 30 days before the case's clock; the s
 | minimax-m3 | 500 | fix_v1 | 64.4% [57.0%, 71.1%] (112/174) | 80.6% [72.1%, 86.9%] (87/108) |
 | minimax-m3 | 500 | fix_v2 | 73.0% [65.9%, 79.0%] (127/174) | 92.6% [86.1%, 96.2%] (100/108) |
 | minimax-m3 | 500 | fix_v2_evidence | 74.1% [61.6%, 83.7%] (43/58) | 94.4% [81.9%, 98.5%] (34/36) |
+| minimax-m3 | 500 | fix_v2_no_c1 | 77.6% [65.3%, 86.4%] (45/58) | 94.4% [81.9%, 98.5%] (34/36) |
+| minimax-m3 | 500 | fix_v2_no_c3 | 72.4% [59.8%, 82.2%] (42/58) | 86.1% [71.3%, 93.9%] (31/36) |
+| minimax-m3 | 500 | fix_v2_no_c4 | 74.1% [61.6%, 83.7%] (43/58) | 88.9% [74.7%, 95.6%] (32/36) |
 
 ### Bars inputs, round two (report split)
 
@@ -119,6 +162,9 @@ Multi-client sends (B2a): turns whose sends, over every round, reached agents of
 
 | model | N | arm | uncached prompt tok per turn | refused turns | sends refused (shared client) | same-client multi-sends | multi-client sends (B2a) | hijack (zero as bound) | evidence, as registered | evidence, corrected |
 |---|---|---|---|---|---|---|---|---|---|---|
+| deepseek-v4-pro | 500 | baseline | 6507 | 0 | 0 | 7 | 4.8% [2.1%, 10.8%] (5/104); parallel gold 0/6 (0 matched gold) | 2 | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 25.9%] (0/11) |
+| deepseek-v4-pro | 500 | fix_v1 | 2280 | 0 | 0 | 0 | 1.0% [0.2%, 5.2%] (1/104); parallel gold 2/6 (2 matched gold) | 0 (<= 18.8%) | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 17.6%] (0/18) |
+| deepseek-v4-pro | 500 | fix_v2 | 1798 | 0 | 0 | 0 | 0 (<= 2.9%); parallel gold 3/6 (3 matched gold) | 0 (<= 18.8%) | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 17.6%] (0/18) |
 | minimax-m3 | 5 | baseline | 1733 | 0 | 0 | 18 | 30.8% [22.7%, 40.2%] (32/104); parallel gold 2/6 (2 matched gold) | 12 | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 29.9%] (0/9) |
 | minimax-m3 | 5 | fix_v1 | 3166 | 0 | 0 | 4 | 3.8% [1.5%, 9.5%] (4/104); parallel gold 3/6 (3 matched gold) | 1 | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 21.5%] (0/14) |
 | minimax-m3 | 5 | fix_v2 | 3395 | 0 | 0 | 0 | 2.9% [1.0%, 8.1%] (3/104); parallel gold 4/6 (4 matched gold) | 0 (<= 18.8%) | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 17.6%] (0/18) |
@@ -128,6 +174,9 @@ Multi-client sends (B2a): turns whose sends, over every round, reached agents of
 | minimax-m3 | 500 | fix_v1 | 2728 | 0 | 0 | 28 | 6.4% [4.2%, 9.7%] (20/312); parallel gold 15/18 (15 matched gold) | 12 | 0.0% [0.0%, 3.6%] (0/102) | 0.0% [0.0%, 7.3%] (0/49) |
 | minimax-m3 | 500 | fix_v2 | 2742 | 0 | 18 | 0 | 6.1% [3.9%, 9.3%] (19/312); parallel gold 13/18 (13 matched gold) | 1 | 0.0% [0.0%, 3.6%] (0/102) | 0.0% [0.0%, 6.6%] (0/54) |
 | minimax-m3 | 500 | fix_v2_evidence | 3908 | 0 | 4 | 0 | 3.8% [1.5%, 9.5%] (4/104); parallel gold 5/6 (5 matched gold) | 1 | 52.9% [36.7%, 68.5%] (18/34) | 100.0% [82.4%, 100.0%] (18/18) |
+| minimax-m3 | 500 | fix_v2_no_c1 | 3807 | 0 | 0 | 2 | 5.8% [2.7%, 12.0%] (6/104); parallel gold 5/6 (5 matched gold) | 1 | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 17.6%] (0/18) |
+| minimax-m3 | 500 | fix_v2_no_c3 | 4012 | 0 | 4 | 0 | 6.7% [3.3%, 13.2%] (7/104); parallel gold 5/6 (5 matched gold) | 4 | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 17.6%] (0/18) |
+| minimax-m3 | 500 | fix_v2_no_c4 | 4437 | 0 | 12 | 0 | 9.6% [5.3%, 16.8%] (10/104); parallel gold 6/6 (6 matched gold) | 1 | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 17.6%] (0/18) |
 
 B2a, fix_v2 at N=500: 19 of 312 turns on cases whose gold does not call for two clients sent to two or more: fail.
 
@@ -135,12 +184,19 @@ B2a, fix_v2 at N=500: 19 of 312 turns on cases whose gold does not call for two 
 
 | model | N | arm | target archived | target active | search found an archived target |
 |---|---|---|---|---|---|
+| deepseek-v4-pro | 500 | fix_v1 | 72.4% [59.8%, 82.2%] (42/58) | 97.2% [85.8%, 99.5%] (35/36) | 46 |
+| deepseek-v4-pro | 500 | fix_v2 | 75.9% [63.5%, 85.0%] (44/58) | 97.2% [85.8%, 99.5%] (35/36) | 6 |
 | minimax-m3 | 5 | fix_v1 | 58.6% [45.8%, 70.4%] (34/58) | 91.7% [78.2%, 97.1%] (33/36) | 41 |
 | minimax-m3 | 5 | fix_v2 | 79.3% [67.2%, 87.7%] (46/58) | 94.4% [81.9%, 98.5%] (34/36) | 21 |
 | minimax-m3 | 50 | fix_v2 | 75.9% [63.5%, 85.0%] (44/58) | 88.9% [74.7%, 95.6%] (32/36) | 43 |
 | minimax-m3 | 500 | fix_v1 | 64.4% [57.0%, 71.1%] (112/174) | 80.6% [72.1%, 86.9%] (87/108) | 149 |
 | minimax-m3 | 500 | fix_v2 | 73.0% [65.9%, 79.0%] (127/174) | 92.6% [86.1%, 96.2%] (100/108) | 121 |
 | minimax-m3 | 500 | fix_v2_evidence | 74.1% [61.6%, 83.7%] (43/58) | 94.4% [81.9%, 98.5%] (34/36) | 37 |
+| minimax-m3 | 500 | fix_v2_no_c1 | 77.6% [65.3%, 86.4%] (45/58) | 94.4% [81.9%, 98.5%] (34/36) | 38 |
+| minimax-m3 | 500 | fix_v2_no_c3 | 72.4% [59.8%, 82.2%] (42/58) | 86.1% [71.3%, 93.9%] (31/36) | 52 |
+| minimax-m3 | 500 | fix_v2_no_c4 | 74.1% [61.6%, 83.7%] (43/58) | 88.9% [74.7%, 95.6%] (32/36) | 40 |
+
+Note: baseline at N=500: 0 of 10 no-route turns asked the user a question instead; they are still counted as wrong.
 
 ### Consistency across trials (report split)
 
@@ -156,12 +212,18 @@ B2a, fix_v2 at N=500: 19 of 312 turns on cases whose gold does not call for two 
 
 ## Sources
 
+- `20261028_v2_baseline_deepseek-v4-pro_k8_report_n500_t1_262fe0b.json` (2026-10-28T17:31:38Z, commit 262fe0b)
 - `20261028_v2_baseline_minimax-m3_k8_report_n5-50_t1_88f9fd2.json` (2026-10-28T16:59:16Z, commit 88f9fd2)
 - `20261028_v2_baseline_minimax-m3_k8_report_n500_t3_67ce14f.json` (2026-10-28T16:53:33Z, commit 67ce14f)
+- `20261028_v2_fix_v1_deepseek-v4-pro_k8_report_n500_t1_912142a.json` (2026-10-28T17:21:58Z, commit 912142a)
 - `20261028_v2_fix_v1_minimax-m3_k8_report_n500_t3_88f9fd2.json` (2026-10-28T16:56:18Z, commit 88f9fd2)
 - `20261028_v2_fix_v1_minimax-m3_k8_report_n5_t1_88f9fd2.json` (2026-10-28T16:59:43Z, commit 88f9fd2)
+- `20261028_v2_fix_v2_deepseek-v4-pro_k8_report_n500_t1_912142a.json` (2026-10-28T17:23:49Z, commit 912142a)
 - `20261028_v2_fix_v2_evidence_minimax-m3_k8_report_n500_t1_88f9fd2.json` (2026-10-28T17:01:47Z, commit 88f9fd2)
 - `20261028_v2_fix_v2_minimax-m3_k8_report_n5-50_t1_88f9fd2.json` (2026-10-28T16:59:35Z, commit 88f9fd2)
 - `20261028_v2_fix_v2_minimax-m3_k8_report_n500_t3_88f9fd2.json` (2026-10-28T16:59:03Z, commit 88f9fd2)
+- `20261028_v2_fix_v2_no_c1_minimax-m3_k8_report_n500_t1_912142a.json` (2026-10-28T17:25:50Z, commit 912142a)
+- `20261028_v2_fix_v2_no_c3_minimax-m3_k8_report_n500_t1_912142a.json` (2026-10-28T17:27:56Z, commit 912142a)
+- `20261028_v2_fix_v2_no_c4_minimax-m3_k8_report_n500_t1_912142a.json` (2026-10-28T17:29:58Z, commit 912142a)
 
-Spend behind these files: $3.7053 (list-price equivalent; 0 records without a price).
+Spend behind these files: $5.6610 (list-price equivalent; 1 records without a price).
