@@ -140,3 +140,13 @@ def test_render_card_escapes_attribute_values_on_one_line():
 def test_render_card_omits_empty_optional_attributes():
     card = AgentCard("a_0004", "Reminder", "active", "2026-10-27", "", ())
     assert render_card(card) == '<agent id="a_0004" name="Reminder" status="active" last_active="2026-10-27" />'
+
+
+def test_render_card_shows_age_from_the_given_clock():
+    from datetime import datetime, timezone
+
+    now = datetime(2026, 10, 27, 9, 0, tzinfo=timezone.utc)
+    card = AgentCard("a_0004", "Reminder", "active", "2026-10-24T06:00:00+00:00", "", ())
+    assert 'last_active="3d ago"' in render_card(card, now=now)
+    recent = AgentCard("a_0005", "Reminder", "active", "2026-10-27T04:30:00+00:00", "", ())
+    assert 'last_active="4h ago"' in render_card(recent, now=now)

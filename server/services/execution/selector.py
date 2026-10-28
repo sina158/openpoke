@@ -246,7 +246,7 @@ def select(
     for item in ordered:
         if len(chosen) >= k:
             break
-        cost = len(render_card(item.card, item.pinned)) / 4
+        cost = len(render_card(item.card, item.pinned, now)) / 4
         if chosen and used + cost > token_budget:
             break
         chosen.append(item)
@@ -275,12 +275,13 @@ def search(
     return hits[:limit]
 
 
-def render_shortlist(selected: Sequence[Scored], total: int) -> str:
+def render_shortlist(selected: Sequence[Scored], total: int, now: datetime | None = None) -> str:
     """Body for ``<active_agents mode="shortlist" shown=".." total="..">``.
 
     When agents are hidden, the last line tells the model that search_agents(query) reaches them.
+    Pass the same ``now`` given to ``select`` so the budget was measured on these exact lines.
     """
-    lines = [render_card(item.card, item.pinned) for item in selected] or ["None"]
+    lines = [render_card(item.card, item.pinned, now) for item in selected] or ["None"]
     hidden = total - len(selected)
     if hidden > 0:
         lines.append(

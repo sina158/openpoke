@@ -47,6 +47,8 @@ CELLS = ("correct_reuse", "wrong_reuse", "duplicate", "over_clarify", "hijack", 
          "correct_clarify", "wrong_guess", "partial", "no_route", "error")
 CORRECT_CELLS = {"correct_reuse", "correct_create", "correct_clarify"}
 EVAL_CLOCK = datetime(2026, 10, 27, 9, 0)
+# The server's "now" (OPENPOKE_FIXED_NOW) during a run: recency and card ages are rendered from it.
+EVAL_NOW = EVAL_CLOCK.replace(tzinfo=timezone.utc)
 _CLOCKED_MODULES = ("server.services.conversation.log", "server.services.execution.log_store",
                     "server.services.conversation.summarization.working_memory_log")
 # Stores added by later branches; reset when present.
@@ -230,7 +232,7 @@ def render_case(case: Dict[str, Any], size: int, sandbox: Path, seed: int = SEED
     point_stores_at(data_dir)
     roster = roster_for(case, size, seed)
     with frozen_log_clock(EVAL_CLOCK), fast_sqlite():
-        id_map = seed_case(case, roster, datetime.now(timezone.utc))
+        id_map = seed_case(case, roster, EVAL_NOW)
     # Summarisation is off for the eval, so the transcript is the plain conversation log.
     transcript = get_conversation_log().load_transcript()
     messages = agent_module.prepare_message_with_history(case["message"], transcript,
@@ -414,6 +416,7 @@ def _arm_env(config: RunConfig) -> Dict[str, str]:
         "OPENPOKE_INTERACTION_MODEL": config.model,
         "OPENPOKE_LLM_TEMPERATURE": str(config.temperature),
         "OPENPOKE_LLM_SEED": str(config.seed),
+        "OPENPOKE_FIXED_NOW": EVAL_NOW.isoformat(),
     })
     return env
 

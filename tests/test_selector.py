@@ -137,7 +137,7 @@ def test_k_is_honoured(roster):
 def test_token_budget_is_honoured(roster):
     budget = 120
     result = select("policy", roster, k=8, token_budget=budget, now=NOW)
-    used = sum(len(render_card(item.card, item.pinned)) / 4 for item in result)
+    used = sum(len(render_card(item.card, item.pinned, NOW)) / 4 for item in result)
     assert 1 <= len(result) < len(roster)
     assert used <= budget
     assert len(select("policy", roster, token_budget=1, now=NOW)) == 1  # the top card is always kept

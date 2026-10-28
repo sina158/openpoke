@@ -1,12 +1,19 @@
 """Interaction agent helpers for prompt construction."""
 
+import re
 from functools import lru_cache
-from html import escape
+from html import escape, unescape
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 
 from ...config import get_settings
-from ...services.execution import get_agent_roster
+from ...logging_config import logger
+from ...services.approvals import get_approval_store
+from ...services.execution import embeddings, get_agent_registry, get_agent_roster
+from ...services.execution.agent_cards import cards_for
+from ...services.execution.cards import AgentCard, card_text
+from ...services.execution.selector import render_shortlist, select
+from ...utils.clock import now_utc
 
 _PROMPT_DIR = Path(__file__).parent / "prompts"
 # "original" is the upstream prompt byte for byte; "shortlist" rewrites only the routing guidance.
@@ -34,7 +41,10 @@ def prepare_message_with_history(
     sections: List[str] = []
 
     sections.append(_render_conversation_history(transcript))
-    sections.append(f"<active_agents>\n{_render_active_agents()}\n</active_agents>")
+    if get_settings().roster_mode == "full":
+        sections.append(f"<active_agents>\n{_render_active_agents()}\n</active_agents>")
+    else:
+        sections.append(_render_shortlist(latest_text, transcript, message_type))
     sections.append(_render_current_turn(latest_text, message_type))
 
     content = "\n\n".join(sections)
@@ -64,6 +74,63 @@ def _render_active_agents() -> str:
         rendered.append(f'<agent name="{name}" />')
 
     return "\n".join(rendered)
+
+
+_TURN = re.compile(r"<(user_message|agent_message|poke_reply)\b[^>]*>(.*?)</\1>", re.DOTALL)
+_REPORTED_AGENT = re.compile(r"^\[(?:SUCCESS|FAILED)\] (.+?): ", re.MULTILINE)
+_hybrid_warned = False
+
+
+def _render_shortlist(latest_text: str, transcript: str, message_type: str) -> str:
+    """The few agents most likely to matter for this turn, as cards with ids (plan 3.5)."""
+    settings = get_settings()
+    now = now_utc()
+    registry = get_agent_registry()
+    cards = cards_for(registry.list("active"))
+    turns = [(tag, unescape(body)) for tag, body in _TURN.findall(transcript)]
+    user_turns = [text for tag, text in turns if tag == "user_message"]
+    query = "\n".join([*user_turns[-2:], latest_text])
+    tail = "\n".join([text for _, text in turns[-3:]] + [latest_text])
+    current_id = None
+    if message_type == "agent":
+        reported = (registry.find_by_name(name) for name in _REPORTED_AGENT.findall(latest_text))
+        current_id = next((record.id for record in reported if record), None)
+    pending = {action.agent_id for action in get_approval_store().list_pending() if action.agent_id}
+    selected = select(
+        query,
+        cards,
+        tail_text=tail,
+        pending_ids=pending,
+        current_id=current_id,
+        k=settings.shortlist_k,
+        token_budget=settings.shortlist_token_budget,
+        now=now,
+        **_hybrid_arguments(query, cards),
+    )
+    body = render_shortlist(selected, len(cards), now)
+    header = f'<active_agents mode="shortlist" shown="{len(selected)}" total="{len(cards)}">'
+    return f"{header}\n{body}\n</active_agents>"
+
+
+def _hybrid_arguments(query: str, cards: List[AgentCard]) -> Dict[str, Any]:
+    """Selector arguments for OPENPOKE_SELECTOR=hybrid; BM25 (no arguments) when vectors are unavailable."""
+    global _hybrid_warned
+    settings = get_settings()
+    if settings.selector != "hybrid" or not cards:
+        return {}
+    cache_dir: Optional[Path] = Path(settings.embeddings_dir) if settings.embeddings_dir else None
+    try:
+        vectors = embeddings.embed([query, *(card_text(card) for card in cards)], cache_dir)
+    except Exception as exc:
+        if not _hybrid_warned:
+            logger.warning(f"Hybrid selector unavailable, using BM25: {exc}")
+            _hybrid_warned = True
+        return {}
+    return {
+        "scorers": "hybrid",
+        "query_vector": vectors[0],
+        "vectors": {card.agent_id: vector for card, vector in zip(cards, vectors[1:])},
+    }
 
 
 # Wrap the current message in appropriate XML tags based on sender type

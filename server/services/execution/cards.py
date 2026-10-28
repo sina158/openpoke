@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from html import escape
 from typing import Iterable, Protocol, Sequence
 
@@ -195,13 +196,30 @@ def _attr(value: str) -> str:
     return escape(" ".join(value.split()), quote=True)
 
 
-def render_card(card: AgentCard, pinned: str | None = None) -> str:
-    """Render one ``<agent ... />`` line with every attribute value escaped."""
+def _age(last_active_at: str, now: datetime) -> str:
+    """How long ago ``last_active_at`` was, e.g. "5h ago" or "12d ago"."""
+    try:
+        when = datetime.fromisoformat((last_active_at or "").replace("Z", "+00:00"))
+    except ValueError:
+        return ""
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    hours = max(int((now - when).total_seconds() // 3600), 0)
+    return f"{hours}h ago" if hours < 24 else f"{hours // 24}d ago"
+
+
+def render_card(card: AgentCard, pinned: str | None = None, now: datetime | None = None) -> str:
+    """Render one ``<agent ... />`` line with every attribute value escaped.
+
+    With ``now`` the last activity is shown as an age derived from it, so a fixed clock gives a
+    byte-stable line; without it, as the timestamp to the minute.
+    """
+    last_active = _age(card.last_active_at, now) if now else (card.last_active_at or "")[:16]
     parts = [
         f'id="{_attr(card.agent_id)}"',
         f'name="{_attr(card.name or "agent")}"',
         f'status="{_attr(card.status)}"',
-        f'last_active="{_attr((card.last_active_at or "")[:16])}"',
+        f'last_active="{_attr(last_active)}"',
     ]
     if pinned:
         parts.append(f'pinned="{_attr(pinned)}"')
