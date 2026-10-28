@@ -17,6 +17,7 @@ import importlib
 import itertools
 import json
 import os
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -24,7 +25,7 @@ import sys
 import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -226,6 +227,19 @@ class Rendered:
     tools: List[Dict[str, Any]]
     by_id: Dict[str, str]
     by_slug: Dict[str, str]
+    archived_ids: List[str] = field(default_factory=list)
+
+
+def turn_start(now: datetime) -> set:
+    """Run the server's turn-start hook (archiving idle agents, shortlist mode only); return archived pool ids."""
+    from server.services.execution.registry import get_agent_registry
+
+    try:
+        lifecycle = importlib.import_module("server.services.execution.lifecycle")
+        lifecycle.on_turn_start(now)
+    except (ImportError, AttributeError):
+        return set()
+    return {record.name for record in get_agent_registry().list("archived")}
 
 
 def render_case(case: Dict[str, Any], size: int, sandbox: Path, seed: int = SEED) -> Rendered:
@@ -239,15 +253,17 @@ def render_case(case: Dict[str, Any], size: int, sandbox: Path, seed: int = SEED
     roster = roster_for(case, size, seed)
     with frozen_log_clock(EVAL_CLOCK), fast_sqlite():
         id_map = seed_case(case, roster, EVAL_NOW)
+    archived = turn_start(EVAL_NOW)
     # Summarisation is off for the eval, so the transcript is the plain conversation log.
     transcript = get_conversation_log().load_transcript()
     messages = agent_module.prepare_message_with_history(case["message"], transcript,
                                                          message_type=case["message_type"])
     by_id = {agent["id"]: agent["id"] for agent in roster}
     by_id.update(id_map)
+    archived_ids = [agent["id"] for agent in roster if agent["name"] in archived]
     return Rendered(case, size, data_dir, agent_module.build_system_prompt(), messages,
                     copy.deepcopy(tools_module.get_tool_schemas()), by_id,
-                    {_slug(agent["name"]): agent["id"] for agent in roster})
+                    {_slug(agent["name"]): agent["id"] for agent in roster}, archived_ids)
 
 
 def render_all(cases: List[Dict[str, Any]], sizes: Tuple[int, ...], sandbox: Path, seed: int,
@@ -367,6 +383,8 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
     ctx = CallContext(temperature=config.temperature, seed=config.seed + trial)
     CURRENT.set(ctx)
     user_messages: List[str] = []
+    searches: List[bool] = []
+    gold_ids = set(rendered.case["gold"]["agent_ids"])
     offered = {schema["function"]["name"] for schema in rendered.tools}
 
     def on_tool(name: str, args: Dict[str, Any]) -> Any:
@@ -380,7 +398,10 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
         if name == "search_agents":
             # Synchronous, so nothing else runs on the loop while the stores point at this case.
             point_stores_at(rendered.data_dir)
-            return tools_module.handle_tool_call(name, args)
+            result = tools_module.handle_tool_call(name, args)
+            found = {rendered.by_id.get(i) for i in re.findall(r"[A-Za-z]_\d{4}", json.dumps(result.payload))}
+            searches.append(bool(found & gold_ids))
+            return result
         return ToolResult(success=True, payload={"status": "recorded"})
 
     # Upstream has no duplicate guard, so the baseline arm never runs it.
@@ -425,6 +446,9 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
         "correct": cell in CORRECT_CELLS,
         "cross_client": cross,
         "routing_rounds": rounds,
+        "target_archived": bool(gold_ids & set(rendered.archived_ids)),
+        "searches": len(searches),
+        "search_found_target": any(searches),
         "guard_fired": bool(runtime.refused),
         "guard_outcome": guard_outcome,
         "user_messages": user_messages,
@@ -448,7 +472,7 @@ def duplicate_guard(rendered: Rendered, name: str, args: Dict[str, Any]) -> Any:
     from server.config import get_settings
     from server.services.execution.registry import get_agent_registry
 
-    agent_name = args.get("agent_name")
+    agent_name, instructions = args.get("agent_name"), str(args.get("instructions") or "")
     if (name != "send_message_to_agent" or args.get("agent_id") or args.get("confirm_new")
             or not isinstance(agent_name, str) or not agent_name.strip()):
         return None
@@ -457,9 +481,10 @@ def duplicate_guard(rendered: Rendered, name: str, args: Dict[str, Any]) -> Any:
     settings, registry = get_settings(), get_agent_registry()
     if settings.prompt_variant != "shortlist" or registry.find_by_name(agent_name) is not None:
         return None
-    if not tools_module.possible_duplicates(agent_name, registry.list(status=None), settings.duplicate_threshold):
+    cards = tools_module.cards_for(registry.list(status=None))
+    if not tools_module.possible_duplicates(agent_name, instructions, cards, settings.duplicate_threshold):
         return None
-    _, _, refusal = tools_module._resolve_agent(None, agent_name, False)
+    _, _, refusal = tools_module._resolve_agent(None, agent_name, False, instructions)
     return refusal
 
 

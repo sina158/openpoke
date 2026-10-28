@@ -68,3 +68,15 @@ def test_baseline_never_runs_the_guard(tmp_path):
     record = _run("baseline", fake, case, tmp_path)
     assert not record["guard_fired"] and record["guard_outcome"] is None
     assert record["routing_rounds"] == 1 and record["cell"] == "duplicate"
+
+
+def test_fix_arm_archives_idle_targets_and_baseline_does_not(tmp_path):
+    case = next(c for c in load_cases(split="all") if c["case_id"] == "near_duplicate-002")
+
+    async def fake(*, model, messages, system=None, tools=None, api_key=None, **kwargs):
+        return _reply([("send_message_to_agent", {"agent_name": "Something unrelated", "instructions": "go"})])
+
+    fix = _run("fix", fake, case, tmp_path)
+    baseline = _run("baseline", fake, case, tmp_path)
+    assert fix["target_archived"] and not baseline["target_archived"]
+    assert fix["searches"] == 0 and not fix["search_found_target"]
