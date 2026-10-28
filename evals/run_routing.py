@@ -24,7 +24,7 @@ import sys
 import tempfile
 import time
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -327,7 +327,6 @@ class RunConfig:
     max_live_calls: Optional[int] = None
     budget_usd: Optional[float] = None
     case_ids: Optional[List[str]] = None
-    extra: Dict[str, Any] = field(default_factory=dict)
 
 
 async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: str,
