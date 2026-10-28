@@ -1,6 +1,7 @@
 """Tool definitions for interaction agent."""
 
 import asyncio
+import itertools
 import json
 from collections import Counter
 from dataclasses import dataclass
@@ -322,6 +323,64 @@ def check_turn_sends(calls: list[tuple[str, dict[str, Any]]], sent: Sequence[str
         return {}
     cards = cards_for(get_agent_registry().list(status=None))
     conflict = shared_client_conflict([*sent, *current], cards)
+    if conflict is None:
+        return {}
+    return {
+        index: ToolResult(success=False, payload=dict(conflict))
+        for index, target in targets.items()
+        if target in conflict["agent_ids"]
+    }
+
+
+CLIENT_GUARD_MESSAGE = (
+    "Nothing was sent: the message does not name the client of these agents, and it names another client or "
+    "this turn reaches more than one. Send only to the agent of the client the message names, or call "
+    "clarify_agent_choice(candidate_ids, question) to ask the user."
+)
+
+
+def unnamed_client_conflict(text: str, agent_ids: list[str], cards: list[AgentCard]) -> Optional[dict[str, Any]]:
+    """The refusal for one user turn's sends to agents whose client ``text`` does not name (the client guard).
+
+    A target's client is its card plus every card sharing an identifying entity with it; ``text`` names the
+    client when it holds one of those entities. A target ``text`` does not name is refused when ``text``
+    names some other client, or when two targets share no identifying entity (two clients). A target with
+    no identifying entity is never judged. ``cards`` is every agent's card, archived included.
+    """
+    df = Counter(entity for card in cards for entity in _card_entities(card))
+    found = {card.agent_id: identifying_entities(card, df, len(cards)) for card in cards}
+    targets = [agent_id for agent_id in dict.fromkeys(agent_ids) if found.get(agent_id)]
+    if not targets:
+        return None
+    mentioned = set(extract_entities(text))
+
+    def named(agent_id: str) -> bool:
+        return any(entities & mentioned for entities in found.values() if entities & found[agent_id])
+
+    names_a_client = any(entities & mentioned for entities in found.values())
+    two_clients = any(not found[a] & found[b] for a, b in itertools.combinations(targets, 2))
+    unnamed = [agent_id for agent_id in targets if not named(agent_id)]
+    if not unnamed or not (names_a_client or two_clients):
+        return None
+    return {"status": "refused", "reason": "client_not_named", "agent_ids": unnamed, "message": CLIENT_GUARD_MESSAGE}
+
+
+def check_client_guard(
+    calls: list[tuple[str, dict[str, Any]]], sent: Sequence[str] = (), text: str = ""
+) -> dict[int, ToolResult]:
+    """Refusals, by position in ``calls``, for this round's sends to agents whose client ``text`` does not name.
+
+    ``sent`` are the agents already sent to earlier in the same user turn, judged with this round's targets
+    so a spray split across rounds is caught; only this round's sends can be refused. New agents pass.
+    """
+    targets = {
+        index: _existing_target(args) for index, (name, args) in enumerate(calls)
+        if name == "send_message_to_agent" and "__invalid_arguments__" not in args
+    }
+    if not any(targets.values()):
+        return {}
+    cards = cards_for(get_agent_registry().list(status=None))
+    conflict = unnamed_client_conflict(text, [*sent, *(t for t in targets.values() if t)], cards)
     if conflict is None:
         return {}
     return {

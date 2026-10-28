@@ -33,8 +33,10 @@ from evals.cassette import CURRENT, CallContext, Cassette, CassetteMiss, LiveCal
 from evals.run_routing import fast_sqlite, frozen_log_clock, point_stores_at
 
 # Every switch that changes what the model sees is set, so nothing from the shell leaks into an arm. The
-# last three are the defaults the recorded runs used: no v2 change disabled, no evidence line, the recent log.
-_PINNED = {"OPENPOKE_V2_DISABLE": "", "OPENPOKE_SHORTLIST_EVIDENCE": "0", "OPENPOKE_EXECUTION_MEMORY": "recent"}
+# last four are the defaults the recorded runs used: no v2 change disabled, no evidence line, the recent log,
+# no client guard.
+_PINNED = {"OPENPOKE_V2_DISABLE": "", "OPENPOKE_SHORTLIST_EVIDENCE": "0", "OPENPOKE_EXECUTION_MEMORY": "recent",
+           "OPENPOKE_CLIENT_GUARD": "0"}
 ARMS: Dict[str, Dict[str, str]] = {
     # Upstream prompt and full roster; never archives. Pinned to the round-one profile.
     "baseline": {"OPENPOKE_ROSTER_MODE": "full", "OPENPOKE_PROMPT_VARIANT": "original",

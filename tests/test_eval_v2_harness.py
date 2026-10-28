@@ -404,3 +404,67 @@ def test_b9_and_the_ablations_from_tier_two_runs(tmp_path):
     assert verdict["Ablation: no c4"]["verdict"] == "pending tier 2"
     pair = report["report"]["paired_by_key"]["fix_v2_no_c3_vs_fix_v2_minimax-m3_k8_n500"]
     assert (pair["b"], pair["c"]) == (2, 0)
+
+
+# ---- the client guard arm (v2.1) -----------------------------------------------------------------------------
+
+def test_the_guard_arm_is_fix_v2_plus_the_guard_and_every_other_arm_pins_it_off(tmp_path, monkeypatch):
+    assert run_routing.ARMS["fix_v2_guard"] == {**run_routing.ARMS["fix_v2"], "OPENPOKE_CLIENT_GUARD": "1"}
+    assert all(env.get("OPENPOKE_CLIENT_GUARD", "0") == "0" for arm, env in run_routing.ARMS.items()
+               if arm != "fix_v2_guard")
+    monkeypatch.setenv("OPENPOKE_CLIENT_GUARD", "1")
+    seen = []
+
+    async def fake(**kwargs):
+        seen.append(os.environ.get("OPENPOKE_CLIENT_GUARD"))
+        return _reply()
+
+    for arm, expected in (("fix_v2", "0"), ("fix_v2_guard", "1")):
+        seen.clear()
+        header = _run(arm, fake, _v2_case("v2-explicit-001"), tmp_path / arm)["header"]
+        assert set(seen) == {expected} and header["openpoke_client_guard"] == expected
+    assert os.environ["OPENPOKE_CLIENT_GUARD"] == "1"
+
+
+def _two_client_spray(second):
+    """v2-paraphrase-003 names neither client; round one reuses the target and another client's agent by name,
+    as fix_v2 did when recorded; round two is `second(names)`."""
+    case = _v2_case("v2-paraphrase-003")
+    pool = load_pool(POOL_V2_PATH)
+    names = [pool[i]["name"] for i in ("g_0085", "g_0087")]
+    assert pool["g_0085"]["client_key"] != pool["g_0087"]["client_key"] and case["target_ids"] == ["g_0085"]
+    refusals = []
+
+    async def fake(*, model, messages, system=None, tools=None, api_key=None, **kwargs):
+        if len(messages) == 1:
+            return _reply(_send(*names))
+        refusals.extend(json.loads(m["content"])["error"]["reason"] for m in messages if m["role"] == "tool")
+        return _reply(second(names))
+
+    return case, fake, refusals
+
+
+def test_the_guard_arm_refuses_a_two_client_spray_and_grades_the_next_round(tmp_path):
+    case, fake, refusals = _two_client_spray(lambda names: _send(names[0]))
+    (record,) = _run("fix_v2_guard", fake, case, tmp_path, sizes=(500,))["records"]
+    assert refusals == ["client_not_named", "client_not_named"]
+    assert record["guard_fired"] == "client_guard" and record["client_guard_refused"] == 2
+    assert record["shared_client_refused"] == 0 and record["routing_rounds"] == 2
+    assert record["cell"] == "correct_reuse" and not record["multi_client_send"]
+
+
+def test_a_spray_refused_twice_by_the_guard_ends_refused(tmp_path):
+    case, fake, _ = _two_client_spray(lambda names: _send(*names))
+    (record,) = _run("fix_v2_guard", fake, case, tmp_path, sizes=(500,))["records"]
+    assert record["client_guard_refused"] == 4 and record["ended_refused"] and record["cell"] == "no_route"
+
+
+def test_without_the_guard_the_same_spray_reaches_two_clients(tmp_path):
+    case, fake, _ = _two_client_spray(lambda names: pytest.fail("fix_v2 must not get a second routing turn"))
+    (record,) = _run("fix_v2", fake, case, tmp_path, sizes=(500,))["records"]
+    assert record["multi_client_send"] and record["cross_client"] and record["client_guard_refused"] == 0
+    assert record["guard_fired"] is False
+
+
+def test_compare_pairs_the_guard_arm_with_fix_v2():
+    assert compare.references("fix_v2_guard") == ["baseline", "fix_v1", "fix_v2"]

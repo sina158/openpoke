@@ -55,11 +55,11 @@ FIRST_CALLS_CHECKED = 5
 _SHORTLIST = {"OPENPOKE_ROSTER_MODE": "shortlist", "OPENPOKE_PROMPT_VARIANT": "shortlist"}
 
 
-def _profile(profile: str, disable: str = "", evidence: str = "0",
+def _profile(profile: str, disable: str = "", evidence: str = "0", guard: str = "0",
              base: Optional[Dict[str, str]] = None) -> Dict[str, str]:
     """An arm under one routing profile; every v2 flag is set, so nothing leaks in from the shell."""
     return {**(base or _SHORTLIST), "OPENPOKE_ROUTING_PROFILE": profile, "OPENPOKE_V2_DISABLE": disable,
-            "OPENPOKE_SHORTLIST_EVIDENCE": evidence}
+            "OPENPOKE_SHORTLIST_EVIDENCE": evidence, "OPENPOKE_CLIENT_GUARD": guard}
 
 
 ARMS: Dict[str, Dict[str, str]] = {
@@ -76,6 +76,8 @@ ARMS: Dict[str, Dict[str, str]] = {
     "fix_v2_no_c3": _profile("v2", disable="c3"),
     "fix_v2_no_c4": _profile("v2", disable="c4"),
     "fix_v2_evidence": _profile("v2", evidence="1"),
+    # fix_v2 plus the client guard (v2.1, c5): sends to agents whose client the message does not name are refused.
+    "fix_v2_guard": _profile("v2", guard="1"),
 }
 # Golden set -> (cases, pool, roster seed). The v1 set keeps --seed as its roster seed, as round one did.
 SETS: Dict[str, Tuple[Path, Path, Optional[int]]] = {
@@ -355,7 +357,7 @@ def _recording_runtime_class() -> type:
         def __init__(self, model: str, api_key: str, tool_schemas: List[Dict[str, Any]],
                      on_tool: Callable[[str, Dict[str, Any]], Any],
                      guard: Optional[Callable[[str, Dict[str, Any]], Any]] = None,
-                     sandbox: Optional[Path] = None) -> None:
+                     sandbox: Optional[Path] = None, turn_text: str = "") -> None:
             from server.config import get_settings
 
             self.api_key = api_key
@@ -365,8 +367,12 @@ def _recording_runtime_class() -> type:
             self._on_tool = on_tool
             self._guard = guard
             self._sandbox = sandbox
+            self.turn_text = turn_text
             self.refused: Dict[int, Any] = {}
-            self.refused_again = 0  # sends refused once more in the round after the guard's answer
+            # Sends refused once more in the round after the guard's answer, by the shared-client check and
+            # by the client guard.
+            self.refused_again = 0
+            self.guard_refused_again = 0
             self.kept: Optional[List[Tuple[str, Dict[str, Any]]]] = None
 
         def _parse_tool_calls(self, raw_tool_calls):  # type: ignore[override]
@@ -379,7 +385,8 @@ def _recording_runtime_class() -> type:
             if self.kept is not None:  # the routing turn after the guard's answer always ends the case
                 # Sends the server would refuse again are not dispatched, so they are not graded.
                 sent = [(c.name, c.arguments) for c in routing if id(c) not in turn_refused]
-                self.refused_again = len(routing) - len(sent)
+                self.refused_again = _refusals(turn_refused, "shared_client")
+                self.guard_refused_again = _refusals(turn_refused, "client_not_named")
                 raise RoutingDecided(self.kept + sent, rounds=2, after_guard=sent)
             if self._guard is not None:
                 for call in routing:
@@ -395,16 +402,18 @@ def _recording_runtime_class() -> type:
             return parsed
 
         def _turn_refusals(self, routing):
-            """The server's whole-turn check (v2 shared-client sends), run against this case's sandbox.
+            """The server's whole-turn checks (v2 shared-client sends, the client guard), run against this
+            case's sandbox.
 
             In the round after a guard's answer, the sends let through in the first round count as
-            already sent, as they do in the server's loop.
+            already sent, as they do in the server's loop. A single send can only be refused by the client guard.
             """
             from server.agents.interaction_agent import tools as tools_module
+            from server.config import client_guard
 
             earlier = [args for name, args in self.kept or [] if name == "send_message_to_agent"]
             sends = sum(c.name == "send_message_to_agent" for c in routing)
-            if self._sandbox is None or not sends or sends + len(earlier) < 2:
+            if self._sandbox is None or not sends or (sends + len(earlier) < 2 and not client_guard()):
                 return {}
             # Synchronous, so nothing else runs on the loop while the stores point at this case.
             point_stores_at(self._sandbox)
@@ -504,7 +513,8 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
     # Upstream has no duplicate guard, so the baseline arm never runs it.
     guard = None if config.arm == "baseline" else (lambda name, args: duplicate_guard(rendered, name, args))
     sandbox = None if config.arm == "baseline" else rendered.data_dir
-    runtime = _recording_runtime_class()(config.model, api_key, rendered.tools, on_tool, guard, sandbox)
+    runtime = _recording_runtime_class()(config.model, api_key, rendered.tools, on_tool, guard, sandbox,
+                                         rendered.case["message"])
     calls: List[Tuple[str, Dict[str, Any]]] = []
     after_guard: Optional[List[Tuple[str, Dict[str, Any]]]] = None
     rounds = 0
@@ -562,9 +572,11 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
         "search_found_target": any(searches),
         "guard_fired": _guard_fired(runtime.refused),
         "guard_outcome": guard_outcome,
-        # Shared-client refusals over both rounds; a turn whose routing calls were all refused grades no_route.
-        "shared_client_refused": _shared_client_refusals(runtime.refused) + runtime.refused_again,
-        "ended_refused": _guard_fired(runtime.refused) == "shared_client" and not calls,
+        # Shared-client and client-guard refusals over both rounds; a turn whose routing calls were all
+        # refused grades no_route.
+        "shared_client_refused": _refusals(runtime.refused, "shared_client") + runtime.refused_again,
+        "client_guard_refused": _refusals(runtime.refused, "client_not_named") + runtime.guard_refused_again,
+        "ended_refused": _guard_fired(runtime.refused) in ("shared_client", "client_guard") and not calls,
         "same_client_multi_send": len(reused_keys) != len(set(reused_keys)),
         # BARS-v2 B2a: the turn's sends (every round) reached agents of two or more clients, in any category.
         "multi_client_send": len(set(reused_keys)) >= 2,
@@ -641,14 +653,17 @@ def sample_cases(cases: List[Dict[str, Any]], k: int, seed: int) -> List[Dict[st
     return [case for case in cases if case["case_id"] in chosen]
 
 
-def _shared_client_refusals(refused: Dict[int, Any]) -> int:
-    return sum(refusal.payload.get("reason") == "shared_client" for refusal in refused.values())
+def _refusals(refused: Dict[int, Any], reason: str) -> int:
+    return sum(refusal.payload.get("reason") == reason for refusal in refused.values())
 
 
 def _guard_fired(refused: Dict[int, Any]) -> Any:
-    """"shared_client" when the v2 send check refused a call, else whether the duplicate guard fired."""
-    if _shared_client_refusals(refused):
+    """"shared_client" when the v2 send check refused a call, "client_guard" when only the client guard did,
+    else whether the duplicate guard fired."""
+    if _refusals(refused, "shared_client"):
         return "shared_client"
+    if _refusals(refused, "client_not_named"):
+        return "client_guard"
     return bool(refused)
 
 
@@ -728,6 +743,7 @@ def run(config: RunConfig, inner: Optional[Callable[..., Any]] = None) -> Dict[s
     flags = {"openpoke_routing_profile": routing_profile(),
              "openpoke_v2_disable": os.environ.get("OPENPOKE_V2_DISABLE", ""),
              "openpoke_shortlist_evidence": os.environ.get("OPENPOKE_SHORTLIST_EVIDENCE", "0"),
+             "openpoke_client_guard": os.environ.get("OPENPOKE_CLIENT_GUARD", "0"),
              "openpoke_execution_memory": execution_memory()}
     sandbox = Path(tempfile.mkdtemp(prefix="openpoke-eval-"))
     started = time.perf_counter()

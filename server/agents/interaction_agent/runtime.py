@@ -5,8 +5,8 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Set
 
 from .agent import build_system_prompt, prepare_message_with_history
-from .tools import ToolResult, check_turn_sends, get_tool_schemas, handle_tool_call
-from ...config import get_settings, v2_change_enabled
+from .tools import ToolResult, check_client_guard, check_turn_sends, get_tool_schemas, handle_tool_call
+from ...config import client_guard, get_settings, v2_change_enabled
 from ...services.conversation import get_conversation_log, get_working_memory_log
 from ...services.execution.lifecycle import on_turn_start
 from ...services.provenance import current_turn_id, turn_provenance
@@ -58,6 +58,8 @@ class InteractionAgentRuntime:
     """Manages the interaction agent's request processing."""
 
     MAX_TOOL_ITERATIONS = 8
+    # The text that started the turn (the user's message or the agent's report), read by the client guard.
+    turn_text = ""
 
     # Initialize interaction agent runtime with settings and service dependencies
     def __init__(self) -> None:
@@ -80,6 +82,7 @@ class InteractionAgentRuntime:
 
         try:
             _start_turn()
+            self.turn_text = user_message
             transcript_before = self._load_conversation_transcript()
             self.conversation_log.record_user_message(user_message)
 
@@ -119,6 +122,7 @@ class InteractionAgentRuntime:
 
         try:
             _start_turn()
+            self.turn_text = agent_message
             transcript_before = self._load_conversation_transcript()
             self.conversation_log.record_agent_message(agent_message)
 
@@ -219,15 +223,20 @@ class InteractionAgentRuntime:
     def _check_turn_tools(
         self, tool_calls: List[_ToolCall], sent: Sequence[str] = ()
     ) -> Dict[int, ToolResult]:
-        """Refusals keyed by ``id(tool_call)``: sends in one user turn to agents of one client (v2, c1).
+        """Refusals keyed by ``id(tool_call)``: sends in one user turn to agents of one client (v2, c1), and,
+        with OPENPOKE_CLIENT_GUARD=1, sends to agents whose client the turn's text does not name.
 
         ``sent`` are the agents earlier rounds of this turn dispatched to. Only under the shortlist
         prompt, which describes clarify_agent_choice; the upstream prompt and profile v1 get an empty
         dict, so every call runs as before.
         """
-        if not v2_change_enabled("c1") or self.settings.prompt_variant != "shortlist":
+        if self.settings.prompt_variant != "shortlist":
             return {}
-        refusals = check_turn_sends([(call.name, call.arguments) for call in tool_calls], sent)
+        calls = [(call.name, call.arguments) for call in tool_calls]
+        refusals = check_turn_sends(calls, sent) if v2_change_enabled("c1") else {}
+        if client_guard():
+            for index, refusal in check_client_guard(calls, sent, self.turn_text).items():
+                refusals.setdefault(index, refusal)
         for index, refusal in refusals.items():
             self._log_tool_invocation(tool_calls[index], stage="rejected", detail=refusal.payload)
         return {id(tool_calls[index]): refusal for index, refusal in refusals.items()}

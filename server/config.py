@@ -227,3 +227,8 @@ def execution_memory() -> str:
 def shortlist_evidence() -> bool:
     """OPENPOKE_SHORTLIST_EVIDENCE=1 puts an evidence snippet on shortlisted cards; only under profile v2."""
     return routing_profile() == "v2" and _env_choice("OPENPOKE_SHORTLIST_EVIDENCE", ("0", "1"), "0") == "1"
+
+
+def client_guard() -> bool:
+    """OPENPOKE_CLIENT_GUARD=1 refuses sends to agents whose client the turn's message does not name; only under v2."""
+    return routing_profile() == "v2" and _env_choice("OPENPOKE_CLIENT_GUARD", ("0", "1"), "0") == "1"
