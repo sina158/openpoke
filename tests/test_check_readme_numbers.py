@@ -45,3 +45,12 @@ def test_main_exit_codes(tmp_path, capsys):
     assert main(["--readme", str(good), "--results", str(results)]) == 0
     assert main(["--readme", str(bad), "--results", str(results)]) == 1
     assert "1 marked numbers checked, 1 wrong" in capsys.readouterr().out
+
+
+def test_prefixed_key_reads_the_named_file():
+    other = {"by_key": {"x": {"accuracy": {"rate": 0.8303}}}}
+    readme = ("<!-- n:v2:by_key.x.accuracy.rate -->83.0%<!-- /n --> "
+              "<!-- n:v2:by_key.x.accuracy.rate -->83.1%<!-- /n --> "
+              "<!-- n:nope:by_key.x.accuracy.rate -->83.0%<!-- /n -->")
+    rows = check(readme, RESULTS, {"v2": other})
+    assert [status for *_, status in rows] == ["ok", "MISMATCH", "UNKNOWN KEY"]

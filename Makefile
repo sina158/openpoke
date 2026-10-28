@@ -12,7 +12,7 @@ BUDGET_PER_ARM ?= 13
 # Extra flags for evals.run_routing, e.g. EVAL_ARGS="--model vendor/model --split all".
 EVAL_ARGS ?=
 
-.PHONY: test eval-replay eval-live injection compare demo lifecycle
+.PHONY: test eval-replay eval-live injection compare check-numbers demo lifecycle
 
 # Offline: no API key, no network.
 test:
@@ -38,6 +38,13 @@ injection:
 # Summarise the routing result files into a table.
 compare:
 	$(PYTHON) -m evals.compare
+
+# Every marked number in the prose against its results file (v2: and continuity: keys read their own files).
+check-numbers:
+	$(PYTHON) -m evals.check_readme_numbers
+	$(PYTHON) -m evals.check_readme_numbers --readme DESIGN.md
+	$(PYTHON) -m evals.check_readme_numbers --readme evals/results/ROUND1.md
+	$(PYTHON) -m evals.check_readme_numbers --readme evals/results/ROUND1-TABLES.md
 
 # Offline: replays the scripted demo conversation (fix_v2, stub mode) into evals/results/TRANSCRIPT.md.
 # DEMO_ARGS="--record --model vendor/model" records it live (needs a key).

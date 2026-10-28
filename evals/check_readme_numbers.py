@@ -4,6 +4,9 @@ Mark a number in the README as `<!-- n:by_key.baseline_minimax-m3_k8_n500.accura
 The key is a dotted path into RESULTS.json (list items by index). A shown value ending in % is compared with the
 JSON value times 100; numbers are compared at the precision the README shows; anything else must match as text.
 Exits 1 on any mismatch or unknown key.
+
+A key written `name:path` is looked up in another results file instead: `v2:report.by_key...` reads RESULTS_v2.json
+and `continuity:...` reads continuity/RESULTS.json (more files by `--also name=path`).
 """
 
 from __future__ import annotations
@@ -45,13 +48,19 @@ def expected_text(shown: str, value: Any) -> str:
     return str(value)
 
 
-def check(readme: str, results: Any) -> List[Tuple[str, str, str, str]]:
+def check(readme: str, results: Any, extra: Optional[dict] = None) -> List[Tuple[str, str, str, str]]:
     """Return (key, shown, expected, status) for every marker; status is ok, MISMATCH or UNKNOWN KEY."""
     rows = []
     for key, raw in MARKER.findall(readme):
         shown = " ".join(raw.split())
+        source, path = results, key
+        name, sep, rest = key.partition(":")
+        if sep:
+            source, path = (extra or {}).get(name), rest
         try:
-            expected = expected_text(shown, lookup(results, key))
+            if source is None:
+                raise KeyError(key)
+            expected = expected_text(shown, lookup(source, path))
         except KeyError:
             rows.append((key, shown, "-", "UNKNOWN KEY"))
             continue
@@ -63,8 +72,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Check README numbers against the results file.")
     parser.add_argument("--readme", type=Path, default=ROOT / "README.md")
     parser.add_argument("--results", type=Path, default=ROOT / "evals" / "results" / "RESULTS.json")
+    parser.add_argument("--also", action="append", default=[], metavar="NAME=PATH",
+                        help="another results file for keys written NAME:path")
     args = parser.parse_args(argv)
-    rows = check(args.readme.read_text(encoding="utf-8"), json.loads(args.results.read_text(encoding="utf-8")))
+    named = {"v2": ROOT / "evals" / "results" / "RESULTS_v2.json",
+             "continuity": ROOT / "evals" / "results" / "continuity" / "RESULTS.json"}
+    named.update({item.split("=", 1)[0]: Path(item.split("=", 1)[1]) for item in args.also})
+    extra = {name: json.loads(path.read_text(encoding="utf-8")) for name, path in named.items() if path.exists()}
+    rows = check(args.readme.read_text(encoding="utf-8"), json.loads(args.results.read_text(encoding="utf-8")), extra)
     width = max([len(key) for key, *_ in rows] + [3])
     for key, shown, expected, status in rows:
         print(f"{status:<11} {key:<{width}}  README {shown!r}  results {expected!r}")
