@@ -9,7 +9,7 @@ from .tools import ToolResult, get_tool_schemas, handle_tool_call
 from ...config import get_settings
 from ...services.conversation import get_conversation_log, get_working_memory_log
 from ...services.execution.lifecycle import on_turn_start
-from ...services.provenance import turn_provenance
+from ...services.provenance import current_turn_id, turn_provenance
 from ...openrouter_client import request_chat_completion
 from ...logging_config import logger
 
@@ -236,6 +236,7 @@ class InteractionAgentRuntime:
             api_key=self.api_key,
             tools=self.tool_schemas,
             role="interaction",
+            turn_id=current_turn_id(),
         )
 
     # Extract the assistant's message from the OpenRouter API response structure

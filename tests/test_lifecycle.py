@@ -114,3 +114,22 @@ def test_each_data_dir_has_its_own_throttle(agents, tmp_path, monkeypatch):
     other, _ = get_agent_registry().get_or_create("Old matter elsewhere")
     get_agent_registry().touch(other.id, now=NOW - timedelta(days=90))
     assert lifecycle.on_turn_start(NOW) == [other.id]
+
+
+def test_interaction_calls_carry_the_turn_id(fresh_stores, monkeypatch):
+    from server.agents.interaction_agent import runtime as interaction
+    from server.services.provenance import turn_provenance
+
+    monkeypatch.setenv("OPENPOKE_LLM_API_KEY", "test-key")
+    get_settings.cache_clear()
+    seen = {}
+
+    async def fake_client(**kwargs):
+        seen.update(kwargs)
+        return {"choices": [{"message": {"content": "ok"}}]}
+
+    monkeypatch.setattr(interaction, "request_chat_completion", fake_client)
+    runtime = interaction.InteractionAgentRuntime()
+    with turn_provenance("user") as turn_id:
+        asyncio.run(runtime._make_llm_call("system", [{"role": "user", "content": "hi"}]))
+    assert seen["turn_id"] == turn_id and seen["role"] == "interaction"
