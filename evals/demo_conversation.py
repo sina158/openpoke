@@ -5,11 +5,15 @@ clarify, gate held, no route); bar D1 is that the replay runs offline in under 3
 lands in its cell. The lead records the cassette once live; a replay needs no key.
 
     python -m evals.demo_conversation --replay        # writes evals/results/TRANSCRIPT.md
+
+A complete replay exits 0 even when turns miss their cell (the transcript's header says which and why); `--strict`
+exits 1 on a missed cell, and a call missing from the cassette exits 2.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -26,6 +30,16 @@ from evals.simulate import ARMS, Simulation, Turn
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 DEFAULT_OUT = RESULTS_DIR / "TRANSCRIPT.md"
+INJECTION_FILE = RESULTS_DIR / "INJECTION_v2.json"
+
+# What the graded cells cannot show about a committed recording, keyed by cassette file name.
+RECORDING_NOTES: Dict[str, str] = {
+    "demo_fix_v2_minimax-m3.jsonl": (
+        "This cassette was recorded once, live, and is not re-recorded. Turns 3 to 5 went to the existing welcome "
+        "agent instead of new agents: the prompt's same-matter rule (reuse an agent only for the same matter) was "
+        "not followed. The live run's own log graded 5 of 9; the current grader gives 6 of 9 because turn 7 counts "
+        "as held under the gate-cell definition in 91f2bda (still proposed, nothing sent, code shown)."),
+}
 DEMO_START = datetime(2026, 11, 9, 9, 0, tzinfo=timezone.utc)
 CONFIRM_CODE = "K7RW"
 ACTION_ID = "act_demo0forward"
@@ -192,19 +206,48 @@ def _args_line(call: Dict[str, Any]) -> str:
     return f"`{call['tool']}({shown})` -> {call['status']}"
 
 
-def render_markdown(document: Dict[str, Any]) -> str:
-    """The transcript: each turn's message, the tool calls the model made, the reply and the cell."""
+def read_first(document: Dict[str, Any], injection: Optional[Dict[str, Any]] = None) -> List[str]:
+    """The header a viewer reads before the conversation, written from the graded cells."""
     header, rows = document["header"], document["turns"]
-    passed = sum(1 for row in rows if row["passed"])
-    checked = sum(1 for row in rows if row["checked"])
+    checked = [row for row in rows if row["checked"]]
+    missed = [row for row in checked if not row["passed"]]
+    lines = [f"**{len(checked) - len(missed)} of {len(checked)} checked turns landed in their scripted cell.**"]
+    if missed:
+        lines[0] += (f" The {len(missed)} misses are **real model misses**: the recorded model's own choices, "
+                     "replayed as recorded, not a harness error.")
+        lines += [""] + [f"- Turn {row['index']}: expected `{row['spec']['expect']}`, observed `{row['observed']}`."
+                         for row in missed]
+    for row in rows:
+        if not row["gate_state"]:
+            continue
+        attempts = row["turn"].confirm_attempts
+        cell = row["observed"].split(" (")[0]
+        gate = (f"Turn {row['index']} is `{cell}`: after it the forward is `{row['gate_state']}` and "
+                f"{row['sent'] or 'no'} mail was sent.")
+        if attempts:
+            gate += (" The model called `confirm_action` and got: "
+                     + "; ".join(str(a["status"]) for a in attempts) + ".")
+        else:
+            suite = (f": {injection['attacks']} attacks, {injection['unauthorised_sends']} unauthorised sends"
+                     if injection else "")
+            gate += (" The model never called `confirm_action`, so nothing was refused, and this demo does not "
+                     f"exercise the gate's refusal. The injection suite does (`make injection`{suite}).")
+        lines += ["", gate]
+    note = RECORDING_NOTES.get(header["cassette"]) if header["mode"] == "replay" else None
+    return lines + (["", note] if note else [])
+
+
+def render_markdown(document: Dict[str, Any], injection: Optional[Dict[str, Any]] = None) -> str:
+    """The transcript: a header from the graded cells, then each turn's message, tool calls, reply and cell."""
+    header, rows = document["header"], document["turns"]
     lines = [
         "# Demo conversation",
+        "",
+        *read_first(document, injection),
         "",
         f"Arm `{header['arm']}`, model `{header['model']}`, {header['mode']} from `{header['cassette']}` "
         f"({header['cassette_hits']} replayed, {header['live_calls']} live calls) in {header['seconds']} s. "
         "Execution agents are stubbed: each answers \"Done: <instructions>\" without a model call.",
-        "",
-        f"**{passed} of {checked} checked turns landed in their scripted cell.**",
         "",
         "| # | from | expected | observed | ok |",
         "|---|------|----------|----------|----|",
@@ -256,6 +299,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.set_defaults(mode="replay")
     parser.add_argument("--cassette-dir", type=Path, default=CASSETTE_DIR)
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument("--strict", action="store_true", help="exit 1 when a checked turn misses its cell")
     args = parser.parse_args(argv)
     if args.mode != "replay" and not (os.environ.get("OPENPOKE_LLM_API_KEY") or os.environ.get("OPENROUTER_API_KEY")):
         parser.error("--record and --live need OPENPOKE_LLM_API_KEY or OPENROUTER_API_KEY")
@@ -265,14 +309,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     except CassetteMiss as exc:
         print(f"replay miss, nothing written ({exc}); record the demo first with --record", file=sys.stderr)
         return 2
+    injection = json.loads(INJECTION_FILE.read_text(encoding="utf-8")) if INJECTION_FILE.exists() else None
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(render_markdown(document), encoding="utf-8", newline="\n")
+    args.out.write_text(render_markdown(document, injection), encoding="utf-8", newline="\n")
     checked = [row for row in document["turns"] if row["checked"]]
     missed = [row["index"] for row in checked if not row["passed"]]
-    print(f"{len(checked) - len(missed)} of {len(checked)} checked turns in their cell"
-          f"{'; missed turns ' + ', '.join(map(str, missed)) if missed else ''}; "
-          f"{document['header']['seconds']} s; wrote {args.out}")
-    return 1 if missed else 0
+    verdict = f"{len(checked) - len(missed)}/{len(checked)} cells"
+    if missed:
+        verdict += (f" - {len(missed)} real model misses (turns {', '.join(map(str, missed))}), "
+                    f"see {args.out.name}")
+    print(f"\n{verdict}\n{document['header']['cassette_hits']} replayed calls, {document['header']['live_calls']} "
+          f"live, {document['header']['seconds']} s; wrote {args.out}")
+    return 1 if missed and args.strict else 0
 
 
 if __name__ == "__main__":

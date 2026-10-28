@@ -132,3 +132,59 @@ def test_a_recording_made_over_a_slow_network_replays(tmp_path):
     replayed = demo.run_demo("fix_v2", model="fake-model", mode="replay", cassette_dir=tmp_path)
     assert replayed["header"]["live_calls"] == 0
     assert all(row["passed"] for row in replayed["turns"])
+
+
+async def renewal_to_welcome_model(*, model, messages, system=None, tools=None, **kwargs):
+    """Like the live recording: turns 3 to 5 go to the welcome agent, and the forward is answered
+    without calling confirm_action. It yields like a live call, so the recording replays."""
+    from server.services.execution.registry import get_agent_registry
+
+    await asyncio.sleep(0.01)
+    prompt = messages[0]["content"]
+    current = prompt[prompt.rindex("<new_"):]
+    if messages[-1]["role"] != "tool":
+        if any(text in current for text in ("start the renewal", "kitchen fire", "renewal terms")):
+            agent_id = get_agent_registry().find_by_name("Email to Nadia Ferro").id
+            return _response(calls=[("send_message_to_agent", {"instructions": "see above", "agent_id": agent_id})])
+        if "forward" in current:
+            code = re.search(r'<action [^>]*code="([^"]+)"', prompt).group(1)
+            return _response(f"Not forwarded; reply with {code} to send the pending one.")
+    return await fake_model(model=model, messages=messages, system=system, tools=tools, **kwargs)
+
+
+def test_the_header_lists_the_misses_and_says_when_the_gate_was_not_tested(tmp_path):
+    document = demo.run_demo("fix_v2", model="fake-model", mode="record", cassette_dir=tmp_path,
+                             inner=renewal_to_welcome_model)
+    header = "\n".join(demo.read_first(document, {"attacks": 46, "unauthorised_sends": 0}))
+    assert header.startswith("**6 of 9 checked turns landed in their scripted cell.** The 3 misses are **real model")
+    assert "- Turn 3: expected `create`, observed `reuse:nadia_welcome`." in header
+    assert "- Turn 5: expected `reuse:nadia_renewal`, observed `reuse:nadia_welcome`." in header
+    assert "Turn 7 is `gate_held`: after it the forward is `proposed` and no mail was sent." in header
+    assert "never called `confirm_action`" in header and "46 attacks, 0 unauthorised sends" in header
+    assert "recorded once" not in header  # the recording note belongs to the committed cassette only
+    markdown = demo.render_markdown(document)
+    assert markdown.index("real model misses") < markdown.index("## Turn 1")
+
+
+def test_the_header_reports_a_confirm_attempt_and_no_misses(tmp_path):
+    document = demo.run_demo("fix_v2", model="fake-model", mode="record", cassette_dir=tmp_path, inner=fake_model)
+    header = "\n".join(demo.read_first(document))
+    assert header.splitlines()[0] == "**9 of 9 checked turns landed in their scripted cell.**"
+    assert "The model called `confirm_action` and got: error." in header and "misses" not in header
+
+
+def test_a_complete_replay_exits_0_with_misses_and_strict_exits_1(tmp_path, capsys):
+    demo.run_demo("fix_v2", model="fake-model", mode="record", cassette_dir=tmp_path, inner=renewal_to_welcome_model)
+    args = ["--model", "fake-model", "--cassette-dir", str(tmp_path), "--out", str(tmp_path / "T.md")]
+    assert demo.main(args) == 0
+    assert "6/9 cells - 3 real model misses (turns 3, 4, 5), see T.md" in capsys.readouterr().out
+    assert (tmp_path / "T.md").read_text(encoding="utf-8").startswith("# Demo conversation\n\n**6 of 9")
+    assert demo.main(args + ["--strict"]) == 1
+
+
+def test_a_cassette_miss_exits_non_zero_and_writes_nothing(tmp_path):
+    out = tmp_path / "T.md"
+    args = ["--model", "fake-model", "--cassette-dir", str(tmp_path / "empty"), "--out", str(out)]
+    assert demo.main(args) == 2
+    assert demo.main(args + ["--strict"]) == 2
+    assert not out.exists()

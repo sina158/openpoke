@@ -47,6 +47,8 @@ check-numbers:
 	$(PYTHON) -m evals.check_readme_numbers --readme evals/results/ROUND1-TABLES.md
 
 # Offline: replays the scripted demo conversation (fix_v2, stub mode) into evals/results/TRANSCRIPT.md.
+# Exits 0 on a complete replay and prints the cell verdict; DEMO_ARGS=--strict exits 1 when a turn misses its
+# cell; a call missing from the cassette exits 2.
 # DEMO_ARGS="--record --model vendor/model" records it live (needs a key).
 DEMO_ARGS ?=
 demo:
