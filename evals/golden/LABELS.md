@@ -66,25 +66,33 @@ Twenty case ids drawn by `evals.generate.hand_check_sample` (`random.Random(2026
 ids, sorted). The owner reads each case against its tuple and marks agree or dispute. A disputed case leaves the
 headline only if its tuple is wrong, never because of its result.
 
+First pass by the owner's assistant: each message (and its history) read against the gold and hard-negative
+agents' full records, each gold agent's `client_key` and `discriminators` checked against the tuple, and each case's
+roster at N=500 and N=5,000 searched for another agent sharing every content word with the gold one. 20 of 20 agree,
+0 disputes. The owner's own double-check is pending. Notes, none of which changes a label: (A) one of the two claims
+is much older, but both are open and the message gives no date; (B) the gold agent and its hard negative share every
+content word, and a synonym in the message decides it (house = home, upcoming term = renewal, loss report = claim),
+which is what the template tests; (C) the message nearly states the answer.
+
 | Case id | Agree / dispute | Note |
 |---|---|---|
-| `v2-ambiguous-002` | | |
-| `v2-ambiguous-003` | | |
-| `v2-ambiguous-004` | | |
-| `v2-ambiguous-007` | | |
-| `v2-entity-005` | | |
-| `v2-entity-010` | | |
-| `v2-explicit-012` | | |
-| `v2-near_duplicate-003` | | |
-| `v2-near_duplicate-005` | | |
-| `v2-near_duplicate-007` | | |
-| `v2-near_duplicate-017` | | |
-| `v2-parallel-005` | | |
-| `v2-paraphrase-003` | | |
-| `v2-paraphrase-004` | | |
-| `v2-paraphrase-008` | | |
-| `v2-paraphrase-009` | | |
-| `v2-paraphrase-011` | | |
-| `v2-pronoun-005` | | |
-| `v2-should_create-012` | | |
-| `v2-should_create-015` | | |
+| `v2-ambiguous-002` | agree | two clients named Orrin (Ingram, home; Brennan, auto), each with a renewal; only asking is safe |
+| `v2-ambiguous-003` | agree | two open auto claims for Pascal Sigurdsson, no date in the message (note A) |
+| `v2-ambiguous-004` | agree | Jonas Brennan (home) and Jonas Ulloa (auto), each with a renewal |
+| `v2-ambiguous-007` | agree | two open auto claims for Clementine Nygaard (wind, theft), no date (note A) |
+| `v2-entity-005` | agree | claim CL-474088 is only in Saltmarsh Dental Clinic's last report |
+| `v2-entity-010` | agree | policy CGL-4553-49 is Deerfield Hardware's; all three agents share the carrier, so only the number decides |
+| `v2-explicit-012` | agree | Solveig Ortega's home quote, not her auto COI; the other quote is another client's |
+| `v2-near_duplicate-003` | agree | "May 27 loss" is the theft claim, not the April 19 wind claim |
+| `v2-near_duplicate-005` | agree | "new roof on the house" is the home renewal (note B) |
+| `v2-near_duplicate-007` | agree | "Fiddlehead gym" is Fiddlehead Fitness Studio, not Fiddlehead Catering in the same city |
+| `v2-near_duplicate-017` | agree | the house means the home renewal (note B) |
+| `v2-parallel-005` | agree | CP-2460-42 is Bellwether Fitness Studio's; "request to cancel" is Benedikt Ishikawa's cancellation |
+| `v2-paraphrase-003` | agree | "the welder ... upcoming term" is Konrad Darrow's renewal (note B) |
+| `v2-paraphrase-004` | agree | Smiths Falls + yard-care crew + overdue invoice is Cobblestone Landscaping billing |
+| `v2-paraphrase-008` | agree | Orangeville + shingle contractor + invoice is Waxwing Roofing billing |
+| `v2-paraphrase-009` | agree | "beekeeper ... loss report" is Solveig Darrow's home claim (note B) |
+| `v2-paraphrase-011` | agree | "glassblower ... loss report" is Ignatius Rosales's auto claim (note B) |
+| `v2-pronoun-005` | agree | two replies in the history (Florian, Isolde); "for her" picks Isolde |
+| `v2-should_create-012` | agree | a new client with a different name; the court reporter in Welland is someone else |
+| `v2-should_create-015` | agree | "a new quote, separate from the one we already ran" (note C) |

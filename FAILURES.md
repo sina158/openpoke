@@ -1,5 +1,3 @@
-<!-- DRAFT-FOR-SINA: facts are checked; rewrite the prose in your own words before submitting -->
-
 # Where it still fails
 
 Real transcripts from the fix arm, one per failure class, all from
@@ -229,16 +227,97 @@ is round one's report split, one trial, so it is not blind for v2 (design change
 Replay each with the command printed under its transcript. Classes 3 (hijack: the continuity run still has 1 hijack among
 13 should-create turns) and 5 (archived target) stay open above, with this case's v2 outcome filled in.
 
-## New failure classes from the fresh set
+## New failure classes from round two
 
-From `evals/results/RESULTS_v2.md` only, fix v2, N=500, report split, three trials (`evals/golden/routing_v2.jsonl`).
-Per-case transcripts are not pulled yet (each class needs one, written as above, once the label review is done).
+A to D are fix v2 on the fresh set (`evals/golden/routing_v2.jsonl`), N=500, report split, three trials, from
+`evals/results/RESULTS_v2.md` and the per-case records behind it; E is the lifecycle run and F the demo. One
+transcript each for A, B and C follows the list, from `evals/results/20261028_v2_fix_v2_minimax-m3_k8_report_n500_t3_88f9fd2.json`;
+each replays offline with the same cell:
+
+```bash
+python -m evals.run_routing --set v2 --arm fix_v2 --sizes 500 --trials 3 --cases <case_id> --model minimax-m3 --replay
+```
 
 - **A. Sends that reach two clients.** 19 of 312 turns on cases whose gold does not call for two (B2a), and 11 of 252
   should-reuse case-trials reached another client's agent, all of them sprays (the right agent plus another). The
   check refuses only targets that look like the same client; two different clients are not refused.
-- **B. Clarification almost never happens.** 2 of 30 ambiguous case-trials clarify (6.7%); the other 28 were graded as something else (the cell counts are in `report.by_key.fix_v2_minimax-m3_k8_n500.cells`, not split by category).
+- **B. Clarification almost never happens.** 2 of 30 ambiguous case-trials clarify (6.7%). In the other 28 the model
+  guessed (per-case records in `evals/results/20261028_v2_fix_v2_minimax-m3_k8_report_n500_t3_88f9fd2.json`): on
+  `ambiguous.v2t0` (two open claims for one client, no date in the message) it sent to one claim in all 15
+  case-trials, either claim about equally often; on `ambiguous.v2t1` (two clients with the same first name, each with
+  a renewal) it messaged both agents in 8 of 15, which the v2 prompt calls guessing, and picked one in 5. Under the
+  same prompt deepseek-v4-pro asked in 5 of 10 (one trial), so following the rule depends on the model. The next step
+  is in code: return the question when two shortlisted agents fit the message equally.
 - **C. Archived targets are still harder.** Accuracy 73.0% (127/174) when the gold target has been idle more than 30
   days against 92.6% (100/108) when it is active, a gap of 19.6 points; fix v1 had 64.4% (112/174) against 80.6% (87/108), a gap of 16.4 points. v2 raised both rows and the gap grew.
 - **D. Tokens.** A turn sends 103.0% of the baseline's prompt tokens (B5): the cost of the search round is not paid for
   by the smaller roster at N=500.
+
+- **E. Turns that end at the tool-iteration limit (lifecycle).** In the 30-day simulation 52 baseline turns, 4 under
+  fix v1 and 0 under fix v2 hit the limit and ended with no final reply; each had already sent to an agent, so they
+  are graded like any other turn (`evals/results/RESULTS_v2.md`, lifecycle). 45 of the baseline's 52 fall in its last
+  ten days, when it makes 6.9 model calls a turn against 2.3 in the first ten (`lifecycle_baseline_minimax-m3_d30.jsonl`).
+- **F. The demo does not reach the gate's refusal.** On the phishing turn the model never called `confirm_action`, so
+  the forward was held because nothing asked for it, not because the gate said no (`evals/results/TRANSCRIPT.md`,
+  turn 7). The refusal is covered by the injection suite (46 attacks, 0 unauthorised sends) and `tests/test_send_gate.py`.
+
+### A. Two clients' agents in one turn
+
+- Case: `v2-paraphrase-003` (`paraphrase.v2t0`), N = 500, trial 0. Cell `wrong_reuse`, spray, cross-client.
+- User message: "the welder who asked about the upcoming term - has anything come back yet?"
+- Target: "Konrad Darrow auto renewal" [g_0085], `a_0001` here, archived. Hard negatives: another welder's matter,
+  "Leopold Takahashi auto cancellation" [g_0087] (`a_0003`), and another client's renewal.
+- Shortlist shown (8 of 500): three "Reminder: back up the laptop" agents first, then `a_0003` and `a_0001`
+  (`status="archived"`), then four other clients' agents.
+- Searches: `search_agents("welder term renewal")` returned `a_0001` first and `a_0003` second;
+  `search_agents("welder")` returned the two welders.
+- Tool calls: `send_message_to_agent` to `a_0001` ("Has there been any new inbound email from Konrad Darrow ...
+  specifically whether he asked anything about the upcoming renewal term") and, in the same turn, to `a_0003` (the
+  same question about Leopold Takahashi).
+- Gold: reuse `g_0085` only.
+- Why it failed: the first search put the right agent first, and "upcoming term" means a renewal, which only Darrow
+  has; the model asked both welders anyway. c1 did not refuse it because the two agents share no rare name, email or
+  id: they are two different clients, which c1 was not written to catch. All three trials of this case sprayed the
+  same way.
+- What would fix it: the client guard on the README's list: a turn whose sends reach two clients is refused unless
+  the message names both.
+
+### B. Ambiguous, and the model messaged both
+
+- Case: `v2-ambiguous-002` (`ambiguous.v2t1`), N = 500, trial 1. Cell `wrong_guess`.
+- User message: "Orrin called asking where his renewal is at - what do I tell him?"
+- Candidates (both targets): "Orrin Ingram home renewal" [g_0228], `a_0498`, active; "Orrin Brennan auto renewal"
+  [g_0229], `a_0500`, archived.
+- Shortlist shown (8 of 500): `a_0498` and `a_0500` first and second, then six other clients' renewals.
+- Searches: `search_agents("Orrin")` returned the same two.
+- Tool calls: `send_message_to_user` with "Two Orrins on my list - Ingram (home, Espanola) and Brennan (auto,
+  Orangeville). Let me check both and pull their current status.", then `send_message_to_agent` to `a_0498` and to
+  `a_0500`, each asking for the renewal's status.
+- Gold: clarify between `g_0228` and `g_0229`.
+- Why it failed: the same shape as class 4 in round one. The model saw both candidates, told the user there were
+  two, and asked both agents instead of asking the user, though the v2 prompt says "Sending the request to two of
+  them to find out is guessing." c1 did not refuse it: the two clients share only a first name.
+- What would fix it: deciding it in code. Two shortlisted agents for different clients that both fit the message
+  should turn the send into a `clarify_agent_choice`; the client guard catches this turn, and its refusal message
+  should name `clarify_agent_choice` and both ids.
+
+### C. Archived target, the active neighbour chosen
+
+- Case: `v2-explicit-014` (`explicit.v2t1`), N = 500, trial 1. Cell `wrong_reuse`, not cross-client.
+- User message: "Florian Ishikawa rang about the billing - can you check what we still owe them?"
+- Target: "Florian Ishikawa home billing" [g_0040], `a_0001`, archived. Hard negative: the same client's "Florian
+  Ishikawa auto cancellation" [g_0042], `a_0002`, active.
+- Shortlist shown (8 of 500): `a_0001` (`status="archived"`) first and `a_0002` second, then six other clients'
+  billing agents.
+- Searches: `search_agents("Florian Ishikawa")` returned `a_0002` first and `a_0001` second.
+- Tool calls: `send_message_to_user` with "Florian Ishikawa has a couple of threads with us (home policy and auto),
+  so I'm checking both", then one `send_message_to_agent` to `a_0002`, the cancellation agent, asking it to report
+  on both policies.
+- Gold: reuse `g_0040`.
+- Why it failed: the target was on the shortlist (c3), first, and the message names its workflow ("the billing").
+  The model sent the billing question to the client's active cancellation agent and asked it to cover both
+  matters. That is the same-matter rule (c4) not followed for an archived target, the pattern behind the 73.0% vs
+  92.6% split in class C above.
+- What would fix it: not measured. One option is to rank the search result by the card's workflow as well as the
+  name, so the billing agent comes first; another is to state in the prompt that an archived agent is reused like any
+  other.
