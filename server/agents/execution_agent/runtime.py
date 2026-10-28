@@ -47,7 +47,7 @@ class ExecutionAgentRuntime:
             return self._stub_result(instructions)
         try:
             # Build system prompt with history
-            system_prompt = self.agent.build_system_prompt_with_history()
+            system_prompt = self.agent.build_system_prompt_with_history(instructions)
 
             # Start conversation with the instruction
             messages = [{"role": "user", "content": instructions}]

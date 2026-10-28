@@ -6,7 +6,7 @@ import re
 import threading
 from html import escape, unescape
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Dict, Iterable, Iterator, List, Optional, Tuple
 
 from ...logging_config import logger
 from ...utils.timezones import now_in_user_timezone
@@ -27,6 +27,18 @@ def _decode_payload(payload: str) -> str:
 
 
 _ATTR_PATTERN = re.compile(r"(\w+)\s*=\s*\"([^\"]*)\"")
+
+
+def render_entries(entries: Iterable[Tuple[str, str, str]]) -> str:
+    """Render ``(tag, timestamp, payload)`` entries as transcript lines, payloads escaped."""
+    parts: List[str] = []
+    for tag, timestamp, payload in entries:
+        escaped = escape(payload, quote=False)
+        if timestamp:
+            parts.append(f"<{tag} timestamp=\"{timestamp}\">{escaped}</{tag}>")
+        else:
+            parts.append(f"<{tag}>{escaped}</{tag}>")
+    return "\n".join(parts)
 
 
 class ExecutionAgentLogStore:
@@ -134,14 +146,7 @@ class ExecutionAgentLogStore:
 
     def load_transcript(self, agent_name: str) -> str:
         """Load the full transcript for inclusion in system prompt."""
-        parts: List[str] = []
-        for tag, timestamp, payload in self.iter_entries(agent_name):
-            escaped = escape(payload, quote=False)
-            if timestamp:
-                parts.append(f"<{tag} timestamp=\"{timestamp}\">{escaped}</{tag}>")
-            else:
-                parts.append(f"<{tag}>{escaped}</{tag}>")
-        return "\n".join(parts)
+        return render_entries(self.iter_entries(agent_name))
 
     def load_recent(self, agent_name: str, limit: int = 10) -> list[tuple[str, str, str]]:
         """Load recent log entries."""

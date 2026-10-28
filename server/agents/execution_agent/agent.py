@@ -1,10 +1,30 @@
 """Execution Agent implementation."""
 
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 
+from ...config import execution_memory
 from ...services.execution import get_execution_agent_logs
+from ...services.execution.log_store import render_entries
+from ...services.execution.selector import BM25, tokenize
 from ...logging_config import logger
+
+# OPENPOKE_EXECUTION_MEMORY=retrieved: the latest entries plus the older ones most relevant to the request.
+RECENT_ENTRIES = 3
+RETRIEVED_ENTRIES = 8
+
+
+def retrieve_entries(entries: List[Tuple[str, str, str]], instructions: str) -> List[Tuple[str, str, str]]:
+    """The last RECENT_ENTRIES entries plus the RETRIEVED_ENTRIES older ones scoring best by BM25
+    against ``instructions``, in log order. An entry sharing no word with the request is never picked."""
+    if len(entries) <= RECENT_ENTRIES + RETRIEVED_ENTRIES:
+        return list(entries)
+    older = len(entries) - RECENT_ENTRIES
+    bm25 = BM25([tokenize(payload) for _, _, payload in entries[:older]])
+    query = tokenize(instructions)
+    scored = sorted(((bm25.score(query, i), i) for i in range(older)), reverse=True)
+    best = {i for score, i in scored[:RETRIEVED_ENTRIES] if score > 0}
+    return [entries[i] for i in sorted(best | set(range(older, len(entries))))]
 
 
 # Load system prompt template from file
@@ -60,14 +80,26 @@ class ExecutionAgent:
         )
 
     # Combine base system prompt with conversation history, applying conversation limits
-    def build_system_prompt_with_history(self) -> str:
+    def build_system_prompt_with_history(self, instructions: str = "") -> str:
         """
         Build system prompt including agent history.
+
+        Args:
+            instructions: The request being handled; read only under OPENPOKE_EXECUTION_MEMORY=retrieved,
+                which replaces conversation_limit with retrieve_entries.
 
         Returns:
             System prompt with embedded history transcript
         """
         base_prompt = self.build_system_prompt()
+
+        if execution_memory() == "retrieved":
+            entries = list(self._log_store.iter_entries(self.name))
+            if not entries:
+                return base_prompt
+            kept = retrieve_entries(entries, instructions)
+            note = f"{len(kept)} of {len(entries)} entries: the latest and those most relevant to this request."
+            return f"{base_prompt}\n\n# Execution History\n\n{note}\n{render_entries(kept)}"
 
         # Load history transcript
         transcript = self._log_store.load_transcript(self.name)

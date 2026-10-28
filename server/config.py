@@ -217,3 +217,8 @@ def v2_change_enabled(change: str) -> bool:
         return False
     disabled = {part.strip().lower() for part in os.getenv("OPENPOKE_V2_DISABLE", "").split(",") if part.strip()}
     return change.lower() not in disabled
+
+
+def execution_memory() -> str:
+    """OPENPOKE_EXECUTION_MEMORY: "recent" (default, the log as before) or "retrieved" (recent plus relevant)."""
+    return _env_choice("OPENPOKE_EXECUTION_MEMORY", ("recent", "retrieved"), "recent")
