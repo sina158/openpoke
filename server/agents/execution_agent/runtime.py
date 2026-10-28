@@ -30,18 +30,21 @@ class ExecutionAgentRuntime:
     # Initialize execution agent runtime with settings, tools, and agent instance
     def __init__(self, agent_name: str):
         settings = get_settings()
-        self.agent = ExecutionAgent(agent_name)
+        self.stub = settings.execution_stub
+        self.agent = ExecutionAgent(agent_name, conversation_limit=settings.execution_history_limit)
         self.api_key = settings.openrouter_api_key
         self.model = settings.execution_agent_model
         self.tool_registry = get_tool_registry(agent_name=agent_name)
         self.tool_schemas = get_tool_schemas()
 
-        if not self.api_key:
+        if not self.api_key and not self.stub:
             raise ValueError("OpenRouter API key not configured. Set OPENROUTER_API_KEY environment variable.")
 
     # Main execution loop for running agent with LLM calls and tool execution
     async def execute(self, instructions: str) -> ExecutionResult:
         """Execute the agent with given instructions."""
+        if self.stub:
+            return self._stub_result(instructions)
         try:
             # Build system prompt with history
             system_prompt = self.agent.build_system_prompt_with_history()
@@ -147,6 +150,14 @@ class ExecutionAgentRuntime:
                 response=failure_text,
                 error=error_msg
             )
+
+    # OPENPOKE_EXECUTION_STUB=1: answer without the model but log as a real run would
+    def _stub_result(self, instructions: str) -> ExecutionResult:
+        """A canned result that echoes the request, so cards and logs evolve in simulations."""
+        head = " ".join(instructions.split())[:200]
+        response = f"Done: {head}"
+        self.agent.record_response(response)
+        return ExecutionResult(agent_name=self.agent.name, success=True, response=response, tools_executed=[])
 
     # Execute OpenRouter API call with system prompt, messages, and optional tool schemas
     async def _make_llm_call(self, system_prompt: str, messages: List[Dict], with_tools: bool) -> Dict:
