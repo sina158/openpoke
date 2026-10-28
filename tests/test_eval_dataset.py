@@ -85,7 +85,6 @@ def test_name_leak_is_under_the_limit():
 
 # ---- the round-two set: generated blind, locked by hash, never tuned on ------------------------------------
 
-V2_LOCK = generate.GOLDEN_V2_PATH.with_suffix(".sha256")
 # The held-out set: the same generator on a new seed, for measuring changes made after reading v2's failures.
 HELDOUT_SEED = 20261030
 HELDOUT_PATHS = generate.set_paths(2, "heldout")
@@ -122,9 +121,11 @@ def test_heldout_is_a_new_draw_with_the_v2_mix():
     assert len({c["message"] for c in cases} & {c["message"] for c in v2_cases}) < len(cases) // 10
 
 
-def test_v2_set_matches_its_lock():
-    digest = hashlib.sha256(generate.GOLDEN_V2_PATH.read_bytes()).hexdigest()
-    assert V2_LOCK.read_text(encoding="utf-8").split()[0] == digest
+@pytest.mark.parametrize("name", [None, "heldout"])
+def test_v2_set_matches_its_lock(name):
+    golden = generate.set_paths(2, name)[1]
+    digest = hashlib.sha256(golden.read_bytes()).hexdigest()
+    assert golden.with_suffix(".sha256").read_text(encoding="utf-8").split() == [digest, golden.name]
 
 
 def test_v2_counts_templates_and_splits():
