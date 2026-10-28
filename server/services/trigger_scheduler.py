@@ -89,7 +89,7 @@ class TriggerScheduler:
                     "scheduled_for": trigger.next_trigger,
                 },
             )
-            execution_manager = ExecutionBatchManager()
+            execution_manager = ExecutionBatchManager(provenance="automation")
             result = await execution_manager.execute_agent(
                 trigger.agent_name,
                 instructions,

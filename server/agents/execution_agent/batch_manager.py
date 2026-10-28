@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 
 from .runtime import ExecutionAgentRuntime, ExecutionResult
 from ...logging_config import logger
+from ...services.provenance import turn_provenance
 
 
 @dataclass
@@ -37,8 +38,9 @@ class ExecutionBatchManager:
     """Run execution agents and deliver their combined outcome."""
 
     # Initialize batch manager with timeout and coordination state for execution agents
-    def __init__(self, timeout_seconds: int = 90) -> None:
+    def __init__(self, timeout_seconds: int = 90, provenance: str = "agent") -> None:
         self.timeout_seconds = timeout_seconds
+        self.provenance = provenance
         self._pending: Dict[str, PendingExecution] = {}
         self._batch_lock = asyncio.Lock()
         self._batch_state: Optional[_BatchState] = None
@@ -60,10 +62,12 @@ class ExecutionBatchManager:
         try:
             logger.info(f"[{agent_name}] Execution started")
             runtime = ExecutionAgentRuntime(agent_name=agent_name)
-            result = await asyncio.wait_for(
-                runtime.execute(instructions),
-                timeout=self.timeout_seconds,
-            )
+            # The task inherits the dispatching turn's context; an agent run is never a user turn.
+            with turn_provenance(self.provenance):
+                result = await asyncio.wait_for(
+                    runtime.execute(instructions),
+                    timeout=self.timeout_seconds,
+                )
             status = "SUCCESS" if result.success else "FAILED"
             logger.info(f"[{agent_name}] Execution finished: {status}")
         except asyncio.TimeoutError:
@@ -187,7 +191,7 @@ class ExecutionBatchManager:
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
-            asyncio.run(runtime.handle_agent_message(payload))
+            asyncio.run(runtime.handle_agent_message(payload, provenance=self.provenance))
             return
 
-        loop.create_task(runtime.handle_agent_message(payload))
+        loop.create_task(runtime.handle_agent_message(payload, provenance=self.provenance))

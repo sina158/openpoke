@@ -8,6 +8,7 @@ from .agent import build_system_prompt, prepare_message_with_history
 from .tools import ToolResult, get_tool_schemas, handle_tool_call
 from ...config import get_settings
 from ...services.conversation import get_conversation_log, get_working_memory_log
+from ...services.provenance import turn_provenance
 from ...openrouter_client import request_chat_completion
 from ...logging_config import logger
 
@@ -75,7 +76,8 @@ class InteractionAgentRuntime:
             )
 
             logger.info("Processing user message through interaction agent")
-            summary = await self._run_interaction_loop(system_prompt, messages)
+            with turn_provenance("user"):
+                summary = await self._run_interaction_loop(system_prompt, messages)
 
             final_response = self._finalize_response(summary)
 
@@ -97,8 +99,10 @@ class InteractionAgentRuntime:
             )
 
     # Handle incoming messages from execution agents and generate appropriate responses
-    async def handle_agent_message(self, agent_message: str) -> InteractionResult:
-        """Process a status update emitted by an execution agent."""
+    async def handle_agent_message(
+        self, agent_message: str, provenance: str = "agent"
+    ) -> InteractionResult:
+        """Process a message from an execution agent, the email watcher, or a trigger run."""
 
         try:
             transcript_before = self._load_conversation_transcript()
@@ -110,7 +114,8 @@ class InteractionAgentRuntime:
             )
 
             logger.info("Processing execution agent results")
-            summary = await self._run_interaction_loop(system_prompt, messages)
+            with turn_provenance(provenance):
+                summary = await self._run_interaction_loop(system_prompt, messages)
 
             final_response = self._finalize_response(summary)
 

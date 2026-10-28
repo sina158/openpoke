@@ -224,7 +224,7 @@ class ImportantEmailWatcher:
         runtime = _resolve_interaction_runtime()
         try:
             contextualized = f"Important email watcher notification:\n{summary}"
-            await runtime.handle_agent_message(contextualized)
+            await runtime.handle_agent_message(contextualized, provenance="email")
         except Exception as exc:  # pragma: no cover - defensive
             logger.error(
                 "Failed to dispatch important email summary",

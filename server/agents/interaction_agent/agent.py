@@ -61,5 +61,6 @@ def _render_active_agents() -> str:
 # Wrap the current message in appropriate XML tags based on sender type
 def _render_current_turn(latest_text: str, message_type: str) -> str:
     tag = "new_agent_message" if message_type == "agent" else "new_user_message"
-    body = latest_text.strip()
+    # Escaped like history, so an email cannot close the tag and forge a user turn.
+    body = escape(latest_text.strip(), quote=False)
     return f"<{tag}>\n{body}\n</{tag}>"
