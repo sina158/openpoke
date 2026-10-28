@@ -32,14 +32,17 @@ from unittest import mock
 from evals.cassette import CURRENT, CallContext, Cassette, CassetteMiss, LiveCallLimit
 from evals.run_routing import fast_sqlite, frozen_log_clock, point_stores_at
 
+# Every switch that changes what the model sees is set, so nothing from the shell leaks into an arm. The
+# last three are the defaults the recorded runs used: no v2 change disabled, no evidence line, the recent log.
+_PINNED = {"OPENPOKE_V2_DISABLE": "", "OPENPOKE_SHORTLIST_EVIDENCE": "0", "OPENPOKE_EXECUTION_MEMORY": "recent"}
 ARMS: Dict[str, Dict[str, str]] = {
     # Upstream prompt and full roster; never archives. Pinned to the round-one profile.
     "baseline": {"OPENPOKE_ROSTER_MODE": "full", "OPENPOKE_PROMPT_VARIANT": "original",
-                 "OPENPOKE_ROUTING_PROFILE": "v1"},
+                 "OPENPOKE_ROUTING_PROFILE": "v1", **_PINNED},
     "fix_v1": {"OPENPOKE_ROSTER_MODE": "shortlist", "OPENPOKE_PROMPT_VARIANT": "shortlist",
-               "OPENPOKE_ROUTING_PROFILE": "v1"},
+               "OPENPOKE_ROUTING_PROFILE": "v1", **_PINNED},
     "fix_v2": {"OPENPOKE_ROSTER_MODE": "shortlist", "OPENPOKE_PROMPT_VARIANT": "shortlist",
-               "OPENPOKE_ROUTING_PROFILE": "v2"},
+               "OPENPOKE_ROUTING_PROFILE": "v2", **_PINNED},
 }
 HISTORY_ENTRIES = 30
 # History is escaped in the prompt, so a literal <agent ...> tag is always a roster or shortlist line.

@@ -178,12 +178,6 @@ def score(run: Dict[str, Any], scenario: Dict[str, Any]) -> Dict[str, Any]:
             "prompt_chars_per_turn": _mean([r["prompt_chars"] for r, _ in today]),
             "searches_per_turn": _mean([r["searches"] for r, _ in today]),
         })
-    last = [(r, g) for r, g in zip(records, graded) if r["day"] == days and g["needed"]]
-    misses = [{"msg_id": r["msg_id"], "gold": r["gold"],
-               "needed": sorted(a for ids in g["needed"].values() for a in ids),
-               "archived": sorted(a for ids in g["needed"].values() for a in ids if a in r["archived_at_start"]),
-               "shown": len(r["shown_ids"])}
-              for r, g in last if not all(set(ids) & set(r["shown_ids"]) for ids in g["needed"].values())]
     exec_sizes = list(run["exec_prompt"].values())
     archive_events = sum(len(row["tick_archived"]) for row in run["days"]) + sum(len(r["archived"]) for r in records)
     return {
@@ -199,6 +193,8 @@ def score(run: Dict[str, Any], scenario: Dict[str, Any]) -> Dict[str, Any]:
         "ideal_archive_events": len(ideal["archives"]),
         "ideal_revive_events": len(ideal["revives"]),
         "live_end": series[-1]["active"] if series else 0,
+        "seeded_agents": len(run["seeded"]),
+        "roster_end": series[-1]["active"] + series[-1]["archived"] if series else 0,
         "ideal_live_end": ideal["live"][days - 1] if days else 0,
         "live_minus_ideal_mean": _mean([row["active"] - row["ideal_live"] for row in series]),
         "prompt_tokens_per_turn": _mean([r["prompt_tokens"] for r in records]),
@@ -207,13 +203,32 @@ def score(run: Dict[str, Any], scenario: Dict[str, Any]) -> Dict[str, Any]:
         "prompt_chars_slope_per_day": _round(slope([(row["day"], row["prompt_chars_per_turn"]) for row in series
                                                     if row["prompt_chars_per_turn"] is not None])),
         "searches_per_turn": _mean([r["searches"] for r in records]),
-        "reachability_last_day": {"day": days, "needing_an_agent": len(last), "reachable": len(last) - len(misses),
-                                  "misses": misses},
+        "reachability_last_day": reachability(records, graded, days),
         "exec_prompt_last_day": {"agents": len(exec_sizes), "mean_chars": _mean(exec_sizes),
                                  "max_chars": max(exec_sizes, default=None),
                                  "mean_tokens_approx": _mean([c / CHARS_PER_TOKEN for c in exec_sizes])},
         "series": series,
     }
+
+
+def reachability(records: List[Dict[str, Any]], graded: List[Dict[str, Any]], day: int) -> Dict[str, Any]:
+    """Day `day`'s messages whose matter (each candidate's, when ambiguous) already has an agent: is one of
+    that matter's agents listed in the turn's prompt (roster or shortlist)? Lists the misses."""
+    last = [(r, g) for r, g in zip(records, graded) if r["day"] == day and g["needed"]]
+    misses = [{"msg_id": r["msg_id"], "gold": r["gold"],
+               "needed": sorted(a for ids in g["needed"].values() for a in ids),
+               "archived": sorted(a for ids in g["needed"].values() for a in ids if a in r["archived_at_start"]),
+               "shown": len(r["shown_ids"])}
+              for r, g in last if not all(set(ids) & set(r["shown_ids"]) for ids in g["needed"].values())]
+    return {"day": day, "needing_an_agent": len(last), "reachable": len(last) - len(misses), "misses": misses}
+
+
+def shared_client_floor() -> int:
+    """Roster size below which the shared-client check cannot fire: it needs an entity on two cards that is
+    still on no more than SHARED_CLIENT_MAX_DF of all cards."""
+    from server.agents.interaction_agent.tools import SHARED_CLIENT_MAX_DF
+
+    return round(2 / SHARED_CLIENT_MAX_DF)
 
 
 def _round(value: Optional[float]) -> Optional[float]:
@@ -242,6 +257,7 @@ def write_outputs(run: Dict[str, Any], summary: Dict[str, Any], directory: Path 
 
 
 _HEADLINE = (("turns", "turns"), ("llm_calls", "model calls"), ("errors", "errors"),
+             ("seeded_agents", "agents pre-seeded"), ("roster_end", "agents at the end, live and archived"),
              ("live_end", "live agents at the end"), ("ideal_live_end", "ideal live at the end"),
              ("live_minus_ideal_mean", "live minus ideal, daily mean"), ("duplicates", "duplicates"),
              ("wrong_reuse", "wrong reuse"), ("cross_client", "cross-client sends"),
@@ -255,6 +271,16 @@ _HEADLINE = (("turns", "turns"), ("llm_calls", "model calls"), ("errors", "error
              ("revive_events", "revive events"))
 
 
+def _roster_note(entries: List[Dict[str, Any]]) -> str:
+    largest = max(e["summary"]["roster_end"] for e in entries)
+    floor = shared_client_floor()
+    note = (f"Roster size: {entries[0]['summary']['seeded_agents']} agents pre-seeded, at most {largest} at the end "
+            "of the run (live and archived). ")
+    if largest < floor:
+        return note + f"The shared-client check is inert below {floor} agents, so this run says nothing about it."
+    return note + f"The roster reached {floor} agents, the size at which the shared-client check can fire."
+
+
 def render_markdown(document: Dict[str, Any]) -> str:
     """One table of headline measures across arms, then each arm's reachability misses and per-day series."""
     arms = [arm for arm in ARMS if arm in document["arms"]]
@@ -264,7 +290,7 @@ def render_markdown(document: Dict[str, Any]) -> str:
     lines = ["# Lifecycle simulation", "",
              "One broker's month (`evals/lifecycle_scenario.py`, seed "
              f"{entries[0]['header']['seed']}) through the real interaction turn with execution agents stubbed.",
-             "", "| measure | " + " | ".join(arms) + " |", "|---|" + "---|" * len(arms)]
+             "", _roster_note(entries), "", "| measure | " + " | ".join(arms) + " |", "|---|" + "---|" * len(arms)]
     lines.append("| run | " + " | ".join(f"{e['header']['model']}, {e['header']['days']} days, {e['header']['mode']}"
                                          for e in entries) + " |")
     for key, label in _HEADLINE:

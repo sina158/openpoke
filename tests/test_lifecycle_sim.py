@@ -1,6 +1,7 @@
 """The lifecycle runner under a scripted fake model, and its measures on a tiny month with known answers."""
 
 import json
+import os
 from datetime import timedelta
 
 import pytest
@@ -189,3 +190,44 @@ def test_a_live_run_without_a_key_is_refused(monkeypatch):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     with pytest.raises(SystemExit):
         run_lifecycle.main(["--record", "--days", "1"])
+
+
+def test_reachability_counts_a_message_only_when_each_needed_matter_has_an_agent_in_the_prompt():
+    def record(msg_id, day, shown, archived=()):
+        return {"msg_id": msg_id, "day": day, "gold": {"kind": "matter", "matter_ids": ["mA"]},
+                "shown_ids": list(shown), "archived_at_start": list(archived)}
+
+    records = [record("d03-1", 3, ["a_0002"], archived=["a_0001"]), record("d03-2", 3, ["a_0001", "a_0003"]),
+               record("d03-3", 3, ["a_0001"]), record("d03-4", 3, []), record("d02-1", 2, [])]
+    graded = [{"needed": {"mA": ["a_0001"]}}, {"needed": {"mA": ["a_0001"], "mB": ["a_0003"]}},
+              {"needed": {"mA": ["a_0001"], "mB": ["a_0003"]}}, {"needed": {}}, {"needed": {"mA": ["a_0001"]}}]
+    result = run_lifecycle.reachability(records, graded, 3)
+    assert (result["needing_an_agent"], result["reachable"]) == (3, 1)
+    assert [miss["msg_id"] for miss in result["misses"]] == ["d03-1", "d03-3"]
+    assert result["misses"][0]["archived"] == ["a_0001"]
+
+
+def test_the_summary_states_the_roster_size_and_that_the_shared_client_check_is_inert(tmp_path):
+    assert run_lifecycle.shared_client_floor() == 100
+    run = run_lifecycle.simulate("fix_v1", model="fake-model", mode="record", days=3, cassette_dir=tmp_path / "c",
+                                 inner=scripted_model, scenario=TINY)
+    summary = run_lifecycle.score(run, TINY)
+    assert (summary["seeded_agents"], summary["roster_end"]) == (3, 5)
+    run_lifecycle.write_outputs(run, summary, tmp_path)
+    markdown = (tmp_path / "LIFECYCLE.md").read_text(encoding="utf-8")
+    assert ("Roster size: 3 agents pre-seeded, at most 5 at the end of the run (live and archived). The "
+            "shared-client check is inert below 100 agents, so this run says nothing about it.") in markdown
+
+
+def test_an_arm_sets_the_v2_switches_whatever_the_shell_says(monkeypatch, tmp_path):
+    from evals.cassette import Cassette
+    from evals.simulate import Simulation
+    from server import config
+
+    monkeypatch.setenv("OPENPOKE_V2_DISABLE", "c1,c3,c4")
+    monkeypatch.setenv("OPENPOKE_SHORTLIST_EVIDENCE", "1")
+    monkeypatch.setenv("OPENPOKE_EXECUTION_MEMORY", "retrieved")
+    with Simulation("fix_v2", "fake-model", Cassette("pin", "replay", tmp_path)).running():
+        assert all(config.v2_change_enabled(change) for change in ("c1", "c3", "c4"))
+        assert not config.shortlist_evidence() and config.execution_memory() == "recent"
+    assert os.environ["OPENPOKE_V2_DISABLE"] == "c1,c3,c4"
