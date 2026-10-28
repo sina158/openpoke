@@ -150,6 +150,16 @@ class Settings(BaseModel):
         )
     )
     shortlist_k: int = Field(default_factory=lambda: _env_number("OPENPOKE_SHORTLIST_K", int, 8))
+    # A rendered card is about 65-130 tokens, so 1200 lets k=8 fit; the budget only trims outliers.
+    shortlist_token_budget: int = Field(
+        default_factory=lambda: _env_number("OPENPOKE_SHORTLIST_TOKEN_BUDGET", int, 1200)
+    )
+    selector: str = Field(
+        default_factory=lambda: _env_choice("OPENPOKE_SELECTOR", ("bm25", "hybrid"), "bm25")
+    )
+    embeddings_dir: Optional[str] = Field(
+        default_factory=lambda: os.getenv("OPENPOKE_EMBEDDINGS_DIR", "").strip() or None
+    )
     duplicate_threshold: float = Field(
         default_factory=lambda: _env_number("OPENPOKE_DUPLICATE_THRESHOLD", float, 0.85)
     )
@@ -163,6 +173,8 @@ class Settings(BaseModel):
     eval_budget_usd: float = Field(
         default_factory=lambda: _env_number("OPENPOKE_EVAL_BUDGET_USD", float, 40.0)
     )
+    # Execution agents return a canned result without calling the model (lifecycle simulation).
+    execution_stub: bool = Field(default_factory=lambda: os.getenv("OPENPOKE_EXECUTION_STUB", "") == "1")
 
     @property
     def cors_allow_origins(self) -> List[str]:

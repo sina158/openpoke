@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Iterator, Optional
 
 from ...logging_config import logger
+from ...utils.clock import now_utc
 from ...utils.paths import data_dir
 
 
@@ -40,7 +41,7 @@ def slugify(name: str) -> str:
 
 def _utc(moment: Optional[datetime] = None) -> datetime:
     """``moment`` as an aware UTC datetime (naive values are taken as UTC); defaults to now."""
-    moment = moment or datetime.now(timezone.utc)
+    moment = moment or now_utc()
     if moment.tzinfo is None:
         moment = moment.replace(tzinfo=timezone.utc)
     return moment.astimezone(timezone.utc)
