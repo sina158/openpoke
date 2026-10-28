@@ -94,3 +94,26 @@ def test_every_schema_declares_what_it_requires(seeded, arm):
         parameters = schema["function"]["parameters"]
         assert parameters["additionalProperties"] is False
         assert set(parameters["required"]) <= set(parameters["properties"])
+
+
+def test_hybrid_selector_uses_vectors_and_falls_back_to_bm25(seeded, monkeypatch):
+    from server.agents.interaction_agent import agent as agent_module
+
+    bm25_content, _, _ = seeded("fix")
+    monkeypatch.setenv("OPENPOKE_SELECTOR", "hybrid")
+
+    def unavailable(texts, cache_dir=None):
+        raise RuntimeError("fastembed is not installed")
+
+    monkeypatch.setattr(agent_module.embeddings, "embed", unavailable)
+    fallback, _, _ = seeded("fix")
+    assert fallback == bm25_content
+
+    # Vectors that point the query at client 11 only: fusing them must bring it into the shortlist.
+    def fake_embed(texts, cache_dir=None):
+        return [[1.0, 0.0]] + [[1.0, 0.0] if "Client 11" in text else [0.0, 1.0] for text in texts[1:]]
+
+    monkeypatch.setattr(agent_module.embeddings, "embed", fake_embed)
+    hybrid, _, _ = seeded("fix")
+    assert "Renewal for Client 11" not in bm25_content
+    assert 'name="Renewal for Client 11"' in hybrid
