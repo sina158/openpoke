@@ -5,9 +5,10 @@ from pathlib import Path
 from .models import TriggerRecord
 from .service import TriggerService
 from .store import TriggerStore
+from ...utils.paths import data_dir
 
 
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+_DATA_DIR = data_dir()
 _default_db_path = _DATA_DIR / "triggers.db"
 _trigger_store = TriggerStore(_default_db_path)
 _trigger_service = TriggerService(_trigger_store)

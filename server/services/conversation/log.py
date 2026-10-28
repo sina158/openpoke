@@ -11,12 +11,13 @@ from ...logging_config import logger
 from ...models import ChatMessage
 from ...utils.timezones import now_in_user_timezone
 from typing import TYPE_CHECKING
+from ...utils.paths import data_dir
 
 if TYPE_CHECKING:  # pragma: no cover - used for type checkers only
     from .summarization import WorkingMemoryLog
 
 
-_DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+_DATA_DIR = data_dir()
 _CONVERSATION_LOG_PATH = _DATA_DIR / "conversation" / "poke_conversation.log"
 
 
