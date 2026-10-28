@@ -86,7 +86,9 @@ def test_the_v2_set_uses_its_own_files_seed_and_names(tmp_path):
     pool = load_pool(POOL_V2_PATH)
     assert record["target_idle"] == any(pool[i]["last_active_days_ago"] > 30 for i in case["gold"]["agent_ids"])
     path = run_routing.write_results(document, tmp_path / "out")
-    assert "_v2_fix_v2_fake_k8_report_" in path.name
+    assert "_v2_fix_v2_fake_k8_report_n5_t1_" in path.name
+    headline = dict(document, header=dict(header, sizes=[500], trials=3))
+    assert run_routing.write_results(headline, tmp_path / "out") != path  # no overwrite across run shapes
 
 
 def test_new_recordings_never_append_to_round_one_cassettes(tmp_path):

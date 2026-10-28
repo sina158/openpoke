@@ -802,8 +802,10 @@ def write_results(document: Dict[str, Any], directory: Path = RESULTS_DIR) -> Pa
     case_set = header.get("set", "v1")
     lead = "" if case_set == "v1" else f"{case_set}_"
     sample = f"_s{header['cases_sample']}" if header.get("cases_sample") else ""
+    # Sizes and trials are in the name, so a small-N run never overwrites the headline run of the same arm.
+    shape = f"_n{'-'.join(str(size) for size in header['sizes'])}_t{header['trials']}"
     path = directory / (f"{stamp}_{lead}{header['arm']}_{_model_slug(header['model'])}_k{header['k']}"
-                        f"_{header.get('split', 'report')}{sample}{partial}_{header['commit']}.json")
+                        f"_{header.get('split', 'report')}{shape}{sample}{partial}_{header['commit']}.json")
     directory.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(document, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
     return path
