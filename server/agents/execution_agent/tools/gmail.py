@@ -343,18 +343,45 @@ def _execute(tool_name: str, composio_user_id: str, arguments: Dict[str, Any]) -
     return result
 
 
-_SEND_KINDS = {
-    "GMAIL_SEND_DRAFT": "Send draft",
-    "GMAIL_FORWARD_MESSAGE": "Forward message",
-    "GMAIL_REPLY_TO_THREAD": "Reply in thread",
-}
+_SEND_KINDS = frozenset({"GMAIL_SEND_DRAFT", "GMAIL_FORWARD_MESSAGE", "GMAIL_REPLY_TO_THREAD"})
+_SUMMARY_TEXT_CHARS = 80
+
+
+def _first_line(text: Any) -> str:
+    lines = str(text or "").strip().splitlines()
+    line = lines[0].strip() if lines else ""
+    return line if len(line) <= _SUMMARY_TEXT_CHARS else line[: _SUMMARY_TEXT_CHARS - 3] + "..."
+
+
+def summarise_send(kind: str, args: Dict[str, Any]) -> str:
+    """One line the user can check before approving, built only from the arguments that will be sent."""
+    if kind == "GMAIL_SEND_DRAFT":
+        # The draft id is all the call carries; its recipients and body live in Gmail.
+        return f"Send draft {args.get('draft_id')} (draft contents not shown - open the draft)"
+    if kind == "GMAIL_FORWARD_MESSAGE":
+        head, text = f"Forward message {args.get('message_id')}", args.get("additional_text")
+    else:
+        head, text = f"Reply in thread {args.get('thread_id')}", args.get("message_body")
+    parts = [f"to {args.get('recipient_email')}"]
+    for field, label in (("cc", "cc"), ("bcc", "bcc"), ("extra_recipients", "also to")):
+        value = args.get(field)
+        if value:
+            parts.append(f"{label} {', '.join(map(str, value)) if isinstance(value, list) else value}")
+    attachment = args.get("attachment")
+    if attachment:
+        parts.append(f"attaching {attachment.get('name') if isinstance(attachment, dict) else attachment}")
+    summary = f"{head} {', '.join(parts)}"
+    first = _first_line(text)
+    return f'{summary}: "{first}"' if first else summary
 
 
 # Register an outbound email as a pending action instead of sending it
 def _propose_send(kind: str, arguments: Dict[str, Any], agent_name: Optional[str]) -> Dict[str, Any]:
     payload = {k: v for k, v in arguments.items() if v is not None}
     record = get_agent_registry().find_by_name(agent_name) if agent_name else None
-    action = get_approval_store().propose(kind, payload, agent_id=record.id if record else None)
+    action = get_approval_store().propose(
+        kind, payload, agent_id=record.id if record else None, summary=summarise_send(kind, payload)
+    )
     payload_str = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     get_execution_agent_logs().record_action(
         _GMAIL_AGENT_NAME,
@@ -363,7 +390,7 @@ def _propose_send(kind: str, arguments: Dict[str, Any], agent_name: Optional[str
     return {
         "status": "pending_approval",
         "action_id": action.id,
-        "summary": f"{_SEND_KINDS[kind]}: {payload_str}",
+        "summary": action.summary,
         "message": "Not sent. Report the action_id and summary back so the user can approve it.",
     }
 
@@ -580,6 +607,7 @@ def build_registry(agent_name: str) -> Dict[str, Callable[..., Any]]:
 __all__ = [
     "build_registry",
     "execute_approved_action",
+    "summarise_send",
     "get_schemas",
     "gmail_create_draft",
     "gmail_execute_draft",

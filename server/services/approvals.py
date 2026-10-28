@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS pending_actions (
     kind TEXT NOT NULL,
     args_json TEXT NOT NULL,
     args_hash TEXT NOT NULL,
+    summary TEXT,
     state TEXT NOT NULL CHECK (state IN ('proposed', 'approved', 'executed', 'rejected', 'expired')),
     created_at TEXT NOT NULL,
     approved_at TEXT,
@@ -62,6 +63,7 @@ class PendingAction:
     approved_at: Optional[str] = None
     approved_turn_id: Optional[str] = None
     executed_at: Optional[str] = None
+    summary: Optional[str] = None
 
 
 class ApprovalStore:
@@ -73,6 +75,9 @@ class ApprovalStore:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as conn:
             conn.execute(_SCHEMA)
+            columns = {row["name"] for row in conn.execute("PRAGMA table_info(pending_actions)")}
+            if "summary" not in columns:  # a table created before summaries were stored
+                conn.execute("ALTER TABLE pending_actions ADD COLUMN summary TEXT")
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -81,18 +86,27 @@ class ApprovalStore:
             with conn:
                 yield conn
 
-    def propose(self, kind: str, args: Dict[str, Any], agent_id: Optional[str] = None) -> PendingAction:
+    def propose(
+        self,
+        kind: str,
+        args: Dict[str, Any],
+        agent_id: Optional[str] = None,
+        summary: Optional[str] = None,
+    ) -> PendingAction:
+        """Store a proposed action. ``summary`` is what the user is shown; build it in code from ``args``."""
         action_id = f"act_{uuid.uuid4().hex[:12]}"
         with self._connect() as conn:
             conn.execute(
-                "INSERT INTO pending_actions (id, agent_id, kind, args_json, args_hash, state, created_at)"
-                " VALUES (?, ?, ?, ?, ?, 'proposed', ?)",
+                "INSERT INTO pending_actions"
+                " (id, agent_id, kind, args_json, args_hash, summary, state, created_at)"
+                " VALUES (?, ?, ?, ?, ?, ?, 'proposed', ?)",
                 (
                     action_id,
                     agent_id,
                     kind,
                     json.dumps(args, sort_keys=True, ensure_ascii=False),
                     canonical_hash(kind, args),
+                    summary,
                     _utc_now().isoformat(),
                 ),
             )
@@ -184,6 +198,7 @@ def _from_row(row: sqlite3.Row) -> PendingAction:
         approved_at=row["approved_at"],
         approved_turn_id=row["approved_turn_id"],
         executed_at=row["executed_at"],
+        summary=row["summary"],
     )
 
 
