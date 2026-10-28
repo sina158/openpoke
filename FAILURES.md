@@ -1,5 +1,9 @@
 # Where it still fails
 
+**Everything above [Closed in v2](#closed-in-v2) is round one** ("the fix arm" is fix v1, `--arm fix`, on the round-one
+set); round two's failure classes, with transcripts for A to C, are under
+[New failure classes from round two](#new-failure-classes-from-round-two).
+
 Real transcripts from the fix arm, one per failure class, all from
 `evals/results/20261028_fix_minimax-m3_k8_all_773a8ac.json` (model minimax-m3, k=8, temperature 0, one trial
 per case), all on the report split at N=500. Each replays offline from the committed cassettes and gives the
@@ -216,6 +220,10 @@ file and invalidates every cassette.
 
 Closed means: the case above is right under fix v2 AND the class rate in the continuity run is zero. The continuity run
 is round one's report split, one trial, so it is not blind for v2 (design changes were made from these failures).
+That run also has 3 of its 86 case-trials graded `error` because the replay found no recorded response for one of
+their calls (cassette misses: `near_duplicate-015`, `should_create-005`, `should_create-011`, none of them a case
+above); an error counts as wrong and as no failure class rather than being re-run, so the class counts below can only
+be low: one missed case is a should-reuse turn (the spray count) and two are should-create turns (the hijack count).
 
 - **Class 1 and 2 (spray), on the v1 set only.** `explicit-008` and `near_duplicate-006` pass, and the continuity run
   has 0 sprays among its should-reuse turns (`evals/results/continuity/RESULTS.md`). **Not closed on the fresh set:**
