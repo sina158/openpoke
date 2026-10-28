@@ -2,6 +2,10 @@
 
     python -m evals.compare                    # every full routing result file directly in evals/results
     python -m evals.compare a.json b.json      # just these
+    python -m evals.compare --set v2           # the fresh set's files, into RESULTS_v2.md and RESULTS_v2.json
+
+One report covers one golden set: a file from another set is skipped when scanning the directory and refused
+when named, so a round-one row is never averaged or paired with a fresh-set row.
 
 The headline tables use the report split (BARS.md); all 130 cases are a secondary table. Runs made with
 --limit or --cases are skipped, and two files with the same configuration are refused rather than one silently
@@ -21,8 +25,8 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from evals.generate import load_cases
-from evals.run_routing import CELLS, DEFAULT_MODEL, RESULTS_DIR, _model_slug
+from evals.generate import load_cases, load_pool
+from evals.run_routing import ARCHIVE_IDLE_DAYS, CELLS, DEFAULT_MODEL, EVIDENCE_CATEGORIES, RESULTS_DIR, SETS, _model_slug
 from evals.stats import agreement, cluster_bootstrap, mcnemar_exact, pass_k, rule_of_three, wilson
 
 CATEGORIES = ("explicit", "entity", "paraphrase", "pronoun", "near_duplicate", "should_create", "ambiguous",
@@ -33,8 +37,20 @@ BASELINE_UNWINNABLE = ("ambiguous", "paraphrase")
 TABLES = ("report", "all")
 BOOTSTRAP_RESAMPLES = 2000
 BOOTSTRAP_SEED = 20261028
-RowKey = Tuple[str, str, int, str, int]  # arm, model, k, roster mode, size
+RowKey = Tuple[str, str, int, str, int, Optional[int]]  # arm, model, k, roster mode, size, cases sample
 INJECTION_FILE = "INJECTION.json"
+DEMO_SAMPLE = 30  # cases in the N=5,000 and cards_full demonstrations (--cases-sample)
+
+
+def references(arm: str) -> List[str]:
+    """The arms `arm` is paired against: the baseline; for v2 arms round one's fix too; for the v2 ablation
+    and evidence arms, fix_v2 as well."""
+    out = [] if arm == "baseline" else ["baseline"]
+    if arm.startswith("fix_v2"):
+        out.append("fix_v1")
+    if arm.startswith("fix_v2_"):
+        out.append("fix_v2")
+    return out
 
 
 class MixedResults(ValueError):
@@ -43,7 +59,13 @@ class MixedResults(ValueError):
 
 def config_key(header: Dict[str, Any]) -> tuple:
     return (header["arm"], header["model"], header["k"], header.get("split", "all"), tuple(header["sizes"]),
-            header.get("trials", 1), header.get("openpoke_roster_mode"))
+            header.get("trials", 1), header.get("openpoke_roster_mode"), header.get("set", "v1"),
+            header.get("cases_sample"))
+
+
+def set_of(header: Dict[str, Any]) -> str:
+    """The golden set a result file was run on; files from before the set key are round one's."""
+    return header.get("set", "v1")
 
 
 def load_documents(paths: Sequence[Path]) -> Tuple[List[Dict[str, Any]], List[str]]:
@@ -64,8 +86,31 @@ def load_documents(paths: Sequence[Path]) -> Tuple[List[Dict[str, Any]], List[st
     return documents, skipped
 
 
-def _template_of() -> Dict[str, str]:
-    return {case["case_id"]: case["template_id"] for case in load_cases()}
+def _set_cases(case_set: str) -> List[Dict[str, Any]]:
+    path = SETS[case_set][0]
+    return load_cases(path) if path.exists() else []
+
+
+def _template_of(case_set: str = "v1") -> Dict[str, str]:
+    return {case["case_id"]: case["template_id"] for case in _set_cases(case_set)}
+
+
+def _idle_targets(case_set: str = "v1") -> Dict[str, bool]:
+    """Case id -> whether a gold target is idle past the archive rule at the case's clock (non-create only)."""
+    cases = _set_cases(case_set)
+    if not cases:
+        return {}
+    pool = load_pool(SETS[case_set][1])
+    return {c["case_id"]: any(pool[i]["last_active_days_ago"] > ARCHIVE_IDLE_DAYS for i in c["gold"]["agent_ids"])
+            for c in cases if c["gold"]["agent_ids"]}
+
+
+def set_mix(case_set: str = "v1", split: str = "report") -> Dict[str, Any]:
+    """The set's archived-target mix: non-create cases of the split whose gold target is idle."""
+    wanted = {c["case_id"] for c in _set_cases(case_set) if split == "all" or c["split"] == split}
+    idle = {case: flag for case, flag in _idle_targets(case_set).items() if case in wanted}
+    return {"set": case_set, "split": split, "non_create": len(idle), "idle_target": sum(idle.values()),
+            "share": sum(idle.values()) / len(idle) if idle else None}
 
 
 def _template(record: Dict[str, Any], templates: Dict[str, str]) -> str:
@@ -108,7 +153,8 @@ def _split_wrong_reuse(records: List[Dict[str, Any]]) -> Tuple[List[Dict[str, An
     return spray, wrong_only
 
 
-def summarise(records: List[Dict[str, Any]], templates: Dict[str, str]) -> Dict[str, Any]:
+def summarise(records: List[Dict[str, Any]], templates: Dict[str, str],
+              idle: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
     """All the per-group numbers the report needs."""
     cells = {cell: sum(r["cell"] == cell for r in records) for cell in CELLS}
     gold = Counter(r["gold"]["kind"] for r in records)
@@ -123,6 +169,9 @@ def summarise(records: List[Dict[str, Any]], templates: Dict[str, str]) -> Dict[
     fair = [r for r in records if r["category"] not in BASELINE_UNWINNABLE]
     # Older result files lack the call counts; their means stay None rather than zero.
     counted = [r for r in records if "llm_calls" in r]
+    cache = [r for r in records if r.get("cache_reported")]
+    evidence = [r for r in records if r["category"] in EVIDENCE_CATEGORIES]
+    checked = [r for r in evidence if r.get("evidence_names_discriminator") is not None]
     summary = {
         "n": len(records),
         "cells": cells,
@@ -137,12 +186,21 @@ def summarise(records: List[Dict[str, Any]], templates: Dict[str, str]) -> Dict[
                          "wrong_reuse_upper95": rule_of_three(n_existing) if cross["wrong_reuse"] == 0 else None},
         "duplicate": _rate(cells["duplicate"], n_existing),
         "correct_create": _rate(cells["correct_create"], gold["create"]),
-        "hijack": {"count": cells["hijack"], "n": gold["create"]},
+        "hijack": {"count": cells["hijack"], "n": gold["create"],
+                   "upper95": rule_of_three(gold["create"]) if cells["hijack"] == 0 else None},
+        # Shared-client refusals (v2 c1): turns that ended with every routing call refused (graded no_route),
+        # and sends refused over both rounds.
+        "refused": {"turns": sum(bool(r.get("ended_refused")) for r in records), "n": len(records),
+                    "sends": sum(r.get("shared_client_refused", 0) for r in records)},
+        "same_client_multi_send": sum(bool(r.get("same_client_multi_send")) for r in records),
         "clarify_precision": _rate(cells["correct_clarify"], predicted_clarify),
         "clarify_recall": _rate(cells["correct_clarify"], gold["clarify"]),
         "over_clarify": _rate(cells["over_clarify"], len(records) - gold["clarify"]),
         "prompt_tokens": {"mean": sum(tokens) / len(tokens) if tokens else None, "p95": _percentile(tokens, 0.95)},
         "prompt_tokens_per_call": {"mean": _mean([r["prompt_tokens"] / max(1, r["llm_calls"]) for r in counted])},
+        # Only where the provider reported its cache; None rather than a number that assumes no cache.
+        "uncached_prompt_tokens": {"mean": _mean([r["prompt_tokens"] - r["cached_tokens"] for r in cache]),
+                                   "n": len(cache)},
         "llm_calls": {"mean": _mean([r["llm_calls"] for r in counted])},
         "searches": {"mean": _mean([r["searches"] for r in records if "searches" in r])},
         "latency_ms": {"p50": _percentile(latency, 0.50), "p95": _percentile(latency, 0.95)},
@@ -154,6 +212,9 @@ def summarise(records: List[Dict[str, Any]], templates: Dict[str, str]) -> Dict[
                   "outcomes": dict(Counter(r["guard_outcome"] for r in records if r.get("guard_fired"))),
                   "correct_after": sum(bool(r.get("guard_fired")) and r["correct"] for r in records)},
         "archived_target": _archived(records),
+        "target_status": _target_status(records, idle or {}),
+        "evidence": {"k": sum(bool(r["evidence_names_discriminator"]) for r in checked), "n": len(checked),
+                     "case_trials": len(evidence)},
     }
     for category in CATEGORIES:
         subset = [r for r in records if r["category"] == category]
@@ -180,6 +241,17 @@ def _archived(records: List[Dict[str, Any]]) -> Dict[str, Any]:
             "search_found_target": sum(bool(r.get("search_found_target")) for r in archived)}
 
 
+def _target_status(records: List[Dict[str, Any]], idle: Dict[str, bool]) -> Dict[str, Any]:
+    """Accuracy split by the gold target's status at the case's clock (idle past the archive rule or active).
+
+    Unlike `archived_target`, this is a property of the case, so it is the same for every arm.
+    """
+    targeted = [r for r in records if r["gold"]["agent_ids"]]
+    status = [(r, r["target_idle"] if "target_idle" in r else idle.get(r["case_id"])) for r in targeted]
+    split = {name: [r for r, flag in status if flag is want] for name, want in (("idle", True), ("active", False))}
+    return {name: _rate(sum(r["correct"] for r in rows), len(rows)) for name, rows in split.items()}
+
+
 def _majority(records: List[Dict[str, Any]]) -> Dict[str, bool]:
     """Each case's outcome over its trials: correct when more than half of the trials were."""
     votes = defaultdict(list)
@@ -204,12 +276,13 @@ def paired(base: List[Dict[str, Any]], other: List[Dict[str, Any]], templates: D
             "delta_clustered_ci95": [lo, hi], "mcnemar_p": mcnemar_exact(b, c_)}
 
 
-def group_key(arm: str, model: str, k: int, size: int) -> str:
-    """Dotted-path-safe key, e.g. ``baseline_minimax-m3_k8_n500``."""
-    return f"{arm}_{_model_slug(model)}_k{k}_n{size}"
+def group_key(arm: str, model: str, k: int, size: int, sample: Optional[int] = None) -> str:
+    """Dotted-path-safe key, e.g. ``baseline_minimax-m3_k8_n500`` (``..._s30`` for a 30-case sample)."""
+    return f"{arm}_{_model_slug(model)}_k{k}_n{size}" + (f"_s{sample}" if sample else "")
 
 
-def _table(documents: List[Dict[str, Any]], split: str, templates: Dict[str, str]) -> Dict[str, Any]:
+def _table(documents: List[Dict[str, Any]], split: str, templates: Dict[str, str],
+           idle: Optional[Dict[str, bool]] = None) -> Dict[str, Any]:
     groups: Dict[RowKey, List[Dict[str, Any]]] = defaultdict(list)
     sources: Dict[RowKey, Dict[str, Any]] = {}
     run_splits: Dict[RowKey, str] = {}
@@ -220,7 +293,8 @@ def _table(documents: List[Dict[str, Any]], split: str, templates: Dict[str, str
             continue
         records = [r for r in document["records"] if split == "all" or r["split"] == split]
         for size in sorted({r["size"] for r in records}):
-            key = (header["arm"], header["model"], header["k"], header.get("openpoke_roster_mode"), size)
+            key = (header["arm"], header["model"], header["k"], header.get("openpoke_roster_mode"), size,
+                   header.get("cases_sample"))
             trials = header.get("trials", 1)
             if key in sources:
                 # A report-split run with more trials supersedes the report cases of a full run, either way round.
@@ -233,23 +307,24 @@ def _table(documents: List[Dict[str, Any]], split: str, templates: Dict[str, str
             groups[key] = [r for r in records if r["size"] == size]
             sources[key] = {"file": document["source"], "date": header["date"], "commit": header["commit"],
                             "trials": trials}
-    rows = [{"arm": a, "model": m, "k": k, "roster_mode": mode, "size": s, **sources[key],
-             **summarise(groups[key], templates)}
-            for key in sorted(groups, key=lambda key: (key[1], key[4], key[0])) for a, m, k, mode, s in [key]]
+    rows = [{"arm": a, "model": m, "k": k, "roster_mode": mode, "size": s, "cases_sample": sample, **sources[key],
+             **summarise(groups[key], templates, idle)}
+            for key in sorted(groups, key=lambda key: (key[1], key[4], key[5] or 0, key[0]))
+            for a, m, k, mode, s, sample in [key]]
     comparisons = []
-    for (arm, model, k, mode, size), records in sorted(groups.items(), key=lambda item: str(item[0])):
-        if arm == "baseline":
-            continue
-        baselines = [key for key in groups if key[0] == "baseline" and key[1] == model and key[4] == size]
-        if baselines:
-            comparisons.append({"model": model, "size": size, "arm": arm, "k": k,
-                                **paired(groups[baselines[0]], records, templates)})
+    for (arm, model, k, mode, size, sample), records in sorted(groups.items(), key=lambda item: str(item[0])):
+        for reference in references(arm):
+            refs = [key for key in groups
+                    if key[0] == reference and key[1] == model and key[4] == size and key[5] == sample]
+            if refs:
+                comparisons.append({"model": model, "size": size, "arm": arm, "k": k, "reference": reference,
+                                    "cases_sample": sample, **paired(groups[refs[0]], records, templates)})
     return {
         "groups": rows,
         "paired": comparisons,
-        "by_key": {group_key(r["arm"], r["model"], r["k"], r["size"]): r for r in rows},
-        "paired_by_key": {f"{p['arm']}_vs_baseline_{_model_slug(p['model'])}_k{p['k']}_n{p['size']}": p
-                          for p in comparisons},
+        "by_key": {group_key(r["arm"], r["model"], r["k"], r["size"], r["cases_sample"]): r for r in rows},
+        "paired_by_key": {f"{p['arm']}_vs_{p['reference']}_{_model_slug(p['model'])}_k{p['k']}_n{p['size']}"
+                          + (f"_s{p['cases_sample']}" if p["cases_sample"] else ""): p for p in comparisons},
     }
 
 
@@ -261,13 +336,14 @@ def _spend(documents: List[Dict[str, Any]]) -> Dict[str, Any]:
             "unpriced_records": len(costs) - len(priced)}
 
 
-def _token_bars(by_key: Dict[str, Any], size: int = 500) -> Dict[str, Optional[float]]:
+def _token_bars(by_key: Dict[str, Any], size: int = 500, arm: str = "fix",
+                sample: Optional[int] = None) -> Dict[str, Optional[float]]:
     """BARS.md bar 5: fix over baseline prompt tokens for the default model, per turn and per LLM call.
 
     None unless both runs exist. The fix calls search_agents first, so per turn it makes more calls than the
     baseline; the per-call ratio is the one that shows the roster's share of each prompt.
     """
-    fix, base = (by_key.get(group_key(arm, DEFAULT_MODEL, 8, size)) for arm in ("fix", "baseline"))
+    fix, base = (by_key.get(group_key(name, DEFAULT_MODEL, 8, size, sample)) for name in (arm, "baseline"))
 
     def ratio(metric: str) -> Optional[float]:
         if not fix or not base or fix[metric]["mean"] is None or not base[metric]["mean"]:
@@ -279,12 +355,27 @@ def _token_bars(by_key: Dict[str, Any], size: int = 500) -> Dict[str, Optional[f
 
 
 def build(documents: List[Dict[str, Any]], selector: Optional[Dict[str, Any]] = None,
-          skipped: Sequence[str] = (), injection: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    templates = _template_of()
-    report: Dict[str, Any] = {split: _table(documents, split, templates) for split in TABLES}
+          skipped: Sequence[str] = (), injection: Optional[Dict[str, Any]] = None,
+          case_set: str = "v1") -> Dict[str, Any]:
+    other = sorted({d["source"]: set_of(d["header"]) for d in documents if set_of(d["header"]) != case_set}.items())
+    if other:
+        raise MixedResults(f"this report is for set {case_set}; {other[0][0]} is from set {other[0][1]}")
+    # `fix` follows the shell's profile, so a fresh-set row of it has no fixed meaning: fix_v1 / fix_v2 there.
+    alias = [d["source"] for d in documents if case_set != "v1" and d["header"]["arm"] == "fix"]
+    documents = [d for d in documents if d["source"] not in alias]
+    templates, idle = _template_of(case_set), _idle_targets(case_set)
+    report: Dict[str, Any] = {split: _table(documents, split, templates, idle) for split in TABLES}
+    report["set"] = case_set
+    report["set_mix"] = set_mix(case_set)
     report["spend"] = _spend(documents)
-    report["bars"] = _token_bars(report["report"]["by_key"])
+    if case_set == "v1":
+        report["bars"] = _token_bars(report["report"]["by_key"])
+    else:  # BARS-v2 B5: N=500, and the N=5,000 demonstration on its case sample
+        report["bars"] = {**_token_bars(report["report"]["by_key"], arm="fix_v2"),
+                          **_token_bars(report["report"]["by_key"], 5000, "fix_v2", DEMO_SAMPLE)}
     report["skipped_partial_runs"] = list(skipped)
+    if alias:
+        report["skipped_fix_alias_runs"] = alias
     if selector is not None:
         report["selector"] = selector
     if injection is not None:
@@ -325,7 +416,7 @@ def _main_table(table: Dict[str, Any]) -> List[str]:
         accuracy = row["accuracy"]
         lo, hi = accuracy["clustered"]["ci95"]
         lines.append(" | ".join([
-            f"| {row['model']}", str(row["size"]), row["arm"], str(row["k"]), str(row["n"]),
+            f"| {row['model']}", _size(row), row["arm"], str(row["k"]), str(row["n"]),
             str(accuracy["clustered"]["templates"]), _rate_cell(accuracy), f"[{_pct(lo)}, {_pct(hi)}]",
             _rate_cell(row["wrong_reuse"]),
             f"{row['spray']['k']} ({row['spray']['cross_client']} cross-client)",
@@ -345,27 +436,40 @@ def _main_table(table: Dict[str, Any]) -> List[str]:
 def _paired_table(table: Dict[str, Any]) -> List[str]:
     if not table["paired"]:
         return []
-    lines = ["", "| model | N | arm | k | cases | templates | delta accuracy | delta, template bootstrap 95% "
-             "| only baseline right | only arm right | McNemar p |", "|" + "---|" * 11]
+    lines = ["", "| model | N | arm | against | k | cases | templates | delta accuracy "
+             "| delta, template bootstrap 95% | only reference right | only arm right | McNemar p |",
+             "|" + "---|" * 12]
     for p in table["paired"]:
         lo, hi = p["delta_clustered_ci95"]
-        lines.append(f"| {p['model']} | {p['size']} | {p['arm']} | {p['k']} | {p['pairs']} | {p['templates']} | "
-                     f"{_pct(p['delta_accuracy'])} | [{_pct(lo)}, {_pct(hi)}] | {p['b']} | {p['c']} | "
-                     f"{p['mcnemar_p']:.4f} |")
+        lines.append(f"| {p['model']} | {_size(p)} | {p['arm']} | {p.get('reference', 'baseline')} | {p['k']} | "
+                     f"{p['pairs']} | {p['templates']} | {_pct(p['delta_accuracy'])} | [{_pct(lo)}, {_pct(hi)}] | "
+                     f"{p['b']} | {p['c']} | {p['mcnemar_p']:.4f} |")
     return lines
+
+
+def _size(row: Dict[str, Any]) -> str:
+    """N, marked when the row is a seeded case sample (a demonstration, not a headline number)."""
+    sample = row.get("cases_sample")
+    return f"{row['size']} ({sample} cases, demonstration)" if sample else str(row["size"])
 
 
 def render_markdown(report: Dict[str, Any]) -> str:
     head = report["report"]
-    n_report = len([c for c in load_cases(split="report")])
-    lines = ["# Routing results", "",
+    case_set = report.get("set", "v1")
+    n_report = len([c for c in _set_cases(case_set) if c["split"] == "report"])
+    mix = report.get("set_mix") or set_mix(case_set)
+    title = "# Routing results" if case_set == "v1" else f"# Routing results, set {case_set}"
+    lines = [title, "",
              "Generated by `python -m evals.compare`. Headline numbers use the report split "
              f"({n_report} cases, BARS.md); all 130 cases follow as a secondary table. Cases share templates, so "
              "each row gives the number of templates (the effective n) and a template-clustered bootstrap interval "
              f"({BOOTSTRAP_RESAMPLES} resamples, seed {BOOTSTRAP_SEED}) beside the Wilson interval. Cross-client "
              "wrong reuse with 0 events is shown as a rule-of-three bound over the should-reuse cases. Paired "
              "comparisons use each case's majority outcome over its trials. Dollar figures are list-price "
-             "equivalents.", "", "## Headline: report split", ""]
+             "equivalents.", "",
+             f"Set `{case_set}`: {mix['idle_target']} of {mix['non_create']} non-create report cases have a gold "
+             f"target idle more than {ARCHIVE_IDLE_DAYS} days ({_pct(mix['share'])}).", "",
+             "## Headline: report split", ""]
     lines += _main_table(head)
     lines += ["", "Spray: the gold agent was messaged and so was another one. Wrong only: the gold agent was not "
               "messaged at all."]
@@ -379,7 +483,7 @@ def render_markdown(report: Dict[str, Any]) -> str:
                      f"{_num(row['prompt_tokens']['mean'])} | {_num(row['prompt_tokens_per_call']['mean'])} |")
     bars = report["bars"]
     if bars["prompt_token_ratio_n500"] is not None:
-        lines += ["", f"Prompt tokens, {DEFAULT_MODEL} fix / baseline at N=500: "
+        lines += ["", f"Prompt tokens, {DEFAULT_MODEL} {'fix' if case_set == 'v1' else 'fix_v2'} / baseline at N=500: "
                   f"{_pct(bars['prompt_token_ratio_n500'])} per turn, "
                   f"{_pct(bars['prompt_token_per_call_ratio_n500'])} per LLM call (BARS.md bar 5: <= 40%)."]
     lines += ["", "### Accuracy by category (report split)", "",
@@ -397,6 +501,32 @@ def render_markdown(report: Dict[str, Any]) -> str:
             outcomes = ", ".join(f"{k} {v}" for k, v in sorted(row["guard"]["outcomes"].items()))
             lines.append(f"| {row['model']} | {row['size']} | {row['arm']} | {row['guard']['fired']} | "
                          f"{row['guard']['correct_after']} | {outcomes} |")
+    lines += ["", "### Accuracy by gold target status (report split)", "",
+              f"Idle: a gold target last active more than {ARCHIVE_IDLE_DAYS} days before the case's clock; the "
+              "same cases for every arm.", "",
+              "| model | N | arm | target idle | target active |", "|---|---|---|---|---|"]
+    for row in head["groups"]:
+        status = row.get("target_status") or {}
+        lines.append(f"| {row['model']} | {_size(row)} | {row['arm']} | "
+                     f"{_rate_cell(status['idle']) if status else '-'} | "
+                     f"{_rate_cell(status['active']) if status else '-'} |")
+    lines += ["", "### Bars inputs, round two (report split)", "",
+              "The shared-client check fires only on rosters of about 100 agents or more (2% cut-off, no floor), "
+              "so its zeros mean something at N=500 only. A turn whose routing calls were all refused is graded "
+              "no_route and counted under refused turns.", "",
+              "| model | N | arm | uncached prompt tok per turn | refused turns | sends refused (shared client) "
+              "| same-client multi-sends | hijack (zero as bound) | evidence names discriminator |",
+              "|" + "---|" * 9]
+    for row in head["groups"]:
+        hijack = row["hijack"]
+        bound = f"0 (<= {_pct(hijack['upper95'])})" if hijack.get("upper95") is not None else str(hijack["count"])
+        evidence = row.get("evidence") or {"k": 0, "n": 0, "case_trials": 0}
+        shown = (f"{evidence['k']}/{evidence['n']} of {evidence['case_trials']} case-trials"
+                 if evidence["n"] else "-")
+        lines.append(f"| {row['model']} | {_size(row)} | {row['arm']} | "
+                     f"{_num((row.get('uncached_prompt_tokens') or {}).get('mean'))} | "
+                     f"{row.get('refused', {}).get('turns', 0)} | {row.get('refused', {}).get('sends', 0)} | "
+                     f"{row.get('same_client_multi_send', 0)} | {bound} | {shown} |")
     archived = [row for row in head["groups"] if row["archived_target"]["archived"]["n"]]
     if archived:
         lines += ["", "### Archived targets (report split)", "",
@@ -443,9 +573,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Summarise routing result files.")
     parser.add_argument("paths", nargs="*", type=Path)
     parser.add_argument("--out-dir", type=Path, default=RESULTS_DIR)
+    parser.add_argument("--set", dest="case_set", choices=sorted(SETS), default="v1")
     args = parser.parse_args(argv)
     # Routing runs are named <date>_<arm>_..., so this skips the summaries and stays out of subdirectories.
-    paths = args.paths or sorted(p for p in RESULTS_DIR.glob("[0-9]*.json") if "_selector_" not in p.name)
+    paths = args.paths or [p for p in sorted(RESULTS_DIR.glob("[0-9]*.json")) if "_selector_" not in p.name
+                           and set_of(json.loads(p.read_text(encoding="utf-8"))["header"]) == args.case_set]
     if not paths:
         print("no result files")
         return 1
@@ -455,14 +587,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         selector = json.loads(selector_files[-1].read_text(encoding="utf-8"))["summary"] if selector_files else None
         injection_file = args.out_dir / INJECTION_FILE
         injection = json.loads(injection_file.read_text(encoding="utf-8")) if injection_file.exists() else None
-        report = build(documents, selector, skipped, injection)
+        report = build(documents, selector, skipped, injection, args.case_set)
     except MixedResults as exc:
         print(f"refused: {exc}")
         return 1
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    (args.out_dir / "RESULTS.json").write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8", newline="\n")
-    (args.out_dir / "RESULTS.md").write_text(render_markdown(report), encoding="utf-8", newline="\n")
-    print(f"wrote {args.out_dir / 'RESULTS.md'} from {len(documents)} file(s); skipped {len(skipped)} partial run(s)")
+    stem = "RESULTS" if args.case_set == "v1" else f"RESULTS_{args.case_set}"
+    (args.out_dir / f"{stem}.json").write_text(json.dumps(report, indent=1) + "\n", encoding="utf-8", newline="\n")
+    (args.out_dir / f"{stem}.md").write_text(render_markdown(report), encoding="utf-8", newline="\n")
+    mix = report["set_mix"]
+    print(f"set {args.case_set}: {mix['idle_target']}/{mix['non_create']} non-create report cases with an idle "
+          f"gold target ({_pct(mix['share'])})")
+    print(f"wrote {args.out_dir / (stem + '.md')} from {len(documents)} file(s); skipped {len(skipped)} partial run(s)")
     return 0
 
 

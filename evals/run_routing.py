@@ -5,6 +5,12 @@ log), and its prompt is rendered there first. The loops then run concurrently. T
 calls a routing tool ends the case; every routing call in that turn is graded from its arguments.
 
     python -m evals.run_routing --arm baseline --sizes 5,50,500 --trials 3 --replay
+    python -m evals.run_routing --set v2 --arm fix_v2 --sizes 500 --trials 3 --record
+
+`--set` picks the golden set (round one's `v1`, the fresh `v2`); `--arm` sets the server's flags for the run and
+puts them back afterwards, so one process can run several arms back to back. The shared-client check (v2 c1)
+only finds identifying entities on rosters of about 100 agents or more (a fixed 2% document-frequency cut-off
+with no floor), so it never fires at N=5 or N=50; its zero-sends bar is asserted at N=500.
 """
 
 from __future__ import annotations
@@ -16,7 +22,9 @@ import copy
 import importlib
 import itertools
 import json
+import html
 import os
+import random
 import re
 import shutil
 import sqlite3
@@ -24,6 +32,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -33,7 +42,8 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 from urllib.parse import urlparse
 
 from evals.cassette import CURRENT, CallContext, Cassette, CassetteMiss, LiveCallLimit, CASSETTE_DIR
-from evals.generate import SEED, _slug, load_cases, load_pool, roster_for
+from evals.generate import (GOLDEN_PATH, GOLDEN_V2_PATH, POOL_PATH, POOL_V2_PATH, SEED, SEED_V2, _slug, load_cases,
+                            load_pool, roster_for)
 
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 DEFAULT_MODEL = "minimax-m3"  # the committed cassettes' model, and the default off OpenRouter
@@ -43,19 +53,47 @@ DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 # A run stops instead of writing a misleading file when the provider keeps failing.
 MAX_ERROR_SHARE = 0.10
 FIRST_CALLS_CHECKED = 5
+_SHORTLIST = {"OPENPOKE_ROSTER_MODE": "shortlist", "OPENPOKE_PROMPT_VARIANT": "shortlist"}
+
+
+def _profile(profile: str, disable: str = "", evidence: str = "0") -> Dict[str, str]:
+    """The shortlist arm under one routing profile; every v2 flag is set, so nothing leaks in from the shell."""
+    return {**_SHORTLIST, "OPENPOKE_ROUTING_PROFILE": profile, "OPENPOKE_V2_DISABLE": disable,
+            "OPENPOKE_SHORTLIST_EVIDENCE": evidence}
+
+
 ARMS: Dict[str, Dict[str, str]] = {
     "baseline": {"OPENPOKE_ROSTER_MODE": "full", "OPENPOKE_PROMPT_VARIANT": "original"},
     "prompt_only": {"OPENPOKE_ROSTER_MODE": "full", "OPENPOKE_PROMPT_VARIANT": "shortlist"},
-    "fix": {"OPENPOKE_ROSTER_MODE": "shortlist", "OPENPOKE_PROMPT_VARIANT": "shortlist"},
-    # Every agent as a card with the shortlist prompt: the cards-versus-shortlist ablation, small rosters only.
+    # Round one's arm name: it runs under whatever profile the shell sets (v2 by default). Fresh-set
+    # reports leave it out; use fix_v1 / fix_v2 there.
+    "fix": dict(_SHORTLIST),
+    # Every agent as a card with the shortlist prompt: the cards-versus-shortlist ablation.
     "cards_full": {"OPENPOKE_ROSTER_MODE": "full_cards", "OPENPOKE_PROMPT_VARIANT": "shortlist"},
+    "fix_v1": _profile("v1"),
+    "fix_v2": _profile("v2"),
+    "fix_v2_no_c1": _profile("v2", disable="c1"),
+    "fix_v2_no_c3": _profile("v2", disable="c3"),
+    "fix_v2_no_c4": _profile("v2", disable="c4"),
+    "fix_v2_evidence": _profile("v2", evidence="1"),
 }
+# Golden set -> (cases, pool, roster seed). The v1 set keeps --seed as its roster seed, as round one did.
+SETS: Dict[str, Tuple[Path, Path, Optional[int]]] = {
+    "v1": (GOLDEN_PATH, POOL_PATH, None),
+    "v2": (GOLDEN_V2_PATH, POOL_V2_PATH, SEED_V2),
+    "v2_paraphrase": (GOLDEN_V2_PATH.with_name("routing_v2_paraphrase.jsonl"), POOL_V2_PATH, SEED_V2),
+}
+# cards_full above this size only on a --cases-sample subset (a demonstration, not a sweep).
 CARDS_FULL_MAX_SIZE = 50
 ROUTING_TOOLS = {"send_message_to_agent", "clarify_agent_choice"}
 CELLS = ("correct_reuse", "wrong_reuse", "duplicate", "over_clarify", "hijack", "correct_create",
          "correct_clarify", "wrong_guess", "partial", "no_route", "error")
+# Categories whose picked agent is checked for evidence naming the case's discriminator (BARS-v2 A2).
+EVIDENCE_CATEGORIES = ("near_duplicate", "should_create")
 CORRECT_CELLS = {"correct_reuse", "correct_create", "correct_clarify"}
 EVAL_CLOCK = datetime(2026, 10, 27, 9, 0)
+# The server's archive rule (OPENPOKE_ARCHIVE_IDLE_DAYS): a gold target idle longer than this is "idle".
+ARCHIVE_IDLE_DAYS = 30
 # The server's "now" (OPENPOKE_FIXED_NOW) during a run: recency and card ages are rendered from it.
 EVAL_NOW = EVAL_CLOCK.replace(tzinfo=timezone.utc)
 _CLOCKED_MODULES = ("server.services.conversation.log", "server.services.execution.log_store",
@@ -265,7 +303,8 @@ def turn_start(now: datetime) -> set:
     return {record.name for record in get_agent_registry().list("archived")}
 
 
-def render_case(case: Dict[str, Any], size: int, sandbox: Path, seed: int = SEED) -> Rendered:
+def render_case(case: Dict[str, Any], size: int, sandbox: Path, seed: int = SEED,
+                pool_path: Path = POOL_PATH) -> Rendered:
     """Seed a fresh data dir for (case, size) and render the exact prompt the runtime would send."""
     from server.agents.interaction_agent import agent as agent_module
     from server.agents.interaction_agent import tools as tools_module
@@ -273,7 +312,7 @@ def render_case(case: Dict[str, Any], size: int, sandbox: Path, seed: int = SEED
 
     data_dir = sandbox / f"{case['case_id']}_n{size}"
     point_stores_at(data_dir)
-    roster = roster_for(case, size, seed)
+    roster = roster_for(case, size, seed, pool=load_pool(pool_path))
     with frozen_log_clock(EVAL_CLOCK), fast_sqlite():
         id_map = seed_case(case, roster, EVAL_NOW)
     archived = turn_start(EVAL_NOW)
@@ -290,15 +329,15 @@ def render_case(case: Dict[str, Any], size: int, sandbox: Path, seed: int = SEED
 
 
 def render_all(cases: List[Dict[str, Any]], sizes: Tuple[int, ...], sandbox: Path, seed: int,
-               workers: int = 1) -> List[Rendered]:
+               workers: int = 1, pool_path: Path = POOL_PATH) -> List[Rendered]:
     """Render every (case, size). Seeding is disk-bound, so large runs spread it over worker processes,
     each with its own store singletons; the data dirs stay on disk for `search_agents` to read later."""
     jobs = [(case, size) for case in cases for size in sizes]
     if workers <= 1:
-        return [render_case(case, size, sandbox, seed) for case, size in jobs]
+        return [render_case(case, size, sandbox, seed, pool_path) for case, size in jobs]
     with ProcessPoolExecutor(max_workers=workers) as executor:
         return list(executor.map(render_case, [c for c, _ in jobs], [s for _, s in jobs],
-                                 [sandbox] * len(jobs), [seed] * len(jobs)))
+                                 [sandbox] * len(jobs), [seed] * len(jobs), [pool_path] * len(jobs)))
 
 
 # ---- running (concurrent) ------------------------------------------------------------------------------------
@@ -324,6 +363,7 @@ def _recording_runtime_class() -> type:
             self._guard = guard
             self._sandbox = sandbox
             self.refused: Dict[int, Any] = {}
+            self.refused_again = 0  # sends refused once more in the round after the guard's answer
             self.kept: Optional[List[Tuple[str, Dict[str, Any]]]] = None
 
         def _parse_tool_calls(self, raw_tool_calls):  # type: ignore[override]
@@ -336,6 +376,7 @@ def _recording_runtime_class() -> type:
             if self.kept is not None:  # the routing turn after the guard's answer always ends the case
                 # Sends the server would refuse again are not dispatched, so they are not graded.
                 sent = [(c.name, c.arguments) for c in routing if id(c) not in turn_refused]
+                self.refused_again = len(routing) - len(sent)
                 raise RoutingDecided(self.kept + sent, rounds=2, after_guard=sent)
             if self._guard is not None:
                 for call in routing:
@@ -412,6 +453,9 @@ class RunConfig:
     max_live_calls: Optional[int] = None
     budget_usd: Optional[float] = None
     case_ids: Optional[List[str]] = None
+    case_set: str = "v1"
+    cases_sample: Optional[int] = None
+    sample_seed: int = SEED_V2
 
 
 async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: str,
@@ -470,10 +514,15 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
         suggested |= {rendered.by_id.get(agent_id) for refusal in runtime.refused.values()
                       for agent_id in refusal.payload.get("agent_ids", [])}
         guard_outcome = "error" if error else _guard_outcome(after_guard or [], rendered, suggested)
+    client_key_of = {i: a["client_key"] for i, a in pool.items()}
     if error:
         cell, cross = "error", False
     else:
-        cell, cross = grade(rendered.case, resolved, {i: a["client_key"] for i, a in pool.items()})
+        cell, cross = grade(rendered.case, resolved, client_key_of)
+    reused = {r["agent_id"] for r in resolved if r["action"] == "reuse"}
+    reused_keys = [key for key in (client_key_of.get(agent_id) for agent_id in reused) if key]
+    picked = [args["agent_id"] for name, args in calls
+              if name == "send_message_to_agent" and isinstance(args.get("agent_id"), str)]
     usages = [call["usage"] or {} for call in ctx.calls]
     costs = [_call_cost(u) for u in usages]
     return {
@@ -495,12 +544,19 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
         "search_found_target": any(searches),
         "guard_fired": _guard_fired(runtime.refused),
         "guard_outcome": guard_outcome,
+        # Shared-client refusals over both rounds; a turn whose routing calls were all refused grades no_route.
+        "shared_client_refused": _shared_client_refusals(runtime.refused) + runtime.refused_again,
+        "ended_refused": _guard_fired(runtime.refused) == "shared_client" and not calls,
+        "same_client_multi_send": len(reused_keys) != len(set(reused_keys)),
+        "target_idle": bool(gold_ids) and any(pool[i]["last_active_days_ago"] > ARCHIVE_IDLE_DAYS for i in gold_ids),
+        "evidence_names_discriminator": evidence_check(rendered, picked),
         "user_messages": user_messages,
         "error": error,
         "llm_calls": len(ctx.calls),
         "prompt_tokens": sum(u.get("prompt_tokens") or 0 for u in usages),
         "completion_tokens": sum(u.get("completion_tokens") or 0 for u in usages),
         "cached_tokens": sum((u.get("prompt_tokens_details") or {}).get("cached_tokens") or 0 for u in usages),
+        "cache_reported": any("cached_tokens" in (u.get("prompt_tokens_details") or {}) for u in usages),
         "latency_ms": round(sum(call["latency_ms"] for call in ctx.calls), 1),
         "cost_usd": None if all(c is None for c in costs) else sum(c or 0.0 for c in costs),
     }
@@ -532,9 +588,61 @@ def duplicate_guard(rendered: Rendered, name: str, args: Dict[str, Any]) -> Any:
     return refusal
 
 
+_AGENT_LINE = re.compile(r"<agent\b[^>]*>")
+_EVIDENCE_ATTR = re.compile(r'\bevidence="([^"]*)"')
+
+
+def evidence_for(prompt: str, agent_ref: str) -> str:
+    """The evidence the rendered shortlist cites for one agent, or "" when it shows none (BARS-v2 A2).
+
+    The one function to point at the evidence format: it reads an `evidence="..."` attribute on the agent's
+    `<agent id="..." .../>` card line.
+    """
+    wanted = f'id="{html.escape(agent_ref, quote=True)}"'
+    for line in _AGENT_LINE.findall(prompt):
+        if wanted in line:
+            match = _EVIDENCE_ATTR.search(line)
+            return html.unescape(match.group(1)) if match else ""
+    return ""
+
+
+def evidence_check(rendered: Rendered, picked: List[str]) -> Optional[bool]:
+    """Whether a picked agent's cited evidence names one of the case's discriminators (A2).
+
+    None when the check does not apply: another category, no discriminators, no pick, or no evidence shown.
+    """
+    terms = [t.lower() for t in rendered.case.get("discriminators") or []]
+    if rendered.case["category"] not in EVIDENCE_CATEGORIES or not terms or not picked:
+        return None
+    prompt = "\n".join([rendered.system, *(str(m.get("content") or "") for m in rendered.messages)])
+    shown = [text.lower() for text in (evidence_for(prompt, ref) for ref in picked) if text]
+    if not shown:
+        return None
+    return any(term in text for text in shown for term in terms)
+
+
+def sample_cases(cases: List[Dict[str, Any]], k: int, seed: int) -> List[Dict[str, Any]]:
+    """A seeded sample of k cases, stratified by category (largest remainder), kept in file order."""
+    k = min(k, len(cases))
+    by_category: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    for case in cases:
+        by_category[case["category"]].append(case)
+    quota = {c: k * len(v) / len(cases) for c, v in by_category.items()}
+    counts = {c: int(q) for c, q in quota.items()}
+    for c in sorted(quota, key=lambda c: (counts[c] - quota[c], c))[: k - sum(counts.values())]:
+        counts[c] += 1
+    rng = random.Random(seed)
+    chosen = {case["case_id"] for c in sorted(by_category) for case in rng.sample(by_category[c], counts[c])}
+    return [case for case in cases if case["case_id"] in chosen]
+
+
+def _shared_client_refusals(refused: Dict[int, Any]) -> int:
+    return sum(refusal.payload.get("reason") == "shared_client" for refusal in refused.values())
+
+
 def _guard_fired(refused: Dict[int, Any]) -> Any:
     """"shared_client" when the v2 send check refused a call, else whether the duplicate guard fired."""
-    if any(refusal.payload.get("reason") == "shared_client" for refusal in refused.values()):
+    if _shared_client_refusals(refused):
         return "shared_client"
     return bool(refused)
 
@@ -583,19 +691,25 @@ def run(config: RunConfig, inner: Optional[Callable[..., Any]] = None) -> Dict[s
     if config.model is None:  # a replay uses the model the committed cassettes were recorded with
         base_url = os.environ.get("OPENPOKE_LLM_BASE_URL")
         config.model = DEFAULT_MODEL if config.mode == "replay" else default_model(base_url)
-    if config.arm == "cards_full" and max(config.sizes) > CARDS_FULL_MAX_SIZE:
-        raise ValueError(f"the cards_full arm is for N <= {CARDS_FULL_MAX_SIZE}")
-    cases = load_cases(split=config.split)
+    if config.arm == "cards_full" and max(config.sizes) > CARDS_FULL_MAX_SIZE and not config.cases_sample:
+        raise ValueError(f"the cards_full arm is for N <= {CARDS_FULL_MAX_SIZE}, or a --cases-sample subset")
+    golden_path, pool_path, roster_seed = SETS[config.case_set]
+    roster_seed = config.seed if roster_seed is None else roster_seed
+    cases = load_cases(golden_path, split=config.split)
     if config.case_ids:
         wanted = set(config.case_ids)
         cases = [c for c in cases if c["case_id"] in wanted]
+    if config.cases_sample:
+        cases = sample_cases(cases, config.cases_sample, config.sample_seed)
     if config.limit:
         cases = cases[: config.limit]
-    pool = load_pool()
+    pool = load_pool(pool_path)
     api_key = os.environ.get("OPENPOKE_LLM_API_KEY") or os.environ.get("OPENROUTER_API_KEY") or ""
     if config.mode != "replay" and not api_key and inner is None:
         raise SystemExit("live and record modes need OPENPOKE_LLM_API_KEY or OPENROUTER_API_KEY")
-    name = config.cassette_name or f"routing_{config.arm}_{_model_slug(config.model)}_k{config.k}"
+    # New recordings always go to a file named for the set and arm, never to round one's files (a replay reads
+    # every file in the directory, since keys are content hashes, so old cassettes still replay).
+    name = config.cassette_name or f"routing_{config.case_set}_{config.arm}_{_model_slug(config.model)}_k{config.k}"
     cassette = Cassette(name, config.mode, config.cassette_dir, inner=inner, max_live_calls=config.max_live_calls)
 
     saved = {key: os.environ.get(key) for key in [*_arm_env(config), "OPENPOKE_DATA_DIR"]}
@@ -606,7 +720,7 @@ def run(config: RunConfig, inner: Optional[Callable[..., Any]] = None) -> Dict[s
     sandbox = Path(tempfile.mkdtemp(prefix="openpoke-eval-"))
     started = time.perf_counter()
     try:
-        rendered = render_all(cases, config.sizes, sandbox, config.seed, config.render_workers)
+        rendered = render_all(cases, config.sizes, sandbox, roster_seed, config.render_workers, pool_path)
         render_s = time.perf_counter() - started
         with cassette.patch():
             records = asyncio.run(_run_all(rendered, config, api_key or "offline", pool))
@@ -637,6 +751,10 @@ def run(config: RunConfig, inner: Optional[Callable[..., Any]] = None) -> Dict[s
         "temperature": config.temperature,
         "seed": config.seed,
         "split": config.split,
+        "set": config.case_set,
+        "roster_seed": roster_seed,
+        "cases_sample": config.cases_sample,
+        "sample_seed": config.sample_seed if config.cases_sample else None,
         "limit": config.limit,
         "case_ids": config.case_ids,
         "mode": config.mode,
@@ -677,8 +795,11 @@ def write_results(document: Dict[str, Any], directory: Path = RESULTS_DIR) -> Pa
     header = document["header"]
     stamp = header["date"][:10].replace("-", "")
     partial = "_partial" if header.get("limit") or header.get("case_ids") else ""
-    path = directory / (f"{stamp}_{header['arm']}_{_model_slug(header['model'])}_k{header['k']}"
-                        f"_{header.get('split', 'report')}{partial}_{header['commit']}.json")
+    case_set = header.get("set", "v1")
+    lead = "" if case_set == "v1" else f"{case_set}_"
+    sample = f"_s{header['cases_sample']}" if header.get("cases_sample") else ""
+    path = directory / (f"{stamp}_{lead}{header['arm']}_{_model_slug(header['model'])}_k{header['k']}"
+                        f"_{header.get('split', 'report')}{sample}{partial}_{header['commit']}.json")
     directory.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(document, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
     return path
@@ -706,6 +827,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--split", choices=["report", "heldout", "all"], default="report")
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--cases", default=None, help="comma-separated case ids")
+    parser.add_argument("--set", dest="case_set", choices=sorted(SETS), default="v1",
+                        help="golden set: v1 (round one) or v2 (the fresh set)")
+    parser.add_argument("--cases-sample", type=int, default=None,
+                        help="run a seeded sample of this many cases, stratified by category")
+    parser.add_argument("--sample-seed", type=int, default=SEED_V2)
     parser.add_argument("--k", type=int, default=8, help="shortlist size (sets OPENPOKE_SHORTLIST_K)")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--seed", type=int, default=SEED)
@@ -732,7 +858,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         split=args.split, limit=args.limit, k=args.k, temperature=args.temperature, seed=args.seed,
         concurrency=args.concurrency, render_workers=args.render_workers, mode=args.mode, cassette_dir=args.cassette_dir,
         max_live_calls=args.max_live_calls, budget_usd=args.budget_usd,
-        case_ids=args.cases.split(",") if args.cases else None,
+        case_ids=args.cases.split(",") if args.cases else None, case_set=args.case_set,
+        cases_sample=args.cases_sample, sample_seed=args.sample_seed,
     )
     try:
         document = run(config)
