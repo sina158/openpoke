@@ -459,6 +459,7 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
     return {
         "case_id": rendered.case["case_id"],
         "category": rendered.case["category"],
+        "template_id": rendered.case["template_id"],
         "split": rendered.case["split"],
         "size": rendered.size,
         "trial": trial,
