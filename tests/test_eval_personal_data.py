@@ -5,7 +5,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCANNED = ["evals/fixtures/*.jsonl", "evals/golden/*.jsonl", "evals/golden/*.md", "evals/cassettes/*.jsonl",
-           "evals/results/*.json", "evals/results/*.md"]
+           "evals/cassettes/heldout/*/*.jsonl", "evals/results/*.json", "evals/results/*.md",
+           "evals/results/heldout/*.json", "evals/results/heldout/*.md"]
 ALLOWED_EMAIL_DOMAINS = ("example.com", "example.ca", "example.org", ".test")
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+)")
 PHONE = re.compile(r"(?<![\w-])\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}(?![\w-])")

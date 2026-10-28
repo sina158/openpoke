@@ -113,3 +113,28 @@ fix_v2_guard on the same cases, paired per case.
 Reported without a bar: sends and turns the guard refused, what the model did in the round after a refusal,
 and clarify recall on ambiguous cases. The what-if found one parallel false block in 13 on round two (a client
 described, not named), so G-iv is the bar most at risk.
+
+### Verdicts (2026-10-28)
+
+Computed by `python -m evals.compare --set v2_heldout --out-dir evals/results/heldout` into
+`evals/results/heldout/RESULTS_v2_heldout.md`, from a replay at 681fc59 of the two held-out runs recorded once,
+live, at adf9263: 0 cassette misses, every graded record equal to the live run's. The two runs were recorded at the
+same time, so each arm made its own first call for every case; each replays from its own cassette directory
+(`evals/cassettes/heldout/<arm>/`), because the two replies to one request differ.
+
+| bar | verdict | measured |
+|---|---|---|
+| G-i | pass | 0 of 104 fix_v2_guard turns on cases whose gold does not call for two clients sent to two (<= 2.9% at 95%); fix_v2 8 of 104 |
+| G-ii | pass | cross-client wrong reuse fix_v2_guard 0 of 84 (<= 3.6% at 95%), fix_v2 5 of 84 |
+| G-iii | pass | fix_v2_guard 88.2% (97/110), fix_v2 82.7% (91/110): +5.5 points; McNemar p = 0.1094, template-clustered 95% of the difference [-2.2%, 14.6%] |
+| G-iv | fail | parallel-gold sends to two clients that matched gold: fix_v2_guard 3 of 6, fix_v2 5 of 6 |
+
+G-iv failed the way the what-if warned: one parallel template (`parallel.v2t1`) describes a client ("the tool store
+in Orangeville") instead of naming it, so the guard refused that client's agent in all three of its cases (two left
+with nothing routed, one partial; fix_v2 had matched two of them). Without a bar: the guard refused 20 sends in 10 of 110 turns; in the round
+after the refusal the model asked the user 6 times and routed nothing new 4 times, and 4 of the 10 turns were graded
+correct. Clarify recall on ambiguous cases: 6 of 10 against fix_v2's 2 of 10 (over-clarify 4 of 100 against 1 of
+100). Most of G-iii's +5.5 points is not the guard: in the 100 turns it refused nothing, 6 were graded differently
+(5 right only with the guard, 0 only without), from each arm's own reply to the same first call; the turns it
+refused net +1 case. The flag stays off by default. Detail and the non-blind round-two row: `RESULTS_v2.md`,
+"Client guard".

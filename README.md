@@ -17,7 +17,7 @@ kept unchanged below.
    <!-- n:lifecycle:arms.fix_v2.summary.live_end -->23<!-- /n --> and +<!-- n:lifecycle:arms.fix_v2.summary.prompt_tokens_slope_per_day -->32<!-- /n --> a day, an interval that includes 0. [What I built](#what-i-built)
 2. **Test cases and evaluators.** A <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.pairs -->110<!-- /n -->-case set written blind and locked by
    hash, gold labels from the generator, graded in code; a routing eval, a <!-- n:v2:injection.attacks -->46<!-- /n -->-attack injection suite, a
-   30-day lifecycle simulation, a scripted demo, 433 offline tests (the count `pytest --collect-only` prints, the 15
+   30-day lifecycle simulation, a scripted demo, 437 offline tests (the count `pytest --collect-only` prints, the 20
    marked slow excluded). Every model call is recorded, so every number replays offline.
    [Tests and evaluators](#tests-and-evaluators)
 3. **How it was judged.** Bars were committed before any run and kept when they failed. Passed: fix v2 beats fix v1
@@ -84,7 +84,7 @@ agents to find out is guessing. The baseline arm is the upstream routing. Reason
 - **Evaluators.** `evals/run_routing.py` grades each case into one outcome in code; `evals/compare.py` adds Wilson and
   template-clustered intervals and paired McNemar tests; `evals/run_injection.py`, `run_lifecycle.py` and
   `demo_conversation.py` run the attacks, the month and the demo.
-- **Unit tests.** 433, offline (`make test`): the count `pytest --collect-only` prints, which leaves out the 15 tests
+- **Unit tests.** 437, offline (`make test`): the count `pytest --collect-only` prints, which leaves out the 20 tests
   marked slow (full cassette replays, `pytest -m slow`). Read first: `test_send_gate.py` and `test_approvals.py` (the
   code), `test_shared_client_check.py` (c1), `test_registry.py`, `test_baseline_replay.py` and
   `test_v1_profile_replays.py` (the baseline and round one replay byte for byte), `test_every_llm_call_is_ledgered.py`.
@@ -128,8 +128,12 @@ almost two calls a turn, so a turn sends <!-- n:v2:bars.prompt_token_ratio_n500 
 v2 sends <!-- n:v2:report.by_key.fix_v2_deepseek-v4-pro_k8_n500.prompt_tokens.mean -->5,943<!-- /n --> tokens a turn against <!-- n:v2:report.by_key.baseline_deepseek-v4-pro_k8_n500.prompt_tokens.mean -->9,720<!-- /n -->, and over the simulated
 month <!-- n:lifecycle:arms.fix_v2.summary.prompt_tokens_per_turn -->20,110<!-- /n --> against <!-- n:lifecycle:arms.baseline.summary.prompt_tokens_per_turn -->30,366<!-- /n -->.
 
-<!-- TBD-LEAD: N5000 -->
-**N=5,000.** The demonstration row at 5,000 agents (baseline and fix v2, 30 cases, one trial) goes here once it has run.
+**N=5,000.** On <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5000_s30.accuracy.n -->30<!-- /n --> sampled cases at 5,000 agents (one trial, B5's demonstration row) fix v2 sends
+<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5000_s30.prompt_tokens.mean -->11,215<!-- /n --> prompt tokens a turn against the baseline's <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n5000_s30.prompt_tokens.mean -->72,091<!-- /n -->, <!-- n:v2:bars.prompt_token_ratio_n5000 -->15.6%<!-- /n --> (that part of B5 asks for at most
+25%; B5 still fails at N=500), and routes <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5000_s30.accuracy.k -->23<!-- /n --> correctly (<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5000_s30.accuracy.rate -->76.7%<!-- /n -->, Wilson [<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5000_s30.accuracy.ci95.0 -->59.1%<!-- /n -->, <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5000_s30.accuracy.ci95.1 -->88.2%<!-- /n -->]) against
+<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n5000_s30.accuracy.k -->14<!-- /n --> (<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n5000_s30.accuracy.rate -->46.7%<!-- /n -->, [<!-- n:v2:report.by_key.baseline_minimax-m3_k8_n5000_s30.accuracy.ci95.0 -->30.2%<!-- /n -->, <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n5000_s30.accuracy.ci95.1 -->63.9%<!-- /n -->]); paired, McNemar p = <!-- n:v2:report.paired_by_key.fix_v2_vs_baseline_minimax-m3_k8_n5000_s30.mcnemar_p -->0.0117<!-- /n -->. Its turns are slower: p50
+<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5000_s30.latency_ms.p50 -->28,759<!-- /n --> ms against <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n5000_s30.latency_ms.p50 -->9,162<!-- /n --> ms, with <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5000_s30.llm_calls.mean -->2.07<!-- /n --> model calls a turn against <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n5000_s30.llm_calls.mean -->1.17<!-- /n -->; one fix v2 turn hit the
+tool-iteration limit and counts as wrong ([RESULTS_v2.md](evals/results/RESULTS_v2.md)).
 
 ### Bars ([BARS-v2.md](evals/BARS-v2.md)); for each failure, why and the next step in code
 
@@ -150,9 +154,24 @@ month <!-- n:lifecycle:arms.fix_v2.summary.prompt_tokens_per_turn -->20,110<!-- 
 | A1 evidence snippets: no accuracy loss, tokens <= +10% | **fail** | <!-- n:v2:report.paired_by_key.fix_v2_evidence_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->0.0%<!-- /n -->; <!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.prompt_tokens.mean -->11,456<!-- /n --> vs <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.prompt_tokens.mean -->10,198<!-- /n --> tokens | The eval's logs hold two entries, both on the card, so it tests duplication; the flag stays off. A2 passes as registered (<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.registered.k -->18<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.registered.n -->34<!-- /n -->) and as corrected, post hoc (<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.corrected.k -->18<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.corrected.n -->18<!-- /n -->). |
 | L1-L6 lifecycle; D1 demo | pass; replay pass, cells **fail** | below | L2 is post hoc; the demo's misses are below. |
 
-<!-- TBD-LEAD: CLIENT-GUARD -->
-**Client guard (v2.1).** The deterministic client guard for B2a and B2b, measured on a new seed set with its bar
-written first, is reported here once it has run.
+**Client guard (v2.1).** An opt-in check (`OPENPOKE_CLIENT_GUARD=1`, off by default) refuses a send to an existing
+agent whose client the message does not name, when the message names another client or the turn reaches two
+(`unnamed_client_conflict`, `server/agents/interaction_agent/tools.py`). Its bars (BARS-v2 B2-guard) were committed
+before any guard run and are judged on a held-out set drawn from a new seed, which the guard was not designed on:
+N=500, one trial, against fix v2 on the same <!-- n:heldout:report.paired_by_key.fix_v2_guard_vs_fix_v2_minimax-m3_k8_n500.pairs -->110<!-- /n --> cases
+([RESULTS_v2_heldout.md](evals/results/heldout/RESULTS_v2_heldout.md)).
+
+| bar | verdict | measured | why; next step |
+|---|---|---|---|
+| G-i no turn sends to two clients (parallel cases left out) | <!-- n:heldout:verdicts.0.verdict -->pass<!-- /n --> | <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.multi_client_send.k -->0<!-- /n --> of <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.multi_client_send.n -->104<!-- /n --> (<= <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.multi_client_send.upper95 -->2.9%<!-- /n --> at 95%); fix v2 <!-- n:heldout:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.k -->8<!-- /n --> | |
+| G-ii cross-client wrong reuse <= fix v2's and <= 2% | <!-- n:heldout:verdicts.1.verdict -->pass<!-- /n --> | <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.cross_client.wrong_reuse -->0<!-- /n --> of <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.cross_client.wrong_reuse_n -->84<!-- /n --> (<= <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.cross_client.wrong_reuse_upper95 -->3.6%<!-- /n -->); fix v2 <!-- n:heldout:report.by_key.fix_v2_minimax-m3_k8_n500.cross_client.wrong_reuse -->5<!-- /n --> | |
+| G-iii accuracy at most 3 points below fix v2's | <!-- n:heldout:verdicts.2.verdict -->pass<!-- /n --> | <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.accuracy.rate -->88.2%<!-- /n --> against <!-- n:heldout:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.rate -->82.7%<!-- /n -->, McNemar p = <!-- n:heldout:report.paired_by_key.fix_v2_guard_vs_fix_v2_minimax-m3_k8_n500.mcnemar_p -->0.1094<!-- /n --> | Not all of it is the guard: each run drew its own reply to the same first call, and of the cases only one arm got right (<!-- n:heldout:report.paired_by_key.fix_v2_guard_vs_fix_v2_minimax-m3_k8_n500.b -->2<!-- /n --> fix v2's, <!-- n:heldout:report.paired_by_key.fix_v2_guard_vs_fix_v2_minimax-m3_k8_n500.c -->8<!-- /n --> the guard's), 5 are turns the guard did not touch. |
+| G-iv parallel cases still matched | **<!-- n:heldout:verdicts.3.verdict -->fail<!-- /n -->** | <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.multi_client_send.parallel_gold.matched_gold -->3<!-- /n --> of <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.multi_client_send.parallel_gold.n -->6<!-- /n -->; fix v2 <!-- n:heldout:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.parallel_gold.matched_gold -->5<!-- /n --> | One parallel template describes a client ("the tool store in Orangeville") instead of naming it, and the guard refuses that client's agent, as the what-if warned. Next: count a description that fits one client's cards as naming it, then measure on a new set. |
+
+The guard refused <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.client_guard.sends -->20<!-- /n --> sends in <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.client_guard.turns -->10<!-- /n --> of <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.client_guard.n -->110<!-- /n --> turns; in the round after, the model asked the user <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.client_guard.outcomes.clarified -->6<!-- /n --> times, and clarify
+recall on ambiguous cases went from <!-- n:heldout:report.by_key.fix_v2_minimax-m3_k8_n500.clarify_recall.k -->2<!-- /n --> to <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.clarify_recall.k -->6<!-- /n --> of <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.clarify_recall.n -->10<!-- /n --> (over-clarify <!-- n:heldout:report.by_key.fix_v2_minimax-m3_k8_n500.over_clarify.k -->1<!-- /n --> to <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.over_clarify.k -->4<!-- /n --> of <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.over_clarify.n -->100<!-- /n -->). On the round-two set, which it was
+designed on (non-blind, not a verdict), it sent to two clients in <!-- n:v2:report.by_key.fix_v2_guard_minimax-m3_k8_n500.multi_client_send.k -->0<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_guard_minimax-m3_k8_n500.multi_client_send.n -->104<!-- /n --> turns, and paired with fix v2's first
+trial it was right on +<!-- n:v2:report.paired_by_key.fix_v2_guard_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->2.7%<!-- /n --> more cases (p = <!-- n:v2:report.paired_by_key.fix_v2_guard_vs_fix_v2_minimax-m3_k8_n500.mcnemar_p -->0.3750<!-- /n -->). It stays opt-in.
 
 ### 30-day lifecycle simulation ([LIFECYCLE.md](evals/results/LIFECYCLE.md))
 

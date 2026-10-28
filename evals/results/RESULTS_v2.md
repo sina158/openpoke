@@ -20,9 +20,12 @@ Set `v2`: 58 of 94 non-create report cases have a gold target idle more than 30 
 | minimax-m3 | 500 | fix_v1 | 8 | 330 | 19 | 71.2% [66.1%, 75.8%] (235/330) | [55.8%, 84.9%] | 19.4% [15.0%, 24.8%] (49/252) | 41 (13 cross-client) | 8 (3 cross-client) | 16 / 3 / 0 | 0.0% [0.0%, 1.5%] (0/252) | 75.0% [61.2%, 85.1%] (36/48) | 12/48 | - / 0.0% | 0.0% [0.0%, 1.3%] (0/300) | 9944 / 18180 | 12225 / 23477 | 0.2166 |
 | minimax-m3 | 500 | fix_v2 | 8 | 330 | 19 | 83.0% [78.6%, 86.7%] (274/330) | [68.1%, 94.7%] | 6.3% [3.9%, 10.1%] (16/252) | 11 (11 cross-client) | 5 (0 cross-client) | 11 / 0 / 1 | 0.0% [0.0%, 1.5%] (0/252) | 97.9% [89.1%, 99.6%] (47/48) | 1/48 | 25.0% / 6.7% | 1.7% [0.7%, 3.8%] (5/300) | 10198 / 18558 | 12065 / 26202 | 0.2243 |
 | minimax-m3 | 500 | fix_v2_evidence | 8 | 110 | 19 | 83.6% [75.6%, 89.4%] (92/110) | [70.3%, 94.0%] | 3.6% [1.2%, 10.0%] (3/84) | 1 (1 cross-client) | 2 (0 cross-client) | 1 / 0 / 0 | 1.2% [0.2%, 6.4%] (1/84) | 93.8% [71.7%, 98.9%] (15/16) | 1/16 | 50.0% / 10.0% | 1.0% [0.2%, 5.4%] (1/100) | 11456 / 18844 | 10559 / 18022 | 0.2597 |
+| minimax-m3 | 500 | fix_v2_guard | 8 | 110 | 19 | 88.2% [80.8%, 93.0%] (97/110) | [76.4%, 96.4%] | 1.2% [0.2%, 6.4%] (1/84) | 0 (0 cross-client) | 1 (0 cross-client) | 0 (<= 3.6%) / 0 / 0 | 0.0% [0.0%, 4.4%] (0/84) | 93.8% [71.7%, 98.9%] (15/16) | 1/16 | 50.0% / 30.0% | 2.0% [0.6%, 7.0%] (2/100) | 10828 / 19165 | 13171 / 29226 | 0.2684 |
 | minimax-m3 | 500 | fix_v2_no_c1 | 8 | 110 | 19 | 85.5% [77.7%, 90.8%] (94/110) | [72.2%, 95.6%] | 6.0% [2.6%, 13.2%] (5/84) | 5 (3 cross-client) | 0 (0 cross-client) | 3 / 0 / 1 | 0.0% [0.0%, 4.4%] (0/84) | 93.8% [71.7%, 98.9%] (15/16) | 1/16 | 100.0% / 10.0% | 0.0% [0.0%, 3.7%] (0/100) | 10208 / 19165 | 12186 / 24133 | 0.2511 |
 | minimax-m3 | 500 | fix_v2_no_c3 | 8 | 110 | 19 | 77.3% [68.6%, 84.1%] (85/110) | [61.9%, 90.4%] | 10.7% [5.7%, 19.1%] (9/84) | 5 (5 cross-client) | 4 (0 cross-client) | 5 / 1 / 0 | 0.0% [0.0%, 4.4%] (0/84) | 75.0% [50.5%, 89.8%] (12/16) | 4/16 | 0.0% / 0.0% | 1.0% [0.2%, 5.4%] (1/100) | 11478 / 25083 | 14884 / 31294 | 0.2645 |
 | minimax-m3 | 500 | fix_v2_no_c4 | 8 | 110 | 19 | 81.8% [73.6%, 87.9%] (90/110) | [64.8%, 95.3%] | 11.9% [6.6%, 20.5%] (10/84) | 7 (7 cross-client) | 3 (0 cross-client) | 7 / 1 / 0 | 0.0% [0.0%, 4.4%] (0/84) | 93.8% [71.7%, 98.9%] (15/16) | 1/16 | 33.3% / 10.0% | 0.0% [0.0%, 3.7%] (0/100) | 9937 / 18118 | 10750 / 24144 | 0.2607 |
+| minimax-m3 | 5000 (30 cases, demonstration) | baseline | 8 | 30 | 16 | 46.7% [30.2%, 63.9%] (14/30) | [24.2%, 69.0%] | 26.1% [12.5%, 46.5%] (6/23) | 4 (1 cross-client) | 2 (2 cross-client) | 3 / 1 / 1 | 21.7% [9.7%, 41.9%] (5/23) | 50.0% [15.0%, 85.0%] (2/4) | 2/4 | - / 0.0% | 0.0% [0.0%, 12.5%] (0/27) | 72091 / 123920 | 9162 / 16908 | 1.9915 |
+| minimax-m3 | 5000 (30 cases, demonstration) | fix_v2 | 8 | 30 | 16 | 76.7% [59.1%, 88.2%] (23/30) | [53.6%, 96.2%] | 8.7% [2.4%, 26.8%] (2/23) | 1 (1 cross-client) | 1 (1 cross-client) | 2 / 0 / 0 | 0.0% [0.0%, 14.3%] (0/23) | 75.0% [30.1%, 95.4%] (3/4) | 1/4 | 100.0% / 33.3% | 0.0% [0.0%, 12.5%] (0/27) | 11215 / 27661 | 28759 / 73652 | 0.2802 |
 
 Spray: the gold agent was messaged and so was another one. Wrong only: the gold agent was not messaged at all.
 
@@ -38,9 +41,13 @@ Spray: the gold agent was messaged and so was another one. Wrong only: the gold 
 | minimax-m3 | 50 | fix_v2 | baseline | 8 | 110 | 19 | 40.0% | [22.7%, 60.3%] | 2 | 46 | 0.0000 |
 | minimax-m3 | 500 | fix_v2 | baseline | 8 | 110 | 19 | 34.5% | [15.9%, 56.9%] | 2 | 40 | 0.0000 |
 | minimax-m3 | 500 | fix_v2 | fix_v1 | 8 | 110 | 19 | 10.0% | [1.9%, 18.8%] | 1 | 12 | 0.0034 |
+| minimax-m3 | 5000 (30 cases, demonstration) | fix_v2 | baseline | 8 | 30 | 16 | 30.0% | [11.1%, 53.1%] | 1 | 10 | 0.0117 |
 | minimax-m3 | 500 | fix_v2_evidence | baseline | 8 | 110 | 19 | 34.5% | [15.6%, 57.5%] | 4 | 42 | 0.0000 |
 | minimax-m3 | 500 | fix_v2_evidence | fix_v1 | 8 | 110 | 19 | 10.0% | [3.6%, 17.1%] | 2 | 13 | 0.0074 |
 | minimax-m3 | 500 | fix_v2_evidence | fix_v2 | 8 | 110 | 19 | 0.0% | [-3.4%, 3.7%] | 5 | 5 | 1.0000 |
+| minimax-m3 | 500 | fix_v2_guard | baseline | 8 | 110 | 19 | 39.1% | [19.8%, 62.1%] | 3 | 46 | 0.0000 |
+| minimax-m3 | 500 | fix_v2_guard | fix_v1 | 8 | 110 | 19 | 14.5% | [4.7%, 25.0%] | 1 | 17 | 0.0001 |
+| minimax-m3 | 500 | fix_v2_guard | fix_v2 | 8 | 110 | 19 | 2.7% | [-1.9%, 8.1%] | 1 | 4 | 0.3750 |
 | minimax-m3 | 500 | fix_v2_no_c1 | baseline | 8 | 110 | 19 | 36.4% | [18.6%, 58.5%] | 3 | 43 | 0.0000 |
 | minimax-m3 | 500 | fix_v2_no_c1 | fix_v1 | 8 | 110 | 19 | 11.8% | [4.5%, 20.0%] | 1 | 14 | 0.0010 |
 | minimax-m3 | 500 | fix_v2_no_c1 | fix_v2 | 8 | 110 | 19 | 0.0% | [0.0%, 0.0%] | 0 | 0 | 1.0000 |
@@ -63,7 +70,7 @@ fix_v2 on minimax-m3 at N=500 unless the bar says otherwise.
 | B3 | pass | hijack fix_v2 1/48, fix_v1 12/48 |
 | B7 | pass | duplicates fix_v2 0, fix_v1 0 (of 252 should-reuse case-trials each) |
 | B4 | fail | clarify recall 6.7% [1.8%, 21.3%] (2/30), over-clarify 1.7% [0.7%, 3.8%] (5/300) |
-| B5 | fail | tokens/turn 103.0% of baseline; search_agents 1.08/turn; p50 12065 ms vs baseline 8509 ms; N=5,000: pending tier 3 |
+| B5 | fail | tokens/turn 103.0% of baseline; search_agents 1.08/turn; p50 12065 ms vs baseline 8509 ms; N=5,000: 15.6% of baseline |
 | B6 | pass | N=5: fix_v2 87.3% (96/110), baseline 34.5% (38/110), fix_v1 74.5% (82/110) |
 | B8 | pass | 0 unauthorised sends in 46 attacks at this commit; the send check's negative control is a test (tests/test_shared_client_check.py) |
 | B9 | pass | accuracy fix_v2 - fix_v1: minimax-m3 10.0%, deepseek-v4-pro 1.8% (McNemar p = 0.7539); cross-client wrong reuse fix_v1 -> fix_v2: minimax-m3 16/252 -> 11/252, deepseek-v4-pro 1/84 -> 0/84. deepseek-v4-pro ran 1 trial per arm: trials 2 and 3 were cut for quota (registered: 3) |
@@ -73,6 +80,15 @@ fix_v2 on minimax-m3 at N=500 unless the bar says otherwise.
 | A1 | fail | paired delta 0.0% (McNemar p = 1.0000); tokens/turn 112.3% of fix_v2 |
 | A2 (as registered) | pass | 52.9% [36.7%, 68.5%] (18/34) |
 | A2 (corrected) | pass | 100.0% [82.4%, 100.0%] (18/18) |
+| Client guard on this set (non-blind) | not a verdict (non-blind) | fix_v2_guard, 1 trial: 88.2% (97/110); paired with fix_v2 trial 1: 2.7% [-1.9%, 8.1%], McNemar p = 0.3750; two-client turns 0/104; cross-client wrong reuse 0/84; parallel gold matched 4/6; the guard refused 14 sends in 7 turns |
+
+### Client guard (report split)
+
+Turns where the guard refused at least one send; what the model did in the round after the refusal, and the cell the turn was graded. Reported without a bar, with clarify recall on ambiguous cases.
+
+| model | N | arm | turns refused | sends refused | turns left with nothing routed | next round | graded | correct | clarify recall |
+|---|---|---|---|---|---|---|---|---|---|
+| minimax-m3 | 500 | fix_v2_guard | 7 of 110 | 14 | 0 | clarified 4, no_route 1, reused_suggested 2 | correct_clarify 2, correct_reuse 2, over_clarify 1, partial 1, wrong_guess 1 | 4 | 30.0% [10.8%, 60.3%] (3/10) |
 
 ### LLM calls and prompt tokens per turn (report split)
 
@@ -90,9 +106,12 @@ fix_v2 on minimax-m3 at N=500 unless the bar says otherwise.
 | minimax-m3 | 500 | fix_v1 | 8 | 1.86 | 1.21 | 9944 | 5197 |
 | minimax-m3 | 500 | fix_v2 | 8 | 1.88 | 1.08 | 10198 | 5255 |
 | minimax-m3 | 500 | fix_v2_evidence | 8 | 1.96 | 1.21 | 11456 | 5586 |
+| minimax-m3 | 500 | fix_v2_guard | 8 | 1.96 | 1.05 | 10828 | 5324 |
 | minimax-m3 | 500 | fix_v2_no_c1 | 8 | 1.88 | 1.05 | 10208 | 5267 |
 | minimax-m3 | 500 | fix_v2_no_c3 | 8 | 2.05 | 1.41 | 11478 | 5307 |
 | minimax-m3 | 500 | fix_v2_no_c4 | 8 | 1.84 | 1.01 | 9937 | 5244 |
+| minimax-m3 | 5000 | baseline | 8 | 1.17 | 0.00 | 72091 | 61768 |
+| minimax-m3 | 5000 | fix_v2 | 8 | 2.07 | 1.87 | 11215 | 5198 |
 
 Prompt tokens, minimax-m3 fix_v2 / baseline at N=500: 103.0% per turn, 58.5% per LLM call (BARS-v2 B5: <= 75% per turn).
 
@@ -112,9 +131,12 @@ Prompt tokens, minimax-m3 fix_v2 / baseline at N=500: 103.0% per turn, 58.5% per
 | minimax-m3 | 500 | fix_v1 | 8 | 69.0% (29/42; 2 tpl) | 100.0% (36/36; 2 tpl) | 64.3% (27/42; 2 tpl) | 75.0% (27/36; 2 tpl) | 90.7% (49/54; 3 tpl) | 75.0% (36/48; 2 tpl) | 0.0% (0/30; 2 tpl) | 83.3% (15/18; 2 tpl) | 66.7% (16/24; 2 tpl) | 80.6% [75.4%, 85.0%] (208/258) |
 | minimax-m3 | 500 | fix_v2 | 8 | 90.5% (38/42; 2 tpl) | 100.0% (36/36; 2 tpl) | 69.0% (29/42; 2 tpl) | 100.0% (36/36; 2 tpl) | 100.0% (54/54; 3 tpl) | 97.9% (47/48; 2 tpl) | 6.7% (2/30; 2 tpl) | 72.2% (13/18; 2 tpl) | 79.2% (19/24; 2 tpl) | 94.2% [90.6%, 96.4%] (243/258) |
 | minimax-m3 | 500 | fix_v2_evidence | 8 | 85.7% (12/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 78.6% (11/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 100.0% (18/18; 3 tpl) | 93.8% (15/16; 2 tpl) | 10.0% (1/10; 2 tpl) | 83.3% (5/6; 2 tpl) | 75.0% (6/8; 2 tpl) | 93.0% [85.6%, 96.8%] (80/86) |
+| minimax-m3 | 500 | fix_v2_guard | 8 | 92.9% (13/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 92.9% (13/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 100.0% (18/18; 3 tpl) | 93.8% (15/16; 2 tpl) | 30.0% (3/10; 2 tpl) | 66.7% (4/6; 2 tpl) | 87.5% (7/8; 2 tpl) | 94.2% [87.1%, 97.5%] (81/86) |
 | minimax-m3 | 500 | fix_v2_no_c1 | 8 | 92.9% (13/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 78.6% (11/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 100.0% (18/18; 3 tpl) | 93.8% (15/16; 2 tpl) | 10.0% (1/10; 2 tpl) | 83.3% (5/6; 2 tpl) | 87.5% (7/8; 2 tpl) | 95.3% [88.6%, 98.2%] (82/86) |
 | minimax-m3 | 500 | fix_v2_no_c3 | 8 | 85.7% (12/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 64.3% (9/14; 2 tpl) | 91.7% (11/12; 2 tpl) | 100.0% (18/18; 3 tpl) | 75.0% (12/16; 2 tpl) | 0.0% (0/10; 2 tpl) | 83.3% (5/6; 2 tpl) | 75.0% (6/8; 2 tpl) | 88.4% [79.9%, 93.6%] (76/86) |
 | minimax-m3 | 500 | fix_v2_no_c4 | 8 | 85.7% (12/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 50.0% (7/14; 2 tpl) | 100.0% (12/12; 2 tpl) | 100.0% (18/18; 3 tpl) | 93.8% (15/16; 2 tpl) | 10.0% (1/10; 2 tpl) | 100.0% (6/6; 2 tpl) | 87.5% (7/8; 2 tpl) | 95.3% [88.6%, 98.2%] (82/86) |
+| minimax-m3 | 5000 | baseline | 8 | 75.0% (3/4; 2 tpl) | 0.0% (0/3; 2 tpl) | 0.0% (0/4; 2 tpl) | 100.0% (3/3; 1 tpl) | 60.0% (3/5; 3 tpl) | 50.0% (2/4; 2 tpl) | 0.0% (0/3; 2 tpl) | 50.0% (1/2; 1 tpl) | 100.0% (2/2; 1 tpl) | 60.9% [40.8%, 77.8%] (14/23) |
+| minimax-m3 | 5000 | fix_v2 | 8 | 100.0% (4/4; 2 tpl) | 100.0% (3/3; 2 tpl) | 25.0% (1/4; 2 tpl) | 100.0% (3/3; 1 tpl) | 100.0% (5/5; 3 tpl) | 75.0% (3/4; 2 tpl) | 33.3% (1/3; 2 tpl) | 50.0% (1/2; 1 tpl) | 100.0% (2/2; 1 tpl) | 91.3% [73.2%, 97.6%] (21/23) |
 
 ### Duplicate guard (report split)
 
@@ -128,9 +150,11 @@ Prompt tokens, minimax-m3 fix_v2 / baseline at N=500: 103.0% per turn, 58.5% per
 | minimax-m3 | 500 | fix_v1 | 15 | 11 | confirmed_new 15 |
 | minimax-m3 | 500 | fix_v2 | 34 | 26 | clarified 3, confirmed_new 25, reused_suggested 6 |
 | minimax-m3 | 500 | fix_v2_evidence | 9 | 8 | clarified 1, confirmed_new 7, reused_suggested 1 |
+| minimax-m3 | 500 | fix_v2_guard | 19 | 13 | clarified 5, confirmed_new 10, no_route 1, reused_suggested 3 |
 | minimax-m3 | 500 | fix_v2_no_c1 | 10 | 9 | confirmed_new 10 |
 | minimax-m3 | 500 | fix_v2_no_c3 | 6 | 5 | confirmed_new 4, reused_suggested 2 |
 | minimax-m3 | 500 | fix_v2_no_c4 | 13 | 10 | confirmed_new 7, reused_suggested 6 |
+| minimax-m3 | 5000 | fix_v2 | 2 | 2 | confirmed_new 2 |
 
 ### Accuracy by gold target status (report split)
 
@@ -150,9 +174,12 @@ Idle: a gold target last active more than 30 days before the case's clock; the s
 | minimax-m3 | 500 | fix_v1 | 64.4% [57.0%, 71.1%] (112/174) | 80.6% [72.1%, 86.9%] (87/108) |
 | minimax-m3 | 500 | fix_v2 | 73.0% [65.9%, 79.0%] (127/174) | 92.6% [86.1%, 96.2%] (100/108) |
 | minimax-m3 | 500 | fix_v2_evidence | 74.1% [61.6%, 83.7%] (43/58) | 94.4% [81.9%, 98.5%] (34/36) |
+| minimax-m3 | 500 | fix_v2_guard | 82.8% [71.1%, 90.4%] (48/58) | 94.4% [81.9%, 98.5%] (34/36) |
 | minimax-m3 | 500 | fix_v2_no_c1 | 77.6% [65.3%, 86.4%] (45/58) | 94.4% [81.9%, 98.5%] (34/36) |
 | minimax-m3 | 500 | fix_v2_no_c3 | 72.4% [59.8%, 82.2%] (42/58) | 86.1% [71.3%, 93.9%] (31/36) |
 | minimax-m3 | 500 | fix_v2_no_c4 | 74.1% [61.6%, 83.7%] (43/58) | 88.9% [74.7%, 95.6%] (32/36) |
+| minimax-m3 | 5000 (30 cases, demonstration) | baseline | 31.2% [14.2%, 55.6%] (5/16) | 70.0% [39.7%, 89.2%] (7/10) |
+| minimax-m3 | 5000 (30 cases, demonstration) | fix_v2 | 75.0% [50.5%, 89.8%] (12/16) | 80.0% [49.0%, 94.3%] (8/10) |
 
 ### Bars inputs, round two (report split)
 
@@ -174,9 +201,12 @@ Multi-client sends (B2a): turns whose sends, over every round, reached agents of
 | minimax-m3 | 500 | fix_v1 | 2728 | 0 | 0 | 28 | 6.4% [4.2%, 9.7%] (20/312); parallel gold 15/18 (15 matched gold) | 12 | 0.0% [0.0%, 3.6%] (0/102) | 0.0% [0.0%, 7.3%] (0/49) |
 | minimax-m3 | 500 | fix_v2 | 2742 | 0 | 18 | 0 | 6.1% [3.9%, 9.3%] (19/312); parallel gold 13/18 (13 matched gold) | 1 | 0.0% [0.0%, 3.6%] (0/102) | 0.0% [0.0%, 6.6%] (0/54) |
 | minimax-m3 | 500 | fix_v2_evidence | 3908 | 0 | 4 | 0 | 3.8% [1.5%, 9.5%] (4/104); parallel gold 5/6 (5 matched gold) | 1 | 52.9% [36.7%, 68.5%] (18/34) | 100.0% [82.4%, 100.0%] (18/18) |
+| minimax-m3 | 500 | fix_v2_guard | 4276 | 0 | 4 | 0 | 0 (<= 2.9%); parallel gold 4/6 (4 matched gold) | 1 | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 17.6%] (0/18) |
 | minimax-m3 | 500 | fix_v2_no_c1 | 3807 | 0 | 0 | 2 | 5.8% [2.7%, 12.0%] (6/104); parallel gold 5/6 (5 matched gold) | 1 | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 17.6%] (0/18) |
 | minimax-m3 | 500 | fix_v2_no_c3 | 4012 | 0 | 4 | 0 | 6.7% [3.3%, 13.2%] (7/104); parallel gold 5/6 (5 matched gold) | 4 | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 17.6%] (0/18) |
 | minimax-m3 | 500 | fix_v2_no_c4 | 4437 | 0 | 12 | 0 | 9.6% [5.3%, 16.8%] (10/104); parallel gold 6/6 (6 matched gold) | 1 | 0.0% [0.0%, 10.2%] (0/34) | 0.0% [0.0%, 17.6%] (0/18) |
+| minimax-m3 | 5000 (30 cases, demonstration) | baseline | 61272 | 0 | 0 | 4 | 14.3% [5.7%, 31.5%] (4/28); parallel gold 1/2 (1 matched gold) | 2 | 0.0% [0.0%, 29.9%] (0/9) | 0.0% [0.0%, 56.2%] (0/3) |
+| minimax-m3 | 5000 (30 cases, demonstration) | fix_v2 | 4549 | 0 | 0 | 0 | 7.1% [2.0%, 22.6%] (2/28); parallel gold 1/2 (1 matched gold) | 1 | 0.0% [0.0%, 29.9%] (0/9) | 0.0% [0.0%, 43.4%] (0/5) |
 
 B2a, fix_v2 at N=500: 19 of 312 turns on cases whose gold does not call for two clients sent to two or more: fail.
 
@@ -192,9 +222,11 @@ B2a, fix_v2 at N=500: 19 of 312 turns on cases whose gold does not call for two 
 | minimax-m3 | 500 | fix_v1 | 64.4% [57.0%, 71.1%] (112/174) | 80.6% [72.1%, 86.9%] (87/108) | 149 |
 | minimax-m3 | 500 | fix_v2 | 73.0% [65.9%, 79.0%] (127/174) | 92.6% [86.1%, 96.2%] (100/108) | 121 |
 | minimax-m3 | 500 | fix_v2_evidence | 74.1% [61.6%, 83.7%] (43/58) | 94.4% [81.9%, 98.5%] (34/36) | 37 |
+| minimax-m3 | 500 | fix_v2_guard | 82.8% [71.1%, 90.4%] (48/58) | 94.4% [81.9%, 98.5%] (34/36) | 38 |
 | minimax-m3 | 500 | fix_v2_no_c1 | 77.6% [65.3%, 86.4%] (45/58) | 94.4% [81.9%, 98.5%] (34/36) | 38 |
 | minimax-m3 | 500 | fix_v2_no_c3 | 72.4% [59.8%, 82.2%] (42/58) | 86.1% [71.3%, 93.9%] (31/36) | 52 |
 | minimax-m3 | 500 | fix_v2_no_c4 | 74.1% [61.6%, 83.7%] (43/58) | 88.9% [74.7%, 95.6%] (32/36) | 40 |
+| minimax-m3 | 5000 | fix_v2 | 75.0% [50.5%, 89.8%] (12/16) | 80.0% [49.0%, 94.3%] (8/10) | 11 |
 
 Note: baseline at N=500: 0 of 10 no-route turns asked the user a question instead; they are still counted as wrong.
 
@@ -214,19 +246,22 @@ Note: baseline at N=500: 0 of 10 no-route turns asked the user a question instea
 
 - `20261028_v2_baseline_deepseek-v4-pro_k8_report_n500_t1_262fe0b.json` (2026-10-28T17:31:38Z, commit 262fe0b)
 - `20261028_v2_baseline_minimax-m3_k8_report_n5-50_t1_88f9fd2.json` (2026-10-28T16:59:16Z, commit 88f9fd2)
+- `20261028_v2_baseline_minimax-m3_k8_report_n5000_t1_s30_681fc59.json` (2026-10-28T21:31:30Z, commit 681fc59)
 - `20261028_v2_baseline_minimax-m3_k8_report_n500_t3_67ce14f.json` (2026-10-28T16:53:33Z, commit 67ce14f)
 - `20261028_v2_fix_v1_deepseek-v4-pro_k8_report_n500_t1_912142a.json` (2026-10-28T17:21:58Z, commit 912142a)
 - `20261028_v2_fix_v1_minimax-m3_k8_report_n500_t3_88f9fd2.json` (2026-10-28T16:56:18Z, commit 88f9fd2)
 - `20261028_v2_fix_v1_minimax-m3_k8_report_n5_t1_88f9fd2.json` (2026-10-28T16:59:43Z, commit 88f9fd2)
 - `20261028_v2_fix_v2_deepseek-v4-pro_k8_report_n500_t1_912142a.json` (2026-10-28T17:23:49Z, commit 912142a)
 - `20261028_v2_fix_v2_evidence_minimax-m3_k8_report_n500_t1_88f9fd2.json` (2026-10-28T17:01:47Z, commit 88f9fd2)
+- `20261028_v2_fix_v2_guard_minimax-m3_k8_report_n500_t1_681fc59.json` (2026-10-28T21:22:31Z, commit 681fc59)
 - `20261028_v2_fix_v2_minimax-m3_k8_report_n5-50_t1_88f9fd2.json` (2026-10-28T16:59:35Z, commit 88f9fd2)
+- `20261028_v2_fix_v2_minimax-m3_k8_report_n5000_t1_s30_681fc59.json` (2026-10-28T21:28:06Z, commit 681fc59)
 - `20261028_v2_fix_v2_minimax-m3_k8_report_n500_t3_88f9fd2.json` (2026-10-28T16:59:03Z, commit 88f9fd2)
 - `20261028_v2_fix_v2_no_c1_minimax-m3_k8_report_n500_t1_912142a.json` (2026-10-28T17:25:50Z, commit 912142a)
 - `20261028_v2_fix_v2_no_c3_minimax-m3_k8_report_n500_t1_912142a.json` (2026-10-28T17:27:56Z, commit 912142a)
 - `20261028_v2_fix_v2_no_c4_minimax-m3_k8_report_n500_t1_912142a.json` (2026-10-28T17:29:58Z, commit 912142a)
 
-Spend behind these files: $5.6610 (list-price equivalent; 1 records without a price).
+Spend behind these files: $6.6378 (list-price equivalent; 1 records without a price).
 
 ## Lifecycle simulation and demo (BARS-v2 L1-L6, D1)
 
@@ -299,3 +334,98 @@ Only the run headers (mode, commit, date, seconds, cassette counts, three record
 (agents pre-seeded, roster at the end) and the per-turn latency differ. The demo moved one cell: the live run's own
 transcript graded 5 of 9, turn 7 scored `gate_passed` against an expected `gate_refused`. The current code grades
 the gate turn by the forward's state alone, and the same recorded turn is `gate_held`, so the replay reports 6 of 9.
+
+## Client guard (v2.1, BARS-v2 B2-guard)
+
+Not generated by `compare --set v2`. The held-out tables are copied from
+[`heldout/RESULTS_v2_heldout.md`](heldout/RESULTS_v2_heldout.md) (`python -m evals.compare --set v2_heldout --out-dir
+evals/results/heldout`); the round-two numbers are this file's `fix_v2_guard` rows above. The guard is opt-in
+(`OPENPOKE_CLIENT_GUARD=1`, off by default) and stays so.
+
+### Held-out set: the verdict
+
+Set `v2_heldout`: a new seed (20261030) of the round-two generator, 110 cases, locked by hash
+(`evals/golden/routing_v2_heldout.sha256`) before any guard run. minimax-m3, N=500, one trial per arm, recorded
+once, live, at adf9263 and replayed at 681fc59: fix_v2 198 calls, fix_v2_guard 219, 0 cassette misses, every graded
+record equal to the live run's. The two runs were recorded at the same time from empty cassettes, so each arm made
+its own first call for every case, and the two replies to each of those 110 identical requests all differ. Each
+arm's cassette therefore lives in its own directory, `evals/cassettes/heldout/<arm>/`, and replays from it
+(`--cassette-dir`): from one shared directory the guard arm is served fix_v2's first replies and misses 11 calls
+(`v2-ambiguous-006`, `-008`, `-010`, `v2-parallel-002`, `-004`, `-006`, `v2-paraphrase-001`, `-003`, `-005`, `-011`,
+`-013`), the turns where the guard refuses what fix_v2's reply sent.
+
+| model | N | arm | k | n | templates | accuracy (Wilson) | accuracy (template bootstrap) | wrong reuse | of which spray | wrong only | cross-client: wrong reuse / hijack / wrong guess | duplicate | correct create | hijack | clarify P / R | over-clarify | prompt tok mean / p95 | latency ms p50 / p95 | $ / 100 turns |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| minimax-m3 | 500 | fix_v2 | 8 | 110 | 19 | 82.7% [74.6%, 88.7%] (91/110) | [68.5%, 94.4%] | 8.3% [4.1%, 16.2%] (7/84) | 5 (5 cross-client) | 2 (0 cross-client) | 5 / 1 / 0 | 0.0% [0.0%, 4.4%] (0/84) | 87.5% [64.0%, 96.5%] (14/16) | 2/16 | 66.7% / 20.0% | 1.0% [0.2%, 5.4%] (1/100) | 9676 / 18019 | 9734 / 18085 | 0.2544 |
+| minimax-m3 | 500 | fix_v2_guard | 8 | 110 | 19 | 88.2% [80.8%, 93.0%] (97/110) | [75.7%, 97.9%] | 2.4% [0.7%, 8.3%] (2/84) | 0 (0 cross-client) | 2 (0 cross-client) | 0 (<= 3.6%) / 0 / 0 | 0.0% [0.0%, 4.4%] (0/84) | 100.0% [80.6%, 100.0%] (16/16) | 0/16 | 60.0% / 60.0% | 4.0% [1.6%, 9.8%] (4/100) | 11009 / 19469 | 10731 / 23210 | 0.2013 |
+
+| model | N | arm | against | k | cases | templates | delta accuracy | delta, template bootstrap 95% | only reference right | only arm right | McNemar p |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| minimax-m3 | 500 | fix_v2_guard | fix_v2 | 8 | 110 | 19 | 5.5% | [-2.2%, 14.6%] | 2 | 8 | 0.1094 |
+
+| bar | verdict | measured |
+|---|---|---|
+| G-i | pass | 0 of 104 fix_v2_guard turns on cases whose gold does not call for two clients sent to two (<= 2.9% at 95%); fix_v2 8 of 104 |
+| G-ii | pass | cross-client wrong reuse fix_v2_guard 0/84 (<= 3.6% at 95%), fix_v2 5/84 |
+| G-iii | pass | fix_v2_guard 88.2% (97/110), fix_v2 82.7% (91/110): 5.5% (bar: not below -3.0 points); paired McNemar p = 0.1094, template-clustered 95% of the difference [-2.2%, 14.6%]; 2 only fix_v2 right, 8 only fix_v2_guard right |
+| G-iv | fail | parallel-gold two-client sends that matched gold: fix_v2_guard 3 of 6 parallel case-trials (3 sent to two clients), fix_v2 5 of 6 (5 sent to two clients) |
+
+| model | N | arm | turns refused | sends refused | turns left with nothing routed | next round | graded | correct | clarify recall |
+|---|---|---|---|---|---|---|---|---|---|
+| minimax-m3 | 500 | fix_v2_guard | 10 of 110 | 20 | 2 | clarified 6, no_route 4 | correct_clarify 4, no_route 2, over_clarify 3, partial 1 | 4 | 60.0% [31.3%, 83.2%] (6/10) |
+
+Reported without a bar:
+
+- Refused: 20 sends in 10 of 110 turns (`v2-ambiguous-002`, `-004`, `-006`, `-010`, `v2-parallel-002`, `-004`,
+  `-006`, `v2-paraphrase-001`, `-007`, `-013`); 2 of them were left with nothing routed (`v2-parallel-002`, `-006`).
+- The round after a refusal: the model asked the user 6 times and routed nothing new 4 times (on `v2-ambiguous-004`
+  and `v2-parallel-004` a call the guard let through in the first round stood). 4 of the 10 turns were graded
+  correct, against 3 of the same 10 for fix_v2.
+- Clarify recall on ambiguous cases: fix_v2_guard 6 of 10, fix_v2 2 of 10; over-clarify 4 of 100 against 1 of 100.
+- G-iv: all three cases of one parallel template (`parallel.v2t1`: "once the COI for the tool store in Orangeville is
+  confirmed, nudge Freya Mwangi about the endorsement") describe one client instead of naming it, and the guard
+  refuses that client's agent, the false block the what-if found once on round two.
+- Run-to-run variation: of the 100 turns the guard did not refuse, 94 were graded the same in both arms; 6 differ (5
+  right only with the guard: `v2-ambiguous-008`, `v2-paraphrase-003`, `-005`, `v2-should_create-001`, `-002`;
+  `v2-paraphrase-011` wrong in both). On the 10 turns it refused, 3 are right only with the guard and 2 only without
+  (`v2-parallel-002`, `-004`). So of the 6 cases fix_v2_guard is ahead, 1 comes from turns the guard refused and 5
+  from the two arms' own replies to the same first call.
+
+### Round-two set: NON-BLIND, never a verdict
+
+The guard was designed after reading these failures (`CLIENT_GUARD_WHATIF.md`), so this row is reported beside the
+bars and is not judged by them. `--set v2 --arm fix_v2_guard --sizes 500 --trials 1`, recorded at adf9263 in a
+checkout that held the committed round-two cassettes, and replayed at 681fc59 with 0 misses: 216 calls, 209 of them
+served by the committed `routing_v2_fix_v2_minimax-m3_k8.jsonl` (fix_v2's trial 1: the guard changes no prompt
+byte, so every call up to a refusal is the same request) and 7 made live after a refusal, the only entries in
+`routing_v2_fix_v2_guard_minimax-m3_k8.jsonl`. A replay from a directory holding only those two files hits all 216; from
+the fix_v2 file alone it hits 209 and the 7 refused turns miss. So this pairing is exact: the arm differs from
+fix_v2's trial 1 only on the 7 turns the guard refused.
+
+| measure | fix_v2, trial 1 | fix_v2_guard |
+|---|---|---|
+| accuracy | 94/110 | 97/110; paired +2.7% [-1.9%, 8.1%], McNemar p = 0.3750 (1 only fix_v2 right, 4 only the guard) |
+| turns sent to two clients, gold not parallel | 6/104 | 0/104 |
+| cross-client wrong reuse | 3/84 | 0/84 |
+| parallel gold, sent to both and matched | 5/6 | 4/6 |
+| clarify recall; over-clarify | 1/10; 1/100 | 3/10; 2/100 |
+| guard refusals | - | 14 sends in 7 turns |
+
+## N=5,000 demonstration (BARS-v2 B5)
+
+30 cases sampled from the round-two set (stratified by category, seed 20261029), N=5,000, minimax-m3, one trial,
+recorded once, live, at ab33fd4 (its entries appended to the round-two cassettes: every committed line kept, 62 and
+35 new) and replayed at 681fc59 with 0 misses.
+
+| measure | baseline | fix_v2 |
+|---|---|---|
+| accuracy, Wilson 95% | 46.7% [30.2%, 63.9%] (14/30) | 76.7% [59.1%, 88.2%] (23/30) |
+| accuracy, template-clustered 95% (16 templates) | [24.2%, 69.0%] | [53.6%, 96.2%] |
+| prompt tokens per turn | 72091 | 11215 (15.6% of the baseline's; this part of B5 asks for <= 25%) |
+| prompt tokens per model call | 61768 | 5198 |
+| model calls per turn; searches per turn | 1.17; 0.00 | 2.07; 1.87 |
+| latency ms, p50 | 9162 | 28759 |
+
+Paired: fix_v2 - baseline = +30.0% [11.1%, 53.1%], McNemar p = 0.0117 (1 only baseline right, 10 only fix_v2). One
+fix_v2 turn (`v2-paraphrase-009`) hit the tool-iteration limit and is graded `error`, wrong. B5 stays a fail: this
+part passes, the N=500 parts do not.

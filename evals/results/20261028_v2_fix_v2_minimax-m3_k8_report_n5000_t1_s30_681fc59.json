@@ -1,0 +1,1705 @@
+{
+ "header": {
+  "date": "2026-10-28T21:28:06Z",
+  "arm": "fix_v2",
+  "openpoke_roster_mode": "shortlist",
+  "openpoke_prompt_variant": "shortlist",
+  "openpoke_routing_profile": "v2",
+  "openpoke_v2_disable": "",
+  "openpoke_shortlist_evidence": "0",
+  "openpoke_client_guard": "0",
+  "openpoke_execution_memory": "recent",
+  "model": "minimax-m3",
+  "base_url_host": "openrouter.ai",
+  "commit": "681fc59",
+  "n_cases": 30,
+  "n_records": 30,
+  "sizes": [
+   5000
+  ],
+  "trials": 1,
+  "k": 8,
+  "temperature": 0.0,
+  "seed": 20261028,
+  "split": "report",
+  "set": "v2",
+  "roster_seed": 20261029,
+  "cases_sample": 30,
+  "sample_seed": 20261029,
+  "limit": null,
+  "case_ids": null,
+  "mode": "replay",
+  "misses_as_errors": false,
+  "cassette_misses": [],
+  "cassette_hits": 62,
+  "live_calls": 0,
+  "render_seconds": 166.9,
+  "cost_note": "cost_usd is the list-price equivalent when the provider reports one, else billed"
+ },
+ "records": [
+  {
+   "case_id": "v2-explicit-002",
+   "category": "explicit",
+   "template_id": "explicit.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0004"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Hamish Ingram called about his renewal again and wants to know what we still owe him on it. Please check policy HO-2146-41 (home renewal, Lighthouse Point Insurance) and report back: the renewal premium due, the due date, whether any portion has been paid or is still outstanding, and the exact remaining balance owed.\n\nAlso please check the email thread for that policy (thread 676d0fb9b25d31de) for any renewal notices, reminders, past-due notices, or payment confirmations since you last worked it, including anything from a newer renewal cycle or from Hamish directly. If a newer renewal cycle exists for him that wasn't in your records, tell me the details of that instead.\n\nDo not send or reply to any emails and do not take any payment action — just gather and report the facts, and flag if anything looks overdue or at risk of lapsing.",
+      "agent_id": "a_2499"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0004"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 2,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 11156,
+   "completion_tokens": 885,
+   "cached_tokens": 5051,
+   "cache_reported": true,
+   "latency_ms": 29588.3,
+   "cost_usd": 0.00319656
+  },
+  {
+   "case_id": "v2-explicit-005",
+   "category": "explicit",
+   "template_id": "explicit.v2t0",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0013"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Chase the CGL renewal for Summit Daycare, a childcare centre in Dryden, with a hard target of completing it before the upcoming Friday.\n\nContext: policy CGL-8924-17; existing email thread 2e965379c250a2a7 with Cameron Eklund at office@summitdaycare.example.com; carrier is Lighthouse Point Insurance.\n\nWhat I need:\n1. Establish today's date and the next Friday so the deadline is unambiguous.\n2. Review the full existing correspondence on this thread and determine the current state: what the renewal quote/terms are, what documents or information are still outstanding from either Summit Daycare or the carrier, and whether anything is awaiting our response or the client's signature/payment.\n3. Give me a concise status summary with the specific outstanding items, their owners, and the latest dates or deadlines already on record.\n4. Prepare a follow-up email to Cameron Eklund that chases exactly the missing items and asks for whatever is needed to bind the renewal before Friday. Keep it concise and professional.\n5. Do not send anything yet — prepare the exact recipient, subject, and body for my review before it goes out.\n\nReport back with the status, the identified deadline, and the exact draft text.",
+      "agent_id": "a_0003"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0013"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 4905,
+   "completion_tokens": 1056,
+   "cached_tokens": 3712,
+   "cache_reported": true,
+   "latency_ms": 24203.6,
+   "cost_usd": 0.00184782
+  },
+  {
+   "case_id": "v2-explicit-007",
+   "category": "explicit",
+   "template_id": "explicit.v2t0",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0019"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "The user wants to chase the Lantern Dental Clinic CGL quote (policy CGL-7563-86) before Friday. There has been no response yet from Ari Bianchi at office@lanterndentalclinic.example.com on the existing thread. Please prepare a polite, concise follow-up email to Ari Bianchi on the existing thread (thread 7e16617eabe9a864) reminding them the quote request is still outstanding, referencing policy CGL-7563-86, and asking for the quote details or a target turnaround date. Draft it and show it to me for review before anything is sent.",
+      "agent_id": "a_2501"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0019"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 4944,
+   "completion_tokens": 409,
+   "cached_tokens": 418,
+   "cache_reported": true,
+   "latency_ms": 7244.6,
+   "cost_usd": 0.00187368
+  },
+  {
+   "case_id": "v2-explicit-012",
+   "category": "explicit",
+   "template_id": "explicit.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0034"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Solveig Ortega called about her home insurance quote. Please check and report exactly what we still owe her / what remains outstanding on this matter — e.g. any unpaid premium, deposit, outstanding information requests we still owe her a response on, or quote/policy HO-3797-26 status. Include the current status of policy HO-3797-26, amounts due with due dates if any, and anything unresolved from our last contact. If nothing is owed to her, say so clearly and explain what the next step on our side is. Also note whether any amount on the separate auto policy AU-6991-25 is outstanding.",
+      "agent_id": "a_0003"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0034"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 1,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 10481,
+   "completion_tokens": 722,
+   "cached_tokens": 8960,
+   "cache_reported": true,
+   "latency_ms": 30111.6,
+   "cost_usd": 0.0018603
+  },
+  {
+   "case_id": "v2-entity-003",
+   "category": "entity",
+   "template_id": "entity.v2t0",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0049"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_id": "a_2499",
+      "instructions": "Reopening this matter for you — CL-413439 (policy CP-6132-43, Summit Auto Body, Perth).\n\nThe adjuster now wants the repair estimate by Monday, and my user wants it sent over.\n\nPlease:\n1. Give me a full status summary of CL-413439 as it stands — where the claim is, what the adjuster has already asked for, who the adjuster is (name and email), and the current status of the thread with Ari Okoro at office@summitautobody.example.com.\n2. Find the repair estimate itself. Check the email thread and any attachments or documents in this matter. Tell me exactly what the estimate contains (line items, total) and where the file lives. If the estimate has NOT been received yet, say so clearly and tell me what has been requested so far and what is still outstanding.\n3. Draft the email that would go to the adjuster with the repair estimate attached. Do NOT send it — just prepare the draft and show it to me for approval.\n\nDo not send, forward, or reply to any email without my explicit go-ahead."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0049"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 2,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [
+    "On it — pulling up CL-413439 and tracking down the repair estimate."
+   ],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 11019,
+   "completion_tokens": 1050,
+   "cached_tokens": 4576,
+   "cache_reported": true,
+   "latency_ms": 29345.6,
+   "cost_usd": 0.0034674600000000003
+  },
+  {
+   "case_id": "v2-entity-008",
+   "category": "entity",
+   "template_id": "entity.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0064"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Granite Bay Assurance left a voicemail quoting policy AU-5221-24 (Desmond Vidal, Leamington; prior thread baab949fcd3d44b5). Call Granite Bay Assurance back regarding that policy and find out exactly what they need from us — the specific request, required documents/information, any deadline, and who to send it to. Review the existing file/thread for context first. If they ask for anything that requires contacting the client, prepare the details but do not send anything to the client or the insurer without my confirmation. Report back the full outcome of the call.",
+      "agent_id": "a_2501"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0064"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 2,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [
+    "On it — pulling up the AU-5221-24 file now and finding out what Granite Bay needs."
+   ],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 11217,
+   "completion_tokens": 901,
+   "cached_tokens": 8960,
+   "cache_reported": true,
+   "latency_ms": 27544.3,
+   "cost_usd": 0.0022959
+  },
+  {
+   "case_id": "v2-entity-011",
+   "category": "entity",
+   "template_id": "entity.v2t0",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0073"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Pick this back up on claim CL-505556 (policy AU-6922-66, Jonas Montague, Granite Bay Assurance). The adjuster has asked for the repair estimate to be sent over by Monday.\n\nPlease:\n1. Find the email thread with the adjuster assigned to CL-505556 — I need the adjuster's name, email address, and the exact thread id, plus any deadline detail they gave.\n2. Locate the repair estimate document/attachment for the claim and tell me its exact contents (file name, shop/garage, line items, total, date).\n3. If the estimate was included as an attachment on an earlier email in this thread (Jonas Montague's thread 1727868f8fbe5567), tell me which email and attachment name it was.\n4. Draft a short, professional reply to the adjuster confirming the estimate is attached and that it will be with them before Monday. Include the claim number, the estimate total, and the attachment reference.\n\nDo not send anything yet — I need to review the draft with the user first. Report back the adjuster's details, the estimate details, and the draft email (recipient, subject, body).",
+      "agent_id": "a_0001"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0073"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 2,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [
+    "On it — digging up the adjuster thread and the repair estimate on CL-505556 now."
+   ],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 10994,
+   "completion_tokens": 904,
+   "cached_tokens": 4577,
+   "cache_reported": true,
+   "latency_ms": 28759.2,
+   "cost_usd": 0.00328452
+  },
+  {
+   "case_id": "v2-paraphrase-003",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t0",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0085"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Did Leopold Takahashi (policy AU-2553-67, email leopold.takahashi@example.ca, thread 530cbb1fb54b74a1) send a question about the upcoming policy term — e.g. asking what his coverage will look like going forward, when the term ends/starts, or whether something applies until the term date?\n\nIf yes: what exactly did he ask, what was the response/next step, and has any reply from him come back since (including any recent inbox activity on that thread)?\n\nIf he did not ask anything about the upcoming term, say so plainly and summarize instead what the current matter is and its latest status. Please report the most recent activity on this thread.",
+      "agent_id": "a_0003"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0087"
+    }
+   ],
+   "cell": "wrong_reuse",
+   "correct": false,
+   "cross_client": true,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 7,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 5,
+   "prompt_tokens": 27661,
+   "completion_tokens": 1309,
+   "cached_tokens": 21130,
+   "cache_reported": true,
+   "latency_ms": 73652.5,
+   "cost_usd": 0.0047979
+  },
+  {
+   "case_id": "v2-paraphrase-005",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t0",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0091"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Please summarize for me: (1) the exact original customer inquiry you received (what Adwoa asked about, including any mention of an overdue/unpaid invoice), (2) what you replied and when, (3) whether any reply or response has come back from the customer since, and (4) the current status of this matter. Do not send any new emails — I just need a status report.",
+      "agent_id": "a_2500"
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Please summarize for me: (1) the exact original customer inquiry you received (what Magnus asked about, including any mention of an overdue/unpaid invoice), (2) what you replied and when, (3) whether any reply or response has come back from the customer since, and (4) the current status of this matter. Do not send any new emails — I just need a status report.",
+      "agent_id": "a_2501"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0091"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0093"
+    }
+   ],
+   "cell": "wrong_reuse",
+   "correct": false,
+   "cross_client": true,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 6,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": true,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 4,
+   "prompt_tokens": 22048,
+   "completion_tokens": 942,
+   "cached_tokens": 15112,
+   "cache_reported": true,
+   "latency_ms": 57826.3,
+   "cost_usd": 0.00411792
+  },
+  {
+   "case_id": "v2-paraphrase-006",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0094"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Please check the current status of the certificate of insurance for Edgewater Electrical (wiring contractor in Port Hope), policy CGL-6248-44, requester Ellis Achebe (office@edgewaterelectrical.example.com).\n\nThe user wants to know whether the COI has moved/progressed since last week. Please confirm: (1) whether the COI was issued and sent, and on what date; (2) whether there have been any changes, requests, replies, or follow-ups since roughly one week ago; (3) whether anything is still outstanding or blocked.\n\nReport back the concrete dates and current state so I can tell the user where it stands.",
+      "agent_id": "a_4998"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0094"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 4779,
+   "completion_tokens": 545,
+   "cached_tokens": 3712,
+   "cache_reported": true,
+   "latency_ms": 8192.2,
+   "cost_usd": 0.00119682
+  },
+  {
+   "case_id": "v2-paraphrase-009",
+   "category": "paraphrase",
+   "template_id": "paraphrase.v2t0",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0103"
+    ]
+   },
+   "predicted": [],
+   "resolved": [],
+   "cell": "error",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 0,
+   "target_archived": false,
+   "searches": 20,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": "RuntimeError: Reached tool iteration limit without final response",
+   "llm_calls": 8,
+   "prompt_tokens": 51730,
+   "completion_tokens": 1862,
+   "cached_tokens": 46390,
+   "cache_reported": true,
+   "latency_ms": 89563.8,
+   "cost_usd": 0.0066197999999999995
+  },
+  {
+   "case_id": "v2-pronoun-002",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0124"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "The user has decided: go with the $2,500 deductible. Reply on the existing thread (eb09a283ba2cd6ff) to Frankie Okoro at Osprey Printing (office@ospreyprinting.example.com) telling them we've selected the $2,500 deductible. Keep it short and professional. Draft it for my review before sending.",
+      "agent_id": "a_0001"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0124"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 4631,
+   "completion_tokens": 389,
+   "cached_tokens": 184,
+   "cache_reported": true,
+   "latency_ms": 11442.5,
+   "cost_usd": 0.00181194
+  },
+  {
+   "case_id": "v2-pronoun-004",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0130"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Reply on the existing thread with Hawthorn Florist (office@hawthornflorist.example.com, thread 633df708723d8ce3). Jordan asked whether to go with the $1,000 or the $2,500 deductible — tell them we've selected the $2,500 deductible. Draft it for my review before sending.",
+      "agent_id": "a_5000"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0130"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 4654,
+   "completion_tokens": 193,
+   "cached_tokens": 184,
+   "cache_reported": true,
+   "latency_ms": 11121.6,
+   "cost_usd": 0.00158364
+  },
+  {
+   "case_id": "v2-pronoun-010",
+   "category": "pronoun",
+   "template_id": "pronoun.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0148"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Reese Moretti replied on thread 66821acbf229ee92 asking whether to go with the $1,000 or the $2,500 deductible. The client has decided: we are going with the $2,500 deductible.\n\nPlease draft a reply on that same thread (66821acbf229ee92) to office@cobblestoneprinting.example.com confirming that we are proceeding with the $2,500 deductible option, and a brief note that we'll follow through with the renewal paperwork at that level.\n\nHold the reply as a draft for my review — do not send it until I confirm.",
+      "agent_id": "a_2499"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0148"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 4651,
+   "completion_tokens": 678,
+   "cached_tokens": 128,
+   "cache_reported": true,
+   "latency_ms": 14668.5,
+   "cost_usd": 0.00217818
+  },
+  {
+   "case_id": "v2-near_duplicate-005",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0166"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Wilhelmina Ingram has had a new roof put on the house. This needs to be added to her home renewal before the renewal documents are issued, for policy HO-2613-65 with Lighthouse Point Insurance.\n\nPlease:\n1. Check the current status of the home renewal for HO-2613-65 — confirm whether it has already been issued or is still pending/pending issuance. If it has already been issued, tell me immediately and explain the options (mid-term endorsement vs. next term).\n2. Work out what information is needed to add the new roof: roof age and material (asphalt shingle, metal, flat membrane, etc.), approximate date installed, cost of the replacement, installer/contractor, and any permits or warranties.\n3. Contact Wilhelmina at wilhelmina.ingram@example.ca to get those details, if a reply is needed. Do not send anything to her or to the insurer without checking with me first — show me the draft first.\n4. Get the roof added to the renewal and have it reflected in the renewal quote/documents before issuance.\n\nAlso note her auto policy AU-5942-22 renewal is being handled separately — don't mix the two.\n\nReport back with status, what details you still need, and any drafts.",
+      "agent_id": "a_2501"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0166"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 2,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [
+    "On it — routing this to the home renewal file for Wilhelmina's house policy (HO-2613-65) so the new roof gets onto the renewal before it issues. I'll come back with what the insurer needs from her."
+   ],
+   "error": null,
+   "llm_calls": 3,
+   "prompt_tokens": 17320,
+   "completion_tokens": 1234,
+   "cached_tokens": 10817,
+   "cache_reported": true,
+   "latency_ms": 49989.2,
+   "cost_usd": 0.00408072
+  },
+  {
+   "case_id": "v2-near_duplicate-009",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t2",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0173"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "The adjuster on the August 30 loss for Alistair Okonkwo has requested receipts. Please pull together exactly what receipts and supporting documents we currently have on file for this claim (policy AU-3971-40, claim CL-735537, thread 2e681777616b7bb3).\n\nSpecifically I need:\n1. The full list of receipts/documents already received or on file — what each one is, the date, the amount, and the vendor/vendor type (e.g. autobody repair invoice, rental car receipts, tow, deductible, parts).\n2. Which of those are deductible-relevant (things the policyholder would be reimbursed for) versus things already covered by the insurer/adjuster/insurer-paid directly (things that don't need a receipt from the insured).\n3. Any items the adjuster is likely asking for that we are MISSING or that Alistair has not yet provided.\n4. Whether any correspondence already went to Alistair about receipts, and the thread history on that point (include the last few messages with dates).\n5. Any notes on the loss itself (hail damage, Aug 30) — what was damaged, the vehicle, and the current status of the claim.\n\nPlease quote exact amounts and dates as they appear in the file. If a receipt is described but not itemized, say so rather than inferring details.",
+      "agent_id": "a_0001"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0173"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 4971,
+   "completion_tokens": 897,
+   "cached_tokens": 184,
+   "cache_reported": true,
+   "latency_ms": 15222.2,
+   "cost_usd": 0.00252354
+  },
+  {
+   "case_id": "v2-near_duplicate-014",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0183"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Wilhelmina Ishikawa has asked to remove collision coverage from her car at renewal. Please handle this on the AUTO policy only: policy AU-4806-47 (thread cdcd2cc6f23c617f, wilhelmina.ishikawa@example.ca, Fieldstone Underwriters).\n\nRequirements:\n- Make the change on AU-4806-47 and no other policy. Do not touch her home policy (HO-5805-23) in any way.\n- Update the renewal so collision coverage is dropped and the premium is recalculated to reflect the reduced coverage.\n- Note in the policy record that the collision removal was specifically requested by the insured at renewal (we'll need this for audit purposes).\n- Confirm whether the change requires any endorsement paperwork or a revised renewal document from Fieldstone Underwriters, and let me know what the customer needs to sign or return.\n- Also flag the collision-loss-deductible-free aspect if applicable — i.e. confirm what happens to any deductible/loss payable arrangements for the car going forward.\n- Draft any customer-facing email to Wilhelmina so I can review it before anything goes out. Do not send anything to her directly without my approval.",
+      "agent_id": "a_0001"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0183"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 2,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 11174,
+   "completion_tokens": 682,
+   "cached_tokens": 5059,
+   "cache_reported": true,
+   "latency_ms": 35333.3,
+   "cost_usd": 0.00295644
+  },
+  {
+   "case_id": "v2-near_duplicate-015",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t2",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0185"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "The adjuster on the August 30 loss for Henrike Yeboah (home claim, policy HO-8099-64, claim CL-831816, thread c8adca63f2b27adc) is asking for receipts. Please pull together and report every receipt or supporting document we already have on file for this claim — inventory of purchased items with prices, police report number, photos, estimates, receipts already submitted by the policyholder, and anything still outstanding. Note clearly what is on hand vs. what is still missing or was never received. Also report the adjuster's name/contact details and any deadline communicated for the receipts.",
+      "agent_id": "a_2500"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0185"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 4970,
+   "completion_tokens": 373,
+   "cached_tokens": 184,
+   "cache_reported": true,
+   "latency_ms": 18623.0,
+   "cost_usd": 0.00189444
+  },
+  {
+   "case_id": "v2-near_duplicate-016",
+   "category": "near_duplicate",
+   "template_id": "near_duplicate.v2t0",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0188"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Status check: Is Wren Roofing (shingle contractor, Goderich; contact Blair Bianchi, office@wrenroofing.example.com; policy CGL-4374-59; thread d94993b757b35552) still waiting on us for pricing/quote info, or have we already responded to them?\n\nPlease tell me:\n1. The exact date and time of the last message we sent to them and the last message we received from them.\n2. Whether we owe them a response right now, and if so, exactly what information/quote details they're waiting on.\n3. Any commitments, deadlines, or promises we made to them.\n4. Whether a draft reply to them is currently pending review.\n\nInclude relevant quoted snippets from the thread.",
+      "agent_id": "a_2500"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0188"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 4881,
+   "completion_tokens": 416,
+   "cached_tokens": 184,
+   "cache_reported": true,
+   "latency_ms": 18191.5,
+   "cost_usd": 0.00191934
+  },
+  {
+   "case_id": "v2-should_create-003",
+   "category": "should_create",
+   "template_id": "should_create.v2t0",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Get a NEW home insurance quote for Clementine Jablonski (clementine.jablonski@example.ca), a glassblower in Welland. This is a separate matter from her existing auto policy AU-2500-60 with Maplecrest Mutual — do not modify or reuse the auto quote.\n\nPlease gather any property details already on file for her (from the existing client/auto quote records or thread, if accessible) and pursue a home quote. If key details are missing — property address, year built, square footage, roof type, heating, deductible, coverage amount, claims history, occupancy — ask her for them, ideally in one consolidated message. Then obtain and report the actual home insurance quote(s), including carrier, premium, coverage limits, deductibles, and any optional endorsements or discounts available. If a quote requires contacting her, prepare any outreach for my review before anything is sent.",
+      "agent_name": "Clementine Jablonski home quote",
+      "confirm_new": true
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Clementine Jablonski home quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 2,
+   "target_archived": false,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": true,
+   "guard_outcome": "confirmed_new",
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 9904,
+   "completion_tokens": 1031,
+   "cached_tokens": 8832,
+   "cache_reported": true,
+   "latency_ms": 32393.4,
+   "cost_usd": 0.00208872
+  },
+  {
+   "case_id": "v2-should_create-005",
+   "category": "should_create",
+   "template_id": "should_create.v2t0",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_name": "Torsten Laurentis auto quote",
+      "instructions": "Get an auto (car) insurance quote for Torsten Laurentis, a beekeeper in Gananoque. Contact email: torsten.laurentis@example.ca (same contact as his home quote, policy HO-6322-70 with Maplecrest Mutual, but this car quote is a SEPARATE matter — do not reuse or continue the home quote thread; start a fresh email thread).\n\nGoals:\n1. Gather the details needed to price an auto policy (vehicle year/make/model, VIN if available, current insurer and policy expiry, drivers, driving history, usage/commute, coverage limits and deductibles, any vehicles garaged on the property, and his garage address).\n2. Produce an auto quote for him on its own policy number (auto policy numbers in this book run AU-XXXX-XX).\n3. Draft the outreach email to Torsten and show it to the user for review before anything is sent.\n\nKeep the tone practical and friendly — he farms bees, so keep it straightforward. Any email you send to Torsten must be reviewed by the user first.",
+      "confirm_new": true
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Torsten Laurentis auto quote"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 2,
+   "target_archived": false,
+   "searches": 1,
+   "search_found_target": false,
+   "guard_fired": true,
+   "guard_outcome": "confirmed_new",
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [
+    "Got it — car quote for Torsten as a separate matter from the home quote (HO-6322-70). Let me check for any existing car-quote thread first so I don't duplicate one."
+   ],
+   "error": null,
+   "llm_calls": 3,
+   "prompt_tokens": 16499,
+   "completion_tokens": 1118,
+   "cached_tokens": 10178,
+   "cache_reported": true,
+   "latency_ms": 44654.5,
+   "cost_usd": 0.0038485800000000003
+  },
+  {
+   "case_id": "v2-should_create-006",
+   "category": "should_create",
+   "template_id": "should_create.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "New client: Wilhelmina Coutinho, a translator in Tillsonburg (email: wilhelmina.coutinho@example.ca). Please get an auto quote for her and let me know the outcome.\n\nDetails to work from:\n- Client name: Wilhelmina Coutinho\n- Contact email: wilhelmina.coutinho@example.ca\n- Location: Tillsonburg, Ontario\n- Service: translator services (auto quote request)\n\nWhen the quote is ready, email it to Wilhelmina and report back the quote details (reference/policy number, coverage limits, premium, effective date) plus the email thread id so I can review.",
+      "agent_name": "Auto quote for Wilhelmina Coutinho"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "create",
+     "name": "Auto quote for Wilhelmina Coutinho"
+    }
+   ],
+   "cell": "correct_create",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 1,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [
+    "On it — I'll line up an auto quote for Wilhelmina Coutinho. One sec while I check we've got a clean record for her."
+   ],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 9218,
+   "completion_tokens": 605,
+   "cached_tokens": 4598,
+   "cache_reported": true,
+   "latency_ms": 39529.8,
+   "cost_usd": 0.00238788
+  },
+  {
+   "case_id": "v2-should_create-011",
+   "category": "should_create",
+   "template_id": "should_create.v2t0",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "create",
+    "agent_ids": []
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Konrad Ingram (konrad.ingram@example.ca) now wants a quote for his HOUSE as well, in addition to the auto quote you already ran for him (policy AU-8589-51, Cobalt Lake General).\n\nPlease start a NEW, separate home/property insurance quote for him — it must be a distinct quote from the auto one, not an amendment or extension of it. Treat it as its own matter with its own quote reference, while using the client and contact details you already have on file for him.\n\nSteps:\n1. Check whether he already has any home/property coverage with us (and note it if so), so the new quote is correctly positioned as new business rather than a replacement.\n2. Gather whatever details you still need from him to price a home quote — address, year built, construction type, square footage, roof material/age, number of storeys, heating type, any attached garage or other outbuildings, and so on. Ask for only what's genuinely required, and reuse anything you already know from the auto file so we don't ask twice.\n3. Get the actual home quote and the premiums/options available.\n4. Email him the quote request / quote results at konrad.ingram@example.ca, keeping it clearly separate from the auto correspondence so there's no confusion about which quote is which.\n\nDo not re-send, re-draft, or alter the existing auto quote thread — that one is already done and should stay as it is.",
+      "agent_id": "a_2500"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0213"
+    }
+   ],
+   "cell": "hijack",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": false,
+   "searches": 1,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": false,
+   "evidence_names_discriminator": null,
+   "user_messages": [
+    "On it — treating the house as a brand-new quote, separate from the auto. Let me pull up what's already on file for Konrad."
+   ],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 9588,
+   "completion_tokens": 1209,
+   "cached_tokens": 4568,
+   "cache_reported": true,
+   "latency_ms": 38604.2,
+   "cost_usd": 0.00323088
+  },
+  {
+   "case_id": "v2-ambiguous-005",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t0",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0237",
+     "g_0238"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "clarify_agent_choice",
+     "arguments": {
+      "candidate_ids": [
+       "a_2500",
+       "a_2499"
+      ],
+      "question": "There are two Orla Fitzgerald claims on file — which one did the adjuster call about? (1) The June 18 theft claim (policy HO-1930-25, claim cl-270924, Cobalt Lake General), or (2) The March 3 water damage claim (policy HO-4557-74, claim cl-139861, Northern Shield Insurance)?"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "clarify",
+     "agent_ids": [
+      "g_0237",
+      "g_0238"
+     ],
+     "unknown_ids": []
+    }
+   ],
+   "cell": "correct_clarify",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 1,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [
+    "On it — pulling up the right claim file now. Give me a sec to sort out which one the adjuster called about."
+   ],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 9777,
+   "completion_tokens": 911,
+   "cached_tokens": 8448,
+   "cache_reported": true,
+   "latency_ms": 34390.7,
+   "cost_usd": 0.00199878
+  },
+  {
+   "case_id": "v2-ambiguous-006",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0240",
+     "g_0241"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Please give me a full status report on the renewal for Clementine Fenwick (policy HO-1948-28, carrier Cobalt Lake General, thread 7c45ddf0623e5bcc). Specifically: what was sent to her and when, whether any reply/draft is still pending approval, whether there are outstanding items (missing information, underwriting questions, documents we need back from her), the renewal premium and effective date, and what the carrier's renewal notice actually said. Also confirm whether the renewal has been issued/confirmed as going ahead or is still in progress. Do not send anything new to her without my approval — I only need the status right now so I can tell her where things stand when she calls.",
+      "agent_id": "a_4998"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0241"
+    }
+   ],
+   "cell": "wrong_guess",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 4882,
+   "completion_tokens": 969,
+   "cached_tokens": 184,
+   "cache_reported": true,
+   "latency_ms": 21393.3,
+   "cost_usd": 0.00258324
+  },
+  {
+   "case_id": "v2-ambiguous-008",
+   "category": "ambiguous",
+   "template_id": "ambiguous.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "clarify",
+    "agent_ids": [
+     "g_0246",
+     "g_0247"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Please give me a current status summary of the home renewal for Jonas Okonkwo (policy HO-1883-61, thread ed301aeca40591d6). Specifically: what was sent to him and when, whether the insurer responded, what the current renewal/expiry status is, and whether anything is still pending on either side. Include any dates, premium figures, or deadlines.",
+      "agent_id": "a_4999"
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Please give me a current status summary of the home renewal for Jonas Cardenas (policy HO-2951-63, thread d2c513047fbe1a4e). Specifically: what was sent to him and when, whether the insurer responded, what the current renewal/expiry status is, and whether anything is still pending on either side. Include any dates, premium figures, or deadlines.",
+      "agent_id": "a_4998"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0246"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0247"
+    }
+   ],
+   "cell": "wrong_guess",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 1,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": true,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 10455,
+   "completion_tokens": 947,
+   "cached_tokens": 5049,
+   "cache_reported": true,
+   "latency_ms": 33456.8,
+   "cost_usd": 0.00306114
+  },
+  {
+   "case_id": "v2-parallel-002",
+   "category": "parallel",
+   "template_id": "parallel.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "parallel",
+    "agent_ids": [
+     "g_0259",
+     "g_0260"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "agent_id": "a_4997",
+      "instructions": "Status check on the CGL billing question for Lodgepole Auto Body in Chatham (policy CGL-2443-62, Jordan Moretti, thread f5b51c7aa6477695). Has Maplecrest Mutual confirmed the billing, or is it still pending? Please report the current state and, if it's not yet confirmed, keep working the thread until you have confirmation — then let me know so I can follow up with another client."
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0259"
+    }
+   ],
+   "cell": "partial",
+   "correct": false,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 2,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [
+    "Chatham's the collision repair shop (Lodgepole Auto Body). I'll wait for their billing to be confirmed, then nudge Solveig Lindgren about the home endorsement."
+   ],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 11574,
+   "completion_tokens": 1062,
+   "cached_tokens": 5064,
+   "cache_reported": true,
+   "latency_ms": 25649.9,
+   "cost_usd": 0.0035312399999999997
+  },
+  {
+   "case_id": "v2-parallel-006",
+   "category": "parallel",
+   "template_id": "parallel.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "parallel",
+    "agent_ids": [
+     "g_0275",
+     "g_0276"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Please check the current status of the CGL renewal for Shoreline Roofing (policy CGL-5773-93, Smiths Falls; thread 23b2cc3a22456c5b). Has the renewal been confirmed by Northern Shield Insurance, and is there anything outstanding (missing information, unanswered reply, or a pending action)? Report the status and any pending items. Do not send any new emails unless specifically asked.",
+      "agent_id": "a_0002"
+     }
+    },
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Please report the current state of the home endorsement for Adwoa Mwangi (policy HO-1151-18; thread 980eec08500d9c52): what was last communicated to Adwoa, whether anything is outstanding or unanswered, and whether a follow-up nudge would be appropriate. Do not send anything to Adwoa yet — just report status and suggest what a brief follow-up nudge should say.",
+      "agent_id": "a_0003"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0275"
+    },
+    {
+     "action": "reuse",
+     "agent_id": "g_0276"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 0,
+   "search_found_target": false,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": true,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 1,
+   "prompt_tokens": 4845,
+   "completion_tokens": 884,
+   "cached_tokens": 3712,
+   "cache_reported": true,
+   "latency_ms": 12530.8,
+   "cost_usd": 0.00162342
+  },
+  {
+   "case_id": "v2-agent_message-002",
+   "category": "agent_message",
+   "template_id": "agent_message.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0282"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "Elodie Eriksen (elodie.eriksen@example.ca) replied to our cancellation request email on thread 61f9c7c835edd14c (policy AU-8603-63, Cobalt Lake General): \"Found the paperwork, sending it Monday.\"\n\nPlease:\n1. Check the policy/thread for the cancellation deadline and what documents we originally asked her for, and confirm her reply actually addresses the outstanding requirements.\n2. Draft (do not send) a short reply to Elodie acknowledging her message, confirming what we still need from her if anything, and telling her what happens on receipt.\n3. Check whether anything on our side has a deadline that lands before her Monday delivery — if so, flag it to me so we can decide whether to chase her earlier.\n4. Let me know if a follow-up/reminder should be scheduled for after Monday.\n\nShow me the draft for approval before anything goes out.",
+      "agent_id": "a_0002"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0282"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 2,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 11852,
+   "completion_tokens": 781,
+   "cached_tokens": 5132,
+   "cache_reported": true,
+   "latency_ms": 20019.0,
+   "cost_usd": 0.00326112
+  },
+  {
+   "case_id": "v2-agent_message-008",
+   "category": "agent_message",
+   "template_id": "agent_message.v2t1",
+   "split": "report",
+   "size": 5000,
+   "trial": 0,
+   "gold": {
+    "kind": "reuse",
+    "agent_ids": [
+     "g_0300"
+    ]
+   },
+   "predicted": [
+    {
+     "tool": "send_message_to_agent",
+     "arguments": {
+      "instructions": "A client, Giulia Haddad (giulia.haddad@example.ca), just replied to our most recent email to her: \"Found the paperwork, sending it Monday.\" That email was about the loss report.\n\nPlease:\n1. Confirm whether that \"loss report\" request was sent under this claim matter (policy HO-1882-88, claim cl-305194, thread 6a8c86816c32eba6) and not under a separate billing matter (policy HO-1995-54, Fieldstone Underwriters). If it turns out this email belongs to the billing matter instead, tell me and stop.\n2. Summarize what exactly we asked her to send, the claim status, adjuster name/contact, and any deadline we mentioned.\n3. Draft (but do not send) a short, warm, professional reply to Giulia acknowledging Monday's delivery, confirming what we'll do when it arrives, and mentioning anything she needs to know (e.g. photos/invoices, what to do if she doesn't have a specific item). Keep it brief and practical. Show me the draft before anything goes out.",
+      "agent_id": "a_2499"
+     }
+    }
+   ],
+   "resolved": [
+    {
+     "action": "reuse",
+     "agent_id": "g_0300"
+    }
+   ],
+   "cell": "correct_reuse",
+   "correct": true,
+   "cross_client": false,
+   "routing_rounds": 1,
+   "target_archived": true,
+   "searches": 1,
+   "search_found_target": true,
+   "guard_fired": false,
+   "guard_outcome": null,
+   "shared_client_refused": 0,
+   "client_guard_refused": 0,
+   "ended_refused": false,
+   "same_client_multi_send": false,
+   "multi_client_send": false,
+   "target_idle": true,
+   "evidence_names_discriminator": null,
+   "user_messages": [],
+   "error": null,
+   "llm_calls": 2,
+   "prompt_tokens": 9657,
+   "completion_tokens": 980,
+   "cached_tokens": 4667,
+   "cache_reported": true,
+   "latency_ms": 19249.9,
+   "cost_usd": 0.0029530199999999998
+  }
+ ]
+}
