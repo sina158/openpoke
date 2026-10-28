@@ -170,7 +170,12 @@ def summarise(records: List[Dict[str, Any]], templates: Dict[str, str],
     # Older result files lack the call counts; their means stay None rather than zero.
     counted = [r for r in records if "llm_calls" in r]
     cache = [r for r in records if r.get("cache_reported")]
-    multi = [r for r in records if r.get("multi_client_send")]
+    # B2a (lead's ruling, set before any B2a number was read): a case whose gold itself names two clients
+    # (parallel) is not a violation, so B2a counts the other cases; parallel-gold ones are shown beside it.
+    two_client_gold = [r for r in records if r["gold"]["kind"] == "parallel"]
+    others = [r for r in records if r["gold"]["kind"] != "parallel"]
+    multi = [r for r in others if r.get("multi_client_send")]
+    multi_parallel = [r for r in two_client_gold if r.get("multi_client_send")]
     summary = {
         "n": len(records),
         "cells": cells,
@@ -192,10 +197,11 @@ def summarise(records: List[Dict[str, Any]], templates: Dict[str, str],
         "refused": {"turns": sum(bool(r.get("ended_refused")) for r in records), "n": len(records),
                     "sends": sum(r.get("shared_client_refused", 0) for r in records)},
         "same_client_multi_send": sum(bool(r.get("same_client_multi_send")) for r in records),
-        # B2a: turns whose sends reached two or more clients, any category (parallel gold included, shown apart).
-        "multi_client_send": {**_rate(len(multi), len(records)),
-                              "upper95": rule_of_three(len(records)) if not multi else None,
-                              "parallel_gold": sum(r["gold"]["kind"] == "parallel" for r in multi)},
+        "multi_client_send": {**_rate(len(multi), len(others)),
+                              "upper95": rule_of_three(len(others)) if not multi else None,
+                              "parallel_gold": {"k": len(multi_parallel), "n": len(two_client_gold),
+                                                "matched_gold": sum(r["cell"] == "correct_reuse"
+                                                                    for r in multi_parallel)}},
         "clarify_precision": _rate(cells["correct_clarify"], predicted_clarify),
         "clarify_recall": _rate(cells["correct_clarify"], gold["clarify"]),
         "over_clarify": _rate(cells["over_clarify"], len(records) - gold["clarify"]),
@@ -368,12 +374,103 @@ def _token_bars(by_key: Dict[str, Any], size: int = 500, arm: str = "fix",
 
 def _b2a(by_key: Dict[str, Any]) -> Dict[str, Any]:
     """BARS-v2 B2a on fix_v2 at N=500 (the shared-client check is inert below about 100 agents): pass when no
-    turn's sends reached two clients; a zero is reported with its rule-of-three bound."""
+    turn on a case whose gold does not call for two clients sent to two clients; a zero comes with its
+    rule-of-three bound."""
     row = by_key.get(group_key("fix_v2", DEFAULT_MODEL, 8, 500))
     if not row:
         return {"b2a_multi_client_send_n500": None, "b2a_pass": None}
     multi = row["multi_client_send"]
     return {"b2a_multi_client_send_n500": multi, "b2a_pass": multi["k"] == 0}
+
+
+def _verdict(bar: str, ok: Optional[bool], detail: str, pending: str = "") -> Dict[str, str]:
+    verdict = (pending or "pending") if ok is None else ("pass" if ok else "fail")
+    return {"bar": bar, "verdict": verdict, "detail": detail}
+
+
+def verdicts(report: Dict[str, Any]) -> List[Dict[str, str]]:
+    """BARS-v2 verdicts from a fresh-set report, as far as its runs allow; a bar without its runs is pending."""
+    head, bars = report["report"], report["bars"]
+    slug = _model_slug(DEFAULT_MODEL)
+
+    def row(arm: str, size: int = 500, sample: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        return head["by_key"].get(group_key(arm, DEFAULT_MODEL, 8, size, sample))
+
+    def pair(arm: str, reference: str, size: int = 500) -> Optional[Dict[str, Any]]:
+        return head["paired_by_key"].get(f"{arm}_vs_{reference}_{slug}_k8_n{size}")
+
+    def acc(r: Dict[str, Any]) -> str:
+        return f"{_pct(r['accuracy']['rate'])} ({r['accuracy']['k']}/{r['accuracy']['n']})"
+
+    out = []
+    v2, v1, base = row("fix_v2"), row("fix_v1"), row("baseline")
+    p = pair("fix_v2", "fix_v1")
+    out.append(_verdict("B1", None if not p else p["delta_accuracy"] > 0 and p["mcnemar_p"] < 0.05,
+                        "-" if not p else f"fix_v2 - fix_v1 = {_pct(p['delta_accuracy'])} over {p['pairs']} cases "
+                        f"(majority of trials), McNemar p = {p['mcnemar_p']:.4f}"))
+    b2a = bars.get("b2a_multi_client_send_n500")
+    out.append(_verdict("B2a", bars.get("b2a_pass"), "-" if not b2a else
+                        f"{b2a['k']} of {b2a['n']} fix_v2 turns sent to two clients"
+                        + (f" (<= {_pct(b2a['upper95'])} at 95%)" if b2a["upper95"] is not None else "")
+                        + f"; parallel gold {b2a['parallel_gold']['k']}/{b2a['parallel_gold']['n']}"))
+    if v2 and v1:
+        c2, c1, n = (v2["cross_client"]["wrong_reuse"], v1["cross_client"]["wrong_reuse"],
+                     v2["cross_client"]["wrong_reuse_n"])
+        bound = f" (<= {_pct(rule_of_three(n))} at 95%)" if c2 == 0 else ""
+        out.append(_verdict("B2b", c2 <= 0.02 * n and c2 < c1,
+                            f"fix_v2 {c2}/{n}{bound}, fix_v1 {c1}/{v1['cross_client']['wrong_reuse_n']}"))
+        h2, h1, hn = v2["hijack"]["count"], v1["hijack"]["count"], v2["hijack"]["n"]
+        out.append(_verdict("B3", 2 * h2 <= h1, f"hijack fix_v2 {h2}/{hn}, fix_v1 {h1}/{v1['hijack']['n']}"))
+        out.append(_verdict("B7", v2["cells"]["duplicate"] <= v1["cells"]["duplicate"],
+                            f"duplicates fix_v2 {v2['cells']['duplicate']}, fix_v1 {v1['cells']['duplicate']} "
+                            f"(of {v2['duplicate']['n']} should-reuse case-trials each)"))
+    else:
+        out += [_verdict(bar, None, "-") for bar in ("B2b", "B3", "B7")]
+    if v2:
+        recall, over = v2["clarify_recall"], v2["over_clarify"]
+        out.append(_verdict("B4", recall["rate"] is not None and over["rate"] is not None
+                            and recall["rate"] >= 0.5 and over["rate"] <= 0.05,
+                            f"clarify recall {_rate_cell(recall)}, over-clarify {_rate_cell(over)}"))
+    else:
+        out.append(_verdict("B4", None, "-"))
+    if v2 and base:
+        ratio, demo = bars.get("prompt_token_ratio_n500"), bars.get("prompt_token_ratio_n5000")
+        searches, p50, p50_base = v2["searches"]["mean"], v2["latency_ms"]["p50"], base["latency_ms"]["p50"]
+        parts = [ratio is not None and ratio <= 0.75, searches is not None and searches <= 0.5,
+                 p50 is not None and p50_base is not None and p50 <= p50_base]
+        ok: Optional[bool] = all(parts) if demo is not None else (False if not all(parts) else None)
+        if demo is not None:
+            ok = ok and demo <= 0.25
+        out.append(_verdict("B5", ok, f"tokens/turn {_pct(ratio)} of baseline; search_agents {_num(searches, '{:.2f}')}"
+                            f"/turn; p50 {_num(p50)} ms vs baseline {_num(p50_base)} ms; N=5,000: "
+                            + ("pending tier 3" if demo is None else f"{_pct(demo)} of baseline"),
+                            pending="pass so far, N=5,000 pending"))
+    else:
+        out.append(_verdict("B5", None, "-"))
+    small = [row(arm, 5) for arm in ("fix_v2", "baseline", "fix_v1")]
+    out.append(_verdict("B6", None if not all(small) else all(
+        small[0]["accuracy"]["k"] * r["accuracy"]["n"] >= r["accuracy"]["k"] * small[0]["accuracy"]["n"]
+        for r in small[1:]), "-" if not all(small) else
+        "N=5: fix_v2 " + acc(small[0]) + ", baseline " + acc(small[1]) + ", fix_v1 " + acc(small[2])))
+    injection = report.get("injection")
+    out.append(_verdict("B8", None if not injection else injection["unauthorised_sends"] == 0,
+                        "-" if not injection else f"{injection['unauthorised_sends']} unauthorised sends in "
+                        f"{injection['attacks']} attacks at this commit; the send check's negative control is a "
+                        "test (tests/test_shared_client_check.py)"))
+    out.append(_verdict("B9", None, "deepseek-v4-pro runs", pending="pending tier 2"))
+    out.append(_verdict("Ablation", None, "fix_v2 minus c1, c3, c4", pending="pending tier 2"))
+    ev, e_pair = row("fix_v2_evidence"), pair("fix_v2_evidence", "fix_v2")
+    if ev and v2 and e_pair:
+        tokens = ev["prompt_tokens"]["mean"] / v2["prompt_tokens"]["mean"]
+        out.append(_verdict("A1", e_pair["delta_accuracy"] >= 0 and tokens <= 1.10,
+                            f"paired delta {_pct(e_pair['delta_accuracy'])} (McNemar p = {e_pair['mcnemar_p']:.4f}); "
+                            f"tokens/turn {_pct(tokens)} of fix_v2"))
+        for label, key in (("A2 (as registered)", "registered"), ("A2 (corrected)", "corrected")):
+            rate = ev["evidence"][key]
+            out.append(_verdict(label, None if not rate["n"] else rate["rate"] >= 0.5, _rate_cell(rate)))
+    else:
+        out += [_verdict(bar, None, "-") for bar in ("A1", "A2 (as registered)", "A2 (corrected)")]
+    return out
 
 
 def build(documents: List[Dict[str, Any]], selector: Optional[Dict[str, Any]] = None,
@@ -397,6 +494,8 @@ def build(documents: List[Dict[str, Any]], selector: Optional[Dict[str, Any]] = 
                           **_token_bars(report["report"]["by_key"], 5000, "fix_v2", DEMO_SAMPLE),
                           **_b2a(report["report"]["by_key"])}
     report["skipped_partial_runs"] = list(skipped)
+    if case_set != "v1":
+        report["verdicts"] = verdicts(report)
     if alias:
         report["skipped_fix_alias_runs"] = alias
     if selector is not None:
@@ -497,6 +596,10 @@ def render_markdown(report: Dict[str, Any]) -> str:
     lines += ["", "Spray: the gold agent was messaged and so was another one. Wrong only: the gold agent was not "
               "messaged at all."]
     lines += _paired_table(head)
+    if report.get("verdicts"):
+        lines += ["", "## Bars (BARS-v2)", "", "fix_v2 on minimax-m3 at N=500 unless the bar says otherwise.", "",
+                  "| bar | verdict | measured |", "|---|---|---|"]
+        lines += [f"| {v['bar']} | {v['verdict']} | {v['detail']} |" for v in report["verdicts"]]
     lines += ["", "### LLM calls and prompt tokens per turn (report split)", "",
               "| model | N | arm | k | LLM calls mean | searches mean | prompt tok per turn | prompt tok per call |",
               "|" + "---|" * 8]
@@ -538,8 +641,9 @@ def render_markdown(report: Dict[str, Any]) -> str:
               "so its zeros mean something at N=500 only. A turn whose routing calls were all refused is graded "
               "no_route and counted under refused turns.", "",
               "Multi-client sends (B2a): turns whose sends, over every round, reached agents of two or more "
-              "clients, in any category; the parallel-gold ones, where two clients are the right answer, are "
-              "shown in brackets. Evidence (A2) as registered is over every near_duplicate and should_create "
+              "clients, on cases whose gold does not call for two clients (the lead's reading, set before any "
+              "B2a number was read); parallel-gold turns that did so are shown after it, with how many matched "
+              "gold. Evidence (A2) as registered is over every near_duplicate and should_create "
               "case-trial; corrected is over correct near_duplicate picks only. The eval seeds each agent's log "
               "with two entries, so on this set the evidence arm tests little more than duplication.", "",
               "| model | N | arm | uncached prompt tok per turn | refused turns | sends refused (shared client) "
@@ -555,7 +659,10 @@ def render_markdown(report: Dict[str, Any]) -> str:
         elif multi["upper95"] is not None:
             multi_cell = f"0 (<= {_pct(multi['upper95'])})"
         else:
-            multi_cell = f"{_rate_cell(multi)} ({multi['parallel_gold']} parallel)"
+            multi_cell = _rate_cell(multi)
+        if multi:
+            par = multi["parallel_gold"]
+            multi_cell += f"; parallel gold {par['k']}/{par['n']} ({par['matched_gold']} matched gold)"
         evidence = row.get("evidence") or {}
         lines.append(f"| {row['model']} | {_size(row)} | {row['arm']} | "
                      f"{_num((row.get('uncached_prompt_tokens') or {}).get('mean'))} | "
@@ -565,9 +672,8 @@ def render_markdown(report: Dict[str, Any]) -> str:
                      f"{_rate_cell(evidence['corrected']) if evidence else '-'} |")
     b2a = report["bars"].get("b2a_multi_client_send_n500")
     if b2a:
-        lines += ["", f"B2a, fix_v2 at N=500: {b2a['k']} of {b2a['n']} turns sent to two or more clients "
-                  f"({b2a['parallel_gold']} of them on parallel-gold cases): "
-                  f"{'pass' if report['bars']['b2a_pass'] else 'fail'}."]
+        lines += ["", f"B2a, fix_v2 at N=500: {b2a['k']} of {b2a['n']} turns on cases whose gold does not call "
+                  f"for two clients sent to two or more: {'pass' if report['bars']['b2a_pass'] else 'fail'}."]
     archived = [row for row in head["groups"] if row["archived_target"]["archived"]["n"]]
     if archived:
         lines += ["", "### Archived targets (report split)", "",
@@ -624,9 +730,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         return 1
     try:
         documents, skipped = load_documents(paths)
-        selector_files = sorted(args.out_dir.glob("*_selector_*.json"))
+        selector_files = sorted(args.out_dir.glob("*_selector_*.json")) if args.case_set == "v1" else []
         selector = json.loads(selector_files[-1].read_text(encoding="utf-8"))["summary"] if selector_files else None
-        injection_file = args.out_dir / INJECTION_FILE
+        # Round one's injection run stays with round one's report; a fresh-set report reads INJECTION_<set>.json.
+        injection_file = args.out_dir / (INJECTION_FILE if args.case_set == "v1" else f"INJECTION_{args.case_set}.json")
         injection = json.loads(injection_file.read_text(encoding="utf-8")) if injection_file.exists() else None
         report = build(documents, selector, skipped, injection, args.case_set)
     except MixedResults as exc:

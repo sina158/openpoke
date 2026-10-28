@@ -59,3 +59,12 @@ tokens per turn within +10% of fix_v2's. A2 on `near_duplicate` and `should_crea
 evidence entry names the case's discriminator in >= 50% of case-trials (a code check, reported as a rate).
 Cross-client and hijack reported beside it. The flag's default flips to 1 only if A1 and A2 both pass; otherwise
 it stays off and is reported as measured.
+
+## Verdicts
+
+The verdicts are computed by `python -m evals.compare --set v2` into `evals/results/RESULTS_v2.md`.
+
+B2a, as read: a turn counts against B2a only on a case whose gold does not itself call for two clients. A correct
+answer on a `parallel` case reaches two clients by design and is not a violation; parallel-gold turns that sent
+to two clients are reported beside the count, with how many matched gold. This interpretation was set by the lead
+before any B2a number was read.

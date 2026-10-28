@@ -209,14 +209,21 @@ def _document(arm, records, path, **header):
     return path
 
 
-def test_b2a_is_graded_from_multi_client_sends():
-    case = _v2_case("v2-parallel-001")
-    row = compare.summarise([_record(case, t, "correct_reuse", multi_client_send=t == 0) for t in range(3)], {})
-    assert row["multi_client_send"]["k"] == 1 and row["multi_client_send"]["parallel_gold"] == 1
+def test_b2a_counts_only_cases_whose_gold_does_not_call_for_two_clients():
+    parallel, single = _v2_case("v2-parallel-001"), _v2_case("v2-near_duplicate-001")
+    rows = [_record(parallel, 0, "correct_reuse", multi_client_send=True),
+            _record(parallel, 1, "wrong_reuse", multi_client_send=True),
+            _record(single, 0, "correct_reuse"), _record(single, 1, "correct_reuse")]
+    row = compare.summarise(rows, {})
+    multi = row["multi_client_send"]
+    assert (multi["k"], multi["n"]) == (0, 2) and multi["upper95"] == pytest.approx(1.5)
+    assert multi["parallel_gold"] == {"k": 2, "n": 2, "matched_gold": 1}
     key = compare.group_key("fix_v2", run_routing.DEFAULT_MODEL, 8, 500)
-    assert compare._b2a({key: row}) == {"b2a_multi_client_send_n500": row["multi_client_send"], "b2a_pass": False}
-    clean = compare.summarise([_record(case, t, "correct_reuse") for t in range(3)], {})
-    assert clean["multi_client_send"]["upper95"] == pytest.approx(1.0) and compare._b2a({key: clean})["b2a_pass"]
+    assert compare._b2a({key: row})["b2a_pass"] is True  # correct parallel answers are not violations
+
+    rows.append(_record(single, 2, "wrong_reuse", multi_client_send=True))
+    row = compare.summarise(rows, {})
+    assert row["multi_client_send"]["k"] == 1 and compare._b2a({key: row})["b2a_pass"] is False
     assert compare._b2a({})["b2a_pass"] is None
 
 
@@ -289,3 +296,23 @@ def test_v2_report_pairs_against_fix_v1_and_splits_by_target_status(tmp_path):
     assert "fix_v2_vs_baseline_m_k8_n5000_s30" in pairs and "baseline_m_k8_n5000_s30" in head["by_key"]
     markdown = (tmp_path / "RESULTS_v2.md").read_text(encoding="utf-8")
     assert "58 of 94 non-create report cases" in markdown and "30 cases, demonstration" in markdown
+
+
+def test_v2_report_grades_the_bars_it_has_runs_for(tmp_path):
+    cases = [c for c in load_cases(GOLDEN_V2_PATH) if c["category"] == "explicit"][:6]
+
+    def document(arm, cell):
+        return _document(arm, [_record(c, 0, cell) for c in cases], tmp_path / f"{arm}.json", set="v2",
+                         model=run_routing.DEFAULT_MODEL)
+
+    paths = [document("baseline", "wrong_reuse"), document("fix_v1", "wrong_reuse"),
+             document("fix_v2", "correct_reuse")]
+    assert compare.main([str(p) for p in paths] + ["--out-dir", str(tmp_path), "--set", "v2"]) == 0
+    report = json.loads((tmp_path / "RESULTS_v2.json").read_text(encoding="utf-8"))
+    verdict = {v["bar"]: v["verdict"] for v in report["verdicts"]}
+    assert verdict["B1"] == "pass"  # 6 of 6 discordant pairs favour fix_v2: McNemar p = 0.031
+    assert verdict["B2a"] == "pass" and verdict["B7"] == "pass"
+    assert verdict["B2b"] == "fail"  # 0 against 0 is not below fix_v1, as registered
+    assert verdict["B6"] == "pending" and verdict["A1"] == "pending" and verdict["B8"] == "pending"
+    assert verdict["B9"] == "pending tier 2" and verdict["Ablation"] == "pending tier 2"
+    assert "## Bars (BARS-v2)" in (tmp_path / "RESULTS_v2.md").read_text(encoding="utf-8")
