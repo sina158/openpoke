@@ -61,6 +61,16 @@ def _render_conversation_history(transcript: str) -> str:
 
 # Format currently active execution agents into XML tags for LLM awareness
 def _render_active_agents() -> str:
+    # The shortlist prompt routes by id, so its full roster carries ids (names and ids only, no
+    # cards). The upstream prompt keeps the upstream lines.
+    if get_settings().prompt_variant == "shortlist":
+        records = get_agent_registry().list("active")
+        lines = [
+            f'<agent id="{escape(r.id, quote=True)}" name="{escape(r.name or "agent", quote=True)}" />'
+            for r in records
+        ]
+        return "\n".join(lines) or "None"
+
     roster = get_agent_roster()
     roster.load()
     agents = roster.get_agents()

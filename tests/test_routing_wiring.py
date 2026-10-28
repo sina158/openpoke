@@ -55,11 +55,14 @@ def test_baseline_is_the_upstream_rendering_and_tools(seeded):
     assert "Don't worry if the agent name is unrelated" in prompt
 
 
-def test_prompt_only_keeps_the_full_roster_but_switches_prompt_and_tools(seeded):
+def test_prompt_only_shows_the_full_roster_with_ids_but_no_cards(seeded):
     content, schemas, prompt = seeded("prompt_only")
-    baseline_content, _, _ = seeded("baseline")
 
-    assert content == baseline_content
+    roster = [(r.id, r.name) for r in get_agent_registry().list()]
+    expected = "\n".join(f'<agent id="{agent_id}" name="{name}" />' for agent_id, name in roster)
+    assert len(roster) == 12
+    assert f"<active_agents>\n{expected}\n</active_agents>" in content
+    assert "purpose=" not in content and "mode=" not in content
     names = [s["function"]["name"] for s in schemas]
     assert "clarify_agent_choice" in names and "search_agents" not in names
     send = _send_schema(schemas)
