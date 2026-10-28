@@ -313,8 +313,6 @@ _SCHEMAS: List[Dict[str, Any]] = [
     },
 ]
 
-_LOG_STORE = get_execution_agent_logs()
-
 
 # Return Gmail tool schemas
 def get_schemas() -> List[Dict[str, Any]]:
@@ -332,13 +330,13 @@ def _execute(tool_name: str, composio_user_id: str, arguments: Dict[str, Any]) -
     try:
         result = execute_gmail_tool(tool_name, composio_user_id, arguments=payload)
     except Exception as exc:
-        _LOG_STORE.record_action(
+        get_execution_agent_logs().record_action(
             _GMAIL_AGENT_NAME,
             description=f"{tool_name} failed | args={payload_str} | error={exc}",
         )
         raise
 
-    _LOG_STORE.record_action(
+    get_execution_agent_logs().record_action(
         _GMAIL_AGENT_NAME,
         description=f"{tool_name} succeeded | args={payload_str}",
     )
@@ -357,7 +355,7 @@ def _propose_send(kind: str, arguments: Dict[str, Any], agent_name: Optional[str
     payload = {k: v for k, v in arguments.items() if v is not None}
     action = get_approval_store().propose(kind, payload, agent_id=agent_name)
     payload_str = json.dumps(payload, ensure_ascii=False, sort_keys=True)
-    _LOG_STORE.record_action(
+    get_execution_agent_logs().record_action(
         _GMAIL_AGENT_NAME,
         description=f"{kind} proposed | action_id={action.id} | args={payload_str}",
     )

@@ -12,6 +12,7 @@ from server.services.approvals import (
     get_approval_store,
     reset_approval_store,
 )
+from server.services.execution.log_store import reset_execution_agent_logs
 from server.services.provenance import turn_provenance
 
 SEND_TOOLS = {
@@ -69,6 +70,18 @@ def test_proposal_names_the_agent(sends):
     action_id = _propose()
 
     assert get_approval_store().get(action_id).agent_id == "Email to a client"
+
+
+def test_proposals_are_journalled_in_the_current_log_store(sends, monkeypatch, tmp_path):
+    monkeypatch.setenv("OPENPOKE_DATA_DIR", str(tmp_path / "data"))
+    reset_execution_agent_logs()
+    try:
+        action_id = _propose()
+        journal = "".join(path.read_text(encoding="utf-8") for path in (tmp_path / "data").rglob("*.log"))
+    finally:
+        reset_execution_agent_logs()
+
+    assert f"action_id={action_id}" in journal
 
 
 def test_no_execute_without_a_consumed_approval(sends):
