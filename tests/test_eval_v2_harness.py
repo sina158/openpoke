@@ -316,3 +316,21 @@ def test_v2_report_grades_the_bars_it_has_runs_for(tmp_path):
     assert verdict["B6"] == "pending" and verdict["A1"] == "pending" and verdict["B8"] == "pending"
     assert verdict["B9"] == "pending tier 2" and verdict["Ablation"] == "pending tier 2"
     assert "## Bars (BARS-v2)" in (tmp_path / "RESULTS_v2.md").read_text(encoding="utf-8")
+
+
+def test_a_replay_miss_aborts_unless_misses_are_graded_as_errors(tmp_path):
+    from evals.cassette import CassetteMiss
+
+    ids = [c["case_id"] for c in load_cases(GOLDEN_V2_PATH)[:11]]
+    recorded = RunConfig(arm="fix_v2", model="fake", sizes=(5,), case_set="v2", mode="record", cassette_dir=tmp_path,
+                         case_ids=ids[:10])
+    run_routing.run(recorded, inner=_no_route)  # the eleventh case is never recorded, as if it failed live
+    config = RunConfig(arm="fix_v2", model="fake", sizes=(5,), case_set="v2", mode="replay", cassette_dir=tmp_path,
+                       case_ids=ids)
+    with pytest.raises(CassetteMiss):
+        run_routing.run(config)
+    config.misses_as_errors = True
+    document = run_routing.run(config)
+    errors = [r for r in document["records"] if r["cell"] == "error"]
+    assert [r["case_id"] for r in errors] == [ids[10]] and errors[0]["error"].startswith("CassetteMiss")
+    assert document["header"]["cassette_misses"] == [ids[10]]

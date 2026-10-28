@@ -465,6 +465,7 @@ class RunConfig:
     case_set: str = "v1"
     cases_sample: Optional[int] = None
     sample_seed: int = SEED_V2
+    misses_as_errors: bool = False
 
 
 async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: str,
@@ -510,7 +511,12 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
         calls = list(runtime.kept or [])  # the loop ended after the guard's answer with no routing call
     except RoutingDecided as decided:
         calls, rounds, after_guard = decided.calls, decided.rounds, decided.after_guard
-    except (CassetteMiss, LiveCallLimit):
+    except CassetteMiss as exc:
+        if not config.misses_as_errors:
+            raise
+        # A call the live run never recorded because it failed at the provider: graded as it was live.
+        error = f"CassetteMiss: {exc}"
+    except LiveCallLimit:
         raise
     except Exception as exc:  # the 8-iteration RuntimeError and provider errors are graded as errors
         error = f"{type(exc).__name__}: {exc}"
@@ -762,6 +768,8 @@ def run(config: RunConfig, inner: Optional[Callable[..., Any]] = None) -> Dict[s
         "limit": config.limit,
         "case_ids": config.case_ids,
         "mode": config.mode,
+        "misses_as_errors": config.misses_as_errors,
+        "cassette_misses": sorted({r["case_id"] for r in records if (r["error"] or "").startswith("CassetteMiss")}),
         "cassette_hits": cassette.hits,
         "live_calls": cassette.live_calls,
         "render_seconds": round(render_s, 1),
@@ -838,6 +846,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--cases-sample", type=int, default=None,
                         help="run a seeded sample of this many cases, stratified by category")
     parser.add_argument("--sample-seed", type=int, default=SEED_V2)
+    parser.add_argument("--misses-as-errors", action="store_true",
+                        help="replay: grade a call that was never recorded (it failed live) as an error, not abort")
     parser.add_argument("--k", type=int, default=8, help="shortlist size (sets OPENPOKE_SHORTLIST_K)")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--seed", type=int, default=SEED)
@@ -865,7 +875,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         concurrency=args.concurrency, render_workers=args.render_workers, mode=args.mode, cassette_dir=args.cassette_dir,
         max_live_calls=args.max_live_calls, budget_usd=args.budget_usd,
         case_ids=args.cases.split(",") if args.cases else None, case_set=args.case_set,
-        cases_sample=args.cases_sample, sample_seed=args.sample_seed,
+        cases_sample=args.cases_sample, sample_seed=args.sample_seed, misses_as_errors=args.misses_as_errors,
     )
     try:
         document = run(config)
