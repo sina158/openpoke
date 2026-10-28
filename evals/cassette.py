@@ -57,13 +57,46 @@ def call_key(model: str, messages: List[Dict[str, Any]], tools: Optional[List[Di
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
+def _find_number(obj: Any, key: str) -> Optional[float]:
+    if isinstance(obj, dict):
+        value = obj.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+        for child in obj.values():
+            found = _find_number(child, key)
+            if found is not None:
+                return found
+    return None
+
+
+def _slim_usage(usage: Any) -> Any:
+    """Token counts, cached and reasoning tokens, and one list-price number; no provider billing details.
+
+    `list_cost` is the provider's list-price figure where it reports one (flat plans bill 0), else its
+    `cost`, which is the list price on pay-as-you-go endpoints.
+    """
+    if not isinstance(usage, dict):
+        return usage
+    slim = {key: usage[key] for key in ("prompt_tokens", "completion_tokens", "total_tokens") if key in usage}
+    for group, key in (("prompt_tokens_details", "cached_tokens"), ("completion_tokens_details", "reasoning_tokens")):
+        value = (usage.get(group) or {}).get(key)
+        if value is not None:
+            slim[group] = {key: value}
+    list_cost = _find_number(usage, "list_cost")
+    if list_cost is None:
+        list_cost = _find_number({"cost": usage.get("cost")}, "cost")
+    if list_cost is not None:
+        slim["list_cost"] = list_cost
+    return slim
+
+
 def _slim(response: Dict[str, Any]) -> Dict[str, Any]:
-    """Keep what the runtime and the report read: the message, finish reason, usage and model."""
+    """Keep what the runtime and the report read: the message, finish reason, token usage and model."""
     choices = [
         {"message": choice.get("message"), "finish_reason": choice.get("finish_reason")}
         for choice in response.get("choices") or []
     ]
-    return {"model": response.get("model"), "choices": choices, "usage": response.get("usage")}
+    return {"model": response.get("model"), "choices": choices, "usage": _slim_usage(response.get("usage"))}
 
 
 def _real_client() -> LLMCall:

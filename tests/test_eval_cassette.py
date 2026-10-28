@@ -59,3 +59,19 @@ def test_live_call_limit(tmp_path):
     with pytest.raises(LiveCallLimit):
         _ask(live, "two")
     assert not (tmp_path / "run.jsonl").exists()
+
+
+def test_recorded_usage_keeps_tokens_and_list_price_only(tmp_path):
+    async def vendor(*, model, messages, system=None, tools=None, **kwargs):
+        usage = {"prompt_tokens": 9, "completion_tokens": 2, "total_tokens": 11, "cost": 0,
+                 "prompt_tokens_details": {"cached_tokens": 4, "audio_tokens": 0},
+                 "completion_tokens_details": {"reasoning_tokens": 1},
+                 "vendor": {"billing_source": "plan", "list_cost": 0.002, "allowance": 0.002}}
+        return {"model": model, "usage": usage, "choices": [{"message": {"role": "assistant", "content": "x"}}]}
+
+    recorder = Cassette("run", mode="record", directory=tmp_path, inner=vendor)
+    response = _ask(recorder, "hello")
+    assert response["usage"] == {"prompt_tokens": 9, "completion_tokens": 2, "total_tokens": 11,
+                                 "prompt_tokens_details": {"cached_tokens": 4},
+                                 "completion_tokens_details": {"reasoning_tokens": 1}, "list_cost": 0.002}
+    assert "billing_source" not in (tmp_path / "run.jsonl").read_text(encoding="utf-8")
