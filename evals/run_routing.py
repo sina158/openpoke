@@ -312,7 +312,8 @@ def _recording_runtime_class() -> type:
 
         def __init__(self, model: str, api_key: str, tool_schemas: List[Dict[str, Any]],
                      on_tool: Callable[[str, Dict[str, Any]], Any],
-                     guard: Optional[Callable[[str, Dict[str, Any]], Any]] = None) -> None:
+                     guard: Optional[Callable[[str, Dict[str, Any]], Any]] = None,
+                     sandbox: Optional[Path] = None) -> None:
             from server.config import get_settings
 
             self.api_key = api_key
@@ -321,6 +322,7 @@ def _recording_runtime_class() -> type:
             self.tool_schemas = tool_schemas
             self._on_tool = on_tool
             self._guard = guard
+            self._sandbox = sandbox
             self.refused: Dict[int, Any] = {}
             self.kept: Optional[List[Tuple[str, Dict[str, Any]]]] = None
 
@@ -330,19 +332,34 @@ def _recording_runtime_class() -> type:
             if not routing:
                 return parsed
             pairs = [(call.name, call.arguments) for call in routing]
+            turn_refused = self._turn_refusals(routing)
             if self.kept is not None:  # the routing turn after the guard's answer always ends the case
-                raise RoutingDecided(self.kept + pairs, rounds=2, after_guard=pairs)
+                # Sends the server would refuse again are not dispatched, so they are not graded.
+                sent = [(c.name, c.arguments) for c in routing if id(c) not in turn_refused]
+                raise RoutingDecided(self.kept + sent, rounds=2, after_guard=sent)
             if self._guard is not None:
                 for call in routing:
                     refusal = self._guard(call.name, call.arguments)
                     if refusal is not None:
                         self.refused[id(call)] = refusal
+            self.refused.update(turn_refused)
             if not self.refused:
                 raise RoutingDecided(pairs)
-            # The guard refused a create: the model gets the refusal and one more turn. Routing calls it
+            # A guard refused a call: the model gets the refusal and one more turn. Routing calls it
             # let through in the same turn count as dispatched.
             self.kept = [(c.name, c.arguments) for c in routing if id(c) not in self.refused]
             return parsed
+
+        def _turn_refusals(self, routing):
+            """The server's whole-turn check (v2 shared-client sends), run against this case's sandbox."""
+            if self._sandbox is None:
+                return {}
+            # Synchronous, so nothing else runs on the loop while the stores point at this case.
+            point_stores_at(self._sandbox)
+            return super()._check_turn_tools(routing)
+
+        def _check_turn_tools(self, tool_calls):  # type: ignore[override]
+            return {}  # applied in _parse_tool_calls, where the stores point at this case
 
         def _execute_tool(self, tool_call):  # type: ignore[override]
             if id(tool_call) in self.refused:
@@ -429,7 +446,8 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
 
     # Upstream has no duplicate guard, so the baseline arm never runs it.
     guard = None if config.arm == "baseline" else (lambda name, args: duplicate_guard(rendered, name, args))
-    runtime = _recording_runtime_class()(config.model, api_key, rendered.tools, on_tool, guard)
+    sandbox = None if config.arm == "baseline" else rendered.data_dir
+    runtime = _recording_runtime_class()(config.model, api_key, rendered.tools, on_tool, guard, sandbox)
     calls: List[Tuple[str, Dict[str, Any]]] = []
     after_guard: Optional[List[Tuple[str, Dict[str, Any]]]] = None
     rounds = 0
@@ -449,6 +467,8 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
     if runtime.refused:
         suggested = {rendered.by_id.get(item["agent_id"]) for refusal in runtime.refused.values()
                      for item in refusal.payload.get("possible_duplicates", [])}
+        suggested |= {rendered.by_id.get(agent_id) for refusal in runtime.refused.values()
+                      for agent_id in refusal.payload.get("agent_ids", [])}
         guard_outcome = "error" if error else _guard_outcome(after_guard or [], rendered, suggested)
     if error:
         cell, cross = "error", False
@@ -473,7 +493,7 @@ async def run_one(rendered: Rendered, trial: int, config: RunConfig, api_key: st
         "target_archived": bool(gold_ids & set(rendered.archived_ids)),
         "searches": len(searches),
         "search_found_target": any(searches),
-        "guard_fired": bool(runtime.refused),
+        "guard_fired": _guard_fired(runtime.refused),
         "guard_outcome": guard_outcome,
         "user_messages": user_messages,
         "error": error,
@@ -510,6 +530,13 @@ def duplicate_guard(rendered: Rendered, name: str, args: Dict[str, Any]) -> Any:
         return None
     _, _, refusal = tools_module._resolve_agent(None, agent_name, False, instructions)
     return refusal
+
+
+def _guard_fired(refused: Dict[int, Any]) -> Any:
+    """"shared_client" when the v2 send check refused a call, else whether the duplicate guard fired."""
+    if any(refusal.payload.get("reason") == "shared_client" for refusal in refused.values()):
+        return "shared_client"
+    return bool(refused)
 
 
 def _guard_outcome(after: List[Tuple[str, Dict[str, Any]]], rendered: Rendered, suggested: set) -> str:
