@@ -41,8 +41,9 @@ is the most common fix-arm failure instead: 11 of the 14 wrong reuses at N=500.
   insurance under auto policy AU-6497-13 (Granite Bay Assurance). ..."
 - Gold: reuse `g_0022` (`a_0499` here) only.
 - Why it failed: nothing was ambiguous (the user typed the agent's name) and the search found it, yet the model
-  sent a second request for context. The prompt says to clarify when two agents could fit; it says nothing
-  against asking two agents. At N=5 and N=50 the same case fails another way: no search, and the request goes to
+  sent a second request for context. The prompt says to clarify when two agents could fit, and a line kept from
+  the upstream prompt (`interaction_shortlist.md`, line 15) tells it to message agents in parallel as much as
+  possible, which invites exactly this. At N=5 and N=50 the same case fails another way: no search, and the request goes to
   the COI agent alone. The baseline, which lists every name and archives nothing, got it right at all three sizes.
 - What would fix it: a check in `send_message_to_agent`, shaped like the duplicate guard: when one assistant turn
   sends to two or more agents whose logs share an email address or a person or business name, send nothing and
@@ -71,8 +72,8 @@ is the most common fix-arm failure instead: 11 of the 14 wrong reuses at N=500.
 - Tool call made: the same request to `a_0499` and to `a_0500`: "Please look up your file and report back (no
   emails, no drafts, read-only): the insured's full legal name and city/location, ..."
 - Gold: reuse `g_0222` only.
-- Cross-client: yes. The request was read-only, but it still reached another client's agent. All 4 cross-client
-  wrong reuses of the fix arm at N=500 are sprays on this template (`near_duplicate-002`, `-006`, `-010`, `-014`).
+- Cross-client: yes. The request was read-only, but it still reached another client's agent. In the one-trial run over
+  all 130 cases, all 4 cross-client wrong reuses of the fix arm at N=500 are sprays on this template (`near_duplicate-002`, `-006`, `-010`, `-014`).
   The baseline also messaged both, at all three sizes.
 - Why it failed: the city is the only thing that tells the two apart, and the card drops it. `_purpose_from_log`
   in `server/services/execution/cards.py` clips the first request with `_clip(..., 120)`, which keeps at most
