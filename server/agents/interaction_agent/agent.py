@@ -1,19 +1,27 @@
 """Interaction agent helpers for prompt construction."""
 
+from functools import lru_cache
 from html import escape
 from pathlib import Path
 from typing import Dict, List
 
+from ...config import get_settings
 from ...services.execution import get_agent_roster
 
-_prompt_path = Path(__file__).parent / "system_prompt.md"
-SYSTEM_PROMPT = _prompt_path.read_text(encoding="utf-8").strip()
+_PROMPT_DIR = Path(__file__).parent / "prompts"
+# "original" is the upstream prompt byte for byte; "shortlist" rewrites only the routing guidance.
+PROMPT_FILES = {"original": "interaction_full.md", "shortlist": "interaction_shortlist.md"}
+
+
+@lru_cache(maxsize=None)
+def _read_prompt(filename: str) -> str:
+    return (_PROMPT_DIR / filename).read_text(encoding="utf-8").strip()
 
 
 # Load and return the pre-defined system prompt from markdown file
-def build_system_prompt() -> str:
-    """Return the static system prompt for the interaction agent."""
-    return SYSTEM_PROMPT
+def build_system_prompt(variant: str | None = None) -> str:
+    """Return the system prompt for ``variant``, by default the one ``OPENPOKE_PROMPT_VARIANT`` names."""
+    return _read_prompt(PROMPT_FILES[variant or get_settings().prompt_variant])
 
 
 # Build structured message with conversation history, active agents, and current turn

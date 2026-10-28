@@ -120,7 +120,8 @@ def test_offline_run_through_the_real_loop(tmp_path):
     assert document["header"]["arm"] == "baseline" and document["header"]["n_records"] == 6
 
     # The real system prompt, tool schemas and rendering reached the model, with the case's roster and history.
-    assert all(call["system"] == build_system_prompt() and call["role"] == "interaction" for call in seen)
+    baseline_prompt = build_system_prompt("original")
+    assert all(call["system"] == baseline_prompt and call["role"] == "interaction" for call in seen)
     assert all("send_message_to_agent" in call["tools"] for call in seen)
     first_turns = [c["prompt"] for c in seen if c["turns"] == 1]
     sizes = sorted(len(re.findall(r"<agent name=", p)) for p in first_turns)
