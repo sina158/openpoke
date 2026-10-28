@@ -93,6 +93,10 @@ class _Capture:
                        **kwargs: Any) -> Dict[str, Any]:
         if self.messages is None:
             self.messages, self.system = messages, system or ""  # the runtime appends to this same list
+        # A live call waits on the network, and the stubbed agents dispatched earlier in the turn finish (and
+        # log their reports) meanwhile. Finishing them first gives that same log order in every mode, so a
+        # recorded run replays; without it a replay logs the reports after the turn's reply instead.
+        await _finish_dispatched()
         try:
             return await self.cassette(model=model, messages=messages, system=system, **kwargs)
         except (CassetteMiss, LiveCallLimit) as exc:
@@ -243,11 +247,17 @@ class Simulation:
         else:
             result = await runtime.handle_agent_message(text, provenance="email")
         # Let every stubbed execution agent finish (it logs, refreshes its card and touches the registry).
-        while True:
-            pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-            if not pending:
-                return result
-            await asyncio.gather(*pending, return_exceptions=True)
+        await _finish_dispatched()
+        return result
+
+
+async def _finish_dispatched() -> None:
+    """Wait until every task but the current one is done (the stubbed execution agents and their reports)."""
+    while True:
+        pending = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+        if not pending:
+            return
+        await asyncio.gather(*pending, return_exceptions=True)
 
 
 async def _record_report(self: Any, payload: str) -> None:

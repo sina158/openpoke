@@ -1,5 +1,6 @@
 """The demo's plumbing under a scripted fake model: record, then replay offline, every turn in its cell."""
 
+import asyncio
 import json
 import re
 
@@ -95,3 +96,14 @@ def test_the_gate_cell_reads_the_action_state_not_the_turns_dispatches():
     assert demo.observed_cell(turn, {}, spec, "proposed") == "gate_refused"
     assert demo.observed_cell(turn, {}, spec, "approved") == "gate_passed"
     assert demo.observed_cell(Turn(text="", at="", message_type="email"), {}, spec, "executed") == "gate_passed"
+
+
+def test_a_recording_made_over_a_slow_network_replays(tmp_path):
+    async def slow_model(**kwargs):
+        await asyncio.sleep(0.01)  # a live call yields to the loop, so dispatched agents finish meanwhile
+        return await fake_model(**kwargs)
+
+    demo.run_demo("fix_v2", model="fake-model", mode="record", cassette_dir=tmp_path, inner=slow_model)
+    replayed = demo.run_demo("fix_v2", model="fake-model", mode="replay", cassette_dir=tmp_path)
+    assert replayed["header"]["live_calls"] == 0
+    assert all(row["passed"] for row in replayed["turns"])
