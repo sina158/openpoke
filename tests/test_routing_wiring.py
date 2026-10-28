@@ -1,5 +1,7 @@
 """The arm flags really switch the rendering, the tool schemas and the prompt (plan 4.3 wiring test)."""
 
+import hashlib
+import json
 import re
 
 import pytest
@@ -15,6 +17,9 @@ ARMS = {
     "fix": ("shortlist", "shortlist"),
 }
 NAMES = [f"Renewal for Client {n:02d}" for n in range(12)]
+# sha256 of the compact sorted-key JSON of TOOL_SCHEMAS in server/agents/interaction_agent/tools.py at
+# upstream commit 5b5f635: send_message_to_agent, send_message_to_user, send_draft, wait.
+UPSTREAM_TOOL_SCHEMAS_SHA256 = "c1b5adec8667ff109035b0d15994ce496bd5f1f3026e2e50459cd495cc1402d4"
 
 
 @pytest.fixture
@@ -46,9 +51,8 @@ def test_baseline_is_the_upstream_rendering_and_tools(seeded):
     upstream_block = "<active_agents>\n" + "\n".join(f'<agent name="{n}" />' for n in NAMES) + "\n</active_agents>"
     assert upstream_block in content
     assert "a_0001" not in content and "mode=" not in content
-    assert [s["function"]["name"] for s in schemas] == [
-        "send_message_to_agent", "send_message_to_user", "send_draft", "wait", "confirm_action",
-    ]
+    blob = json.dumps(schemas, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    assert hashlib.sha256(blob.encode("utf-8")).hexdigest() == UPSTREAM_TOOL_SCHEMAS_SHA256
     send = _send_schema(schemas)
     assert set(send["properties"]) == {"agent_name", "instructions"}
     assert send["required"] == ["agent_name", "instructions"]
@@ -64,7 +68,7 @@ def test_prompt_only_shows_the_full_roster_with_ids_but_no_cards(seeded):
     assert f"<active_agents>\n{expected}\n</active_agents>" in content
     assert "purpose=" not in content and "mode=" not in content
     names = [s["function"]["name"] for s in schemas]
-    assert "clarify_agent_choice" in names and "search_agents" not in names
+    assert "clarify_agent_choice" in names and "confirm_action" in names and "search_agents" not in names
     send = _send_schema(schemas)
     assert set(send["properties"]) == {"instructions", "agent_id", "agent_name", "confirm_new"}
     assert send["required"] == ["instructions"]

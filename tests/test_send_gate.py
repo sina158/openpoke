@@ -5,7 +5,7 @@ from contextlib import closing
 import pytest
 
 from server.agents.execution_agent.tools import get_tool_registry, get_tool_schemas, gmail
-from server.agents.interaction_agent.tools import TOOL_SCHEMAS, handle_tool_call
+from server.agents.interaction_agent.tools import CONFIRM_ACTION_SCHEMA, handle_tool_call
 from server.services.approvals import (
     ApprovalError,
     ApprovalStore,
@@ -141,7 +141,6 @@ def test_executor_is_not_a_tool():
 
 
 def test_confirm_action_schema_is_closed():
-    schema = next(s for s in TOOL_SCHEMAS if s["function"]["name"] == "confirm_action")
-    parameters = schema["function"]["parameters"]
+    parameters = CONFIRM_ACTION_SCHEMA["function"]["parameters"]
     assert parameters["required"] == ["action_id"]
     assert parameters["additionalProperties"] is False

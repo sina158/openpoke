@@ -16,6 +16,9 @@ from ...services.execution.selector import render_shortlist, select
 from ...utils.clock import now_utc
 
 _PROMPT_DIR = Path(__file__).parent / "prompts"
+# The baseline arm (upstream prompt, full roster, upstream tools) still differs from upstream on
+# purpose: the current turn is escaped like history, so an email cannot forge a user turn; idle
+# agents can be archived out of the roster; and outbound email only proposes a send.
 # "original" is the upstream prompt byte for byte; "shortlist" rewrites only the routing guidance.
 PROMPT_FILES = {"original": "interaction_full.md", "shortlist": "interaction_shortlist.md"}
 

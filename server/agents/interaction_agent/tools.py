@@ -113,26 +113,24 @@ TOOL_SCHEMAS = [
     },
 ]
 
-TOOL_SCHEMAS.append(
-    {
-        "type": "function",
-        "function": {
-            "name": "confirm_action",
-            "description": "Send a pending email action (reply, forward, or draft send) that the user has just confirmed in their own message. Refused on any turn the user did not send.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "action_id": {
-                        "type": "string",
-                        "description": "The action_id an agent reported for the pending send.",
-                    },
+CONFIRM_ACTION_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "confirm_action",
+        "description": "Send a pending email action (reply, forward, or draft send) that the user has just confirmed in their own message. Refused on any turn the user did not send.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "action_id": {
+                    "type": "string",
+                    "description": "The action_id an agent reported for the pending send.",
                 },
-                "required": ["action_id"],
-                "additionalProperties": False,
             },
+            "required": ["action_id"],
+            "additionalProperties": False,
         },
-    }
-)
+    },
+}
 
 # The routing tools the "shortlist" prompt variant describes: send_message_to_agent takes an id,
 # the duplicate check can be overridden, and the model can ask the user or search the roster.
@@ -412,8 +410,10 @@ def wait(reason: str) -> ToolResult:
 def get_tool_schemas():
     """Return OpenAI-compatible tool schemas.
 
-    The "original" variant gets the upstream schemas; "shortlist" gets id-based routing and
-    clarify_agent_choice, plus search_agents when the roster is shortlisted.
+    The "original" variant gets exactly the upstream four (TOOL_SCHEMAS), so the baseline arm
+    measures upstream; it has no confirm_action, so a pending send cannot be approved there. The
+    "shortlist" variant gets id-based routing, clarify_agent_choice, search_agents when the roster
+    is shortlisted, and confirm_action.
     """
     settings = get_settings()
     if settings.prompt_variant == "original":
@@ -421,7 +421,7 @@ def get_tool_schemas():
     routing = [_SEND_BY_ID_SCHEMA, _CLARIFY_SCHEMA]
     if settings.roster_mode == "shortlist":
         routing.append(_SEARCH_SCHEMA)
-    return [*routing, *TOOL_SCHEMAS[1:]]
+    return [*routing, *TOOL_SCHEMAS[1:], CONFIRM_ACTION_SCHEMA]
 
 
 # Route tool calls to appropriate handlers with argument validation and error handling
