@@ -138,3 +138,17 @@ def test_search_agents_reaches_archived_agents_by_email(loop):
     assert result.payload["agents"][0]["agent_id"] == old.id
     assert result.payload["agents"][0]["status"] == "archived"
     assert tools.search_agents("unrelated words").payload["agents"] == []
+
+
+def test_confirm_new_creates_a_separate_agent_even_when_the_name_is_taken(loop):
+    first = _agent("Lakeshore Catering renewal", "Renew the policy for the Oshawa location")
+
+    result = tools.send_message_to_agent(
+        "Renew the policy for the Kingston client", agent_name="Lakeshore Catering renewal", confirm_new=True
+    )
+
+    assert result.success and result.payload["new_agent_created"] is True
+    assert result.payload["agent_id"] != first.id
+    assert result.payload["agent_name"] == "Lakeshore Catering renewal (2)"
+    first_log = [text for _, _, text in get_execution_agent_logs().iter_entries(first.name)]
+    assert first_log == ["Renew the policy for the Oshawa location"]

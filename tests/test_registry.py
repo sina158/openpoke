@@ -154,3 +154,16 @@ def test_roster_shim_keeps_the_old_api(registry):
 
     roster.clear()
     assert roster.get_agents() == []
+
+
+def test_create_always_mints_a_new_agent_with_a_free_name(registry):
+    first, _ = registry.get_or_create("Lakeshore Catering renewal")
+
+    second = registry.create("Lakeshore Catering renewal")
+    third = registry.create("lakeshore catering renewal")
+
+    assert (second.name, second.slug) == ("Lakeshore Catering renewal (2)", "lakeshore-catering-renewal-2")
+    assert (third.name, third.slug) == ("lakeshore catering renewal (3)", "lakeshore-catering-renewal-3")
+    assert len({first.id, second.id, third.id}) == 3
+    assert registry.find_by_name(second.name) == second
+    assert registry.create("Fresh matter").name == "Fresh matter"

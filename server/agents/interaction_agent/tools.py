@@ -233,11 +233,15 @@ def _resolve_agent(
         error = "Pass agent_id to reuse an agent or agent_name to start a new one."
         return None, False, ToolResult(success=False, payload={"error": error})
 
+    if confirm_new:
+        # The model has seen the candidates and says this is a different matter, so it gets a new
+        # agent even when the name is taken (the registry then suffixes the name).
+        return registry.create(agent_name), True, None
     record = registry.find_by_name(agent_name)
     if record is not None:
         return record, False, None
     # Only the shortlist prompt explains confirm_new; under the upstream prompt a name always creates.
-    if get_settings().prompt_variant == "shortlist" and not confirm_new:
+    if get_settings().prompt_variant == "shortlist":
         similar = possible_duplicates(agent_name, registry.list(status=None), get_settings().duplicate_threshold)
         if similar:
             payload = {

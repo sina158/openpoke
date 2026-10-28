@@ -133,29 +133,21 @@ class AgentRegistry:
             row = conn.execute(f"SELECT {_COLUMNS} FROM agents WHERE slug = ?", (slug,)).fetchone()
             if row:
                 return _record(row), False
-            conn.execute("UPDATE agent_id_counter SET last = last + 1 WHERE singleton = 1")
-            (number,) = conn.execute("SELECT last FROM agent_id_counter WHERE singleton = 1").fetchone()
-            now = _iso()
-            record = AgentRecord(
-                id=f"a_{number:04d}",
-                name=name.strip() or slug,
-                slug=slug,
-                status="active",
-                owner="default",
-                created_at=now,
-                last_active_at=now,
-                run_count=0,
-                purpose="",
-                entities=[],
-            )
-            conn.execute(
-                f"INSERT INTO agents ({_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    record.id, record.name, record.slug, record.status, record.owner,
-                    record.created_at, record.last_active_at, record.run_count, record.purpose, "[]",
-                ),
-            )
-        return record, True
+            return _insert(conn, name.strip() or slug), True
+
+    def create(self, name: str) -> AgentRecord:
+        """Always mint a new agent. When the name's slug is taken the name gets " (2)", " (3)", ...
+
+        The suffix goes on the name, not just the slug, because logs and triggers are keyed by name:
+        two agents with one name would share a history.
+        """
+        base = name.strip() or "agent"
+        with self._tx() as conn:
+            candidate, number = base, 1
+            while conn.execute("SELECT 1 FROM agents WHERE slug = ?", (slugify(candidate),)).fetchone():
+                number += 1
+                candidate = f"{base} ({number})"
+            return _insert(conn, candidate)
 
     def get(self, agent_id: str) -> AgentRecord | None:
         return self._fetch_one("id = ?", (agent_id,))
@@ -227,6 +219,33 @@ class AgentRegistry:
                 _, was_created = self.get_or_create(name)
                 created += int(was_created)
         return created
+
+
+def _insert(conn: sqlite3.Connection, name: str) -> AgentRecord:
+    """Mint the next id and insert an active agent named ``name`` (its slug must be free)."""
+    conn.execute("UPDATE agent_id_counter SET last = last + 1 WHERE singleton = 1")
+    (number,) = conn.execute("SELECT last FROM agent_id_counter WHERE singleton = 1").fetchone()
+    now = _iso()
+    record = AgentRecord(
+        id=f"a_{number:04d}",
+        name=name,
+        slug=slugify(name),
+        status="active",
+        owner="default",
+        created_at=now,
+        last_active_at=now,
+        run_count=0,
+        purpose="",
+        entities=[],
+    )
+    conn.execute(
+        f"INSERT INTO agents ({_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            record.id, record.name, record.slug, record.status, record.owner,
+            record.created_at, record.last_active_at, record.run_count, record.purpose, "[]",
+        ),
+    )
+    return record
 
 
 _registry: AgentRegistry | None = None
