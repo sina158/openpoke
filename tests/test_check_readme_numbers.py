@@ -54,3 +54,16 @@ def test_prefixed_key_reads_the_named_file():
               "<!-- n:nope:by_key.x.accuracy.rate -->83.0%<!-- /n -->")
     rows = check(readme, RESULTS, {"v2": other})
     assert [status for *_, status in rows] == ["ok", "MISMATCH", "UNKNOWN KEY"]
+
+
+def test_heldout_keys_read_the_heldout_report(tmp_path, monkeypatch):
+    from evals import check_readme_numbers
+
+    heldout = tmp_path / "evals" / "results" / "heldout"
+    heldout.mkdir(parents=True)
+    (heldout / "RESULTS_v2_heldout.json").write_text(json.dumps({"set": "v2_heldout"}), encoding="utf-8")
+    (tmp_path / "RESULTS.json").write_text(json.dumps(RESULTS), encoding="utf-8")
+    readme = tmp_path / "README.md"
+    readme.write_text("<!-- n:heldout:set -->v2_heldout<!-- /n -->", encoding="utf-8")
+    monkeypatch.setattr(check_readme_numbers, "ROOT", tmp_path)
+    assert main(["--readme", str(readme), "--results", str(tmp_path / "RESULTS.json")]) == 0

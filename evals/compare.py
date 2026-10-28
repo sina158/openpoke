@@ -225,6 +225,7 @@ def summarise(records: List[Dict[str, Any]], templates: Dict[str, str],
         "archived_target": _archived(records),
         "target_status": _target_status(records, idle or {}),
         "evidence": _evidence(records),
+        "client_guard": _client_guard(records),
     }
     for category in CATEGORIES:
         subset = [r for r in records if r["category"] == category]
@@ -249,6 +250,17 @@ def _archived(records: List[Dict[str, Any]]) -> Dict[str, Any]:
     return {"archived": _rate(sum(r["correct"] for r in archived), len(archived)),
             "active": _rate(sum(r["correct"] for r in active), len(active)),
             "search_found_target": sum(bool(r.get("search_found_target")) for r in archived)}
+
+
+def _client_guard(records: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """The client guard (v2.1): turns where it refused a send, sends refused over both rounds, turns left with
+    nothing routed, and what the model did in the round after the refusal (its outcome and final cell)."""
+    refused = [r for r in records if r.get("client_guard_refused")]
+    return {"turns": len(refused), "n": len(records), "sends": sum(r["client_guard_refused"] for r in refused),
+            "ended_refused": sum(bool(r.get("ended_refused")) for r in refused),
+            "outcomes": dict(Counter(r["guard_outcome"] for r in refused)),
+            "cells": dict(Counter(r["cell"] for r in refused)),
+            "correct_after": sum(r["correct"] for r in refused)}
 
 
 def _evidence(records: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -338,8 +350,9 @@ def _table(documents: List[Dict[str, Any]], split: str, templates: Dict[str, str
                     if key[0] == reference and key[1] == model and key[4] == size and key[5] == sample]
             if refs:
                 reference_records = groups[refs[0]]
-                if reference == "fix_v2" and arm.startswith("fix_v2_no_"):
-                    # The ablations ran one trial: they are paired with fix_v2's first trial, not its majority.
+                if reference == "fix_v2" and (arm.startswith("fix_v2_no_") or arm == "fix_v2_guard"):
+                    # The ablations and the guard arm ran one trial: they are paired with fix_v2's first trial,
+                    # not its majority.
                     reference_records = [r for r in reference_records if r["trial"] == 0]
                 comparisons.append({"model": model, "size": size, "arm": arm, "k": k, "reference": reference,
                                     "cases_sample": sample, **paired(reference_records, records, templates)})
@@ -477,6 +490,64 @@ def verdicts(report: Dict[str, Any]) -> List[Dict[str, str]]:
             out.append(_verdict(label, None if not rate["n"] else rate["rate"] >= 0.5, _rate_cell(rate)))
     else:
         out += [_verdict(bar, None, "-") for bar in ("A1", "A2 (as registered)", "A2 (corrected)")]
+    guard = row("fix_v2_guard")
+    if guard and v2 and pair("fix_v2_guard", "fix_v2"):
+        # BARS-v2 B2-guard: the guard was designed on this set's failures, so this row is never a verdict.
+        out.append({"bar": "Client guard on this set (non-blind)", "verdict": "not a verdict (non-blind)",
+                    "detail": _guard_detail(guard, pair("fix_v2_guard", "fix_v2"), acc)})
+    return out
+
+
+def _guard_detail(guard: Dict[str, Any], p: Dict[str, Any], acc: Any) -> str:
+    multi, cross, refused = guard["multi_client_send"], guard["cross_client"], guard["client_guard"]
+    lo, hi = p["delta_clustered_ci95"]
+    return (f"fix_v2_guard, 1 trial: {acc(guard)}; paired with fix_v2 trial 1: {_pct(p['delta_accuracy'])} "
+            f"[{_pct(lo)}, {_pct(hi)}], McNemar p = {p['mcnemar_p']:.4f}; two-client turns {multi['k']}/{multi['n']}; "
+            f"cross-client wrong reuse {cross['wrong_reuse']}/{cross['wrong_reuse_n']}; parallel gold matched "
+            f"{multi['parallel_gold']['matched_gold']}/{multi['parallel_gold']['n']}; the guard refused "
+            f"{refused['sends']} sends in {refused['turns']} turns")
+
+
+GUARD_SET = "v2_heldout"  # BARS-v2 B2-guard is judged on the held-out set only
+GUARD_BARS = ("G-i", "G-ii", "G-iii", "G-iv")
+
+
+def guard_verdicts(report: Dict[str, Any]) -> List[Dict[str, str]]:
+    """BARS-v2 B2-guard on the held-out set: fix_v2_guard against fix_v2, minimax-m3, N=500, paired per case."""
+    head = report["report"]
+    guard, v2 = (head["by_key"].get(group_key(arm, DEFAULT_MODEL, 8, 500)) for arm in ("fix_v2_guard", "fix_v2"))
+    p = head["paired_by_key"].get(f"fix_v2_guard_vs_fix_v2_{_model_slug(DEFAULT_MODEL)}_k8_n500")
+    if not guard or not v2 or not p:
+        return [_verdict(bar, None, "-") for bar in GUARD_BARS]
+
+    def acc(r: Dict[str, Any]) -> str:
+        return f"{_pct(r['accuracy']['rate'])} ({r['accuracy']['k']}/{r['accuracy']['n']})"
+
+    out = []
+    multi, multi_v2 = guard["multi_client_send"], v2["multi_client_send"]
+    out.append(_verdict("G-i", multi["k"] == 0, f"{multi['k']} of {multi['n']} fix_v2_guard turns on cases whose gold "
+                        "does not call for two clients sent to two"
+                        + (f" (<= {_pct(multi['upper95'])} at 95%)" if multi["upper95"] is not None else "")
+                        + f"; fix_v2 {multi_v2['k']} of {multi_v2['n']}"))
+    cross, cross_v2 = guard["cross_client"], v2["cross_client"]
+    g, f, n = cross["wrong_reuse"], cross_v2["wrong_reuse"], cross["wrong_reuse_n"]
+    bound = f" (<= {_pct(rule_of_three(n))} at 95%)" if g == 0 else ""
+    out.append(_verdict("G-ii", g <= f and g <= 0.02 * n, f"cross-client wrong reuse fix_v2_guard {g}/{n}{bound}, "
+                        f"fix_v2 {f}/{cross_v2['wrong_reuse_n']}"))
+    delta = guard["accuracy"]["rate"] - v2["accuracy"]["rate"]
+    lo, hi = p["delta_clustered_ci95"]
+    out.append(_verdict("G-iii", delta >= -0.03 - 1e-9,
+                        f"fix_v2_guard {acc(guard)}, fix_v2 {acc(v2)}: {_pct(delta)} (bar: not below -3.0 points); "
+                        f"paired McNemar p = {p['mcnemar_p']:.4f}, template-clustered 95% of the difference "
+                        f"[{_pct(lo)}, {_pct(hi)}]; {p['b']} only fix_v2 right, {p['c']} only fix_v2_guard right"))
+    par, par_v2 = multi["parallel_gold"], multi_v2["parallel_gold"]
+    if not par_v2["n"]:
+        out.append({"bar": "G-iv", "verdict": "not passed", "detail": "no parallel case: not passed"})
+    else:
+        out.append(_verdict("G-iv", par["matched_gold"] >= par_v2["matched_gold"],
+                            f"parallel-gold two-client sends that matched gold: fix_v2_guard {par['matched_gold']} of "
+                            f"{par['n']} parallel case-trials ({par['k']} sent to two clients), fix_v2 "
+                            f"{par_v2['matched_gold']} of {par_v2['n']} ({par_v2['k']} sent to two clients)"))
     return out
 
 
@@ -554,8 +625,9 @@ def build(documents: List[Dict[str, Any]], selector: Optional[Dict[str, Any]] = 
         report["bars"] = _token_bars(report["report"]["by_key"])
     else:  # BARS-v2 B5: N=500, and the N=5,000 demonstration on its case sample
         report["bars"] = {**_token_bars(report["report"]["by_key"], arm="fix_v2"),
-                          **_token_bars(report["report"]["by_key"], 5000, "fix_v2", DEMO_SAMPLE),
-                          **_b2a(report["report"]["by_key"])}
+                          **_token_bars(report["report"]["by_key"], 5000, "fix_v2", DEMO_SAMPLE)}
+        if case_set != GUARD_SET:  # the held-out set is graded on the guard's bars only
+            report["bars"].update(_b2a(report["report"]["by_key"]))
     report["skipped_partial_runs"] = list(skipped)
     if alias:
         report["skipped_fix_alias_runs"] = alias
@@ -564,7 +636,7 @@ def build(documents: List[Dict[str, Any]], selector: Optional[Dict[str, Any]] = 
     if injection is not None:
         report["injection"] = injection
     if case_set != "v1":
-        report["verdicts"] = verdicts(report)
+        report["verdicts"] = guard_verdicts(report) if case_set == GUARD_SET else verdicts(report)
     return report
 
 
@@ -662,9 +734,26 @@ def render_markdown(report: Dict[str, Any]) -> str:
               "messaged at all."]
     lines += _paired_table(head)
     if report.get("verdicts"):
-        lines += ["", "## Bars (BARS-v2)", "", "fix_v2 on minimax-m3 at N=500 unless the bar says otherwise.", "",
-                  "| bar | verdict | measured |", "|---|---|---|"]
+        scope = "fix_v2 on minimax-m3 at N=500 unless the bar says otherwise."
+        if case_set == GUARD_SET:
+            scope = "fix_v2_guard against fix_v2 on minimax-m3 at N=500, one trial, paired per case (BARS-v2 B2-guard)."
+        lines += ["", "## Bars (BARS-v2)", "", scope, "", "| bar | verdict | measured |", "|---|---|---|"]
         lines += [f"| {v['bar']} | {v['verdict']} | {v['detail']} |" for v in report["verdicts"]]
+    guarded = [row for row in head["groups"] if row["client_guard"]["turns"]]
+    if guarded:
+        lines += ["", "### Client guard (report split)", "",
+                  "Turns where the guard refused at least one send; what the model did in the round after the "
+                  "refusal, and the cell the turn was graded. Reported without a bar, with clarify recall on "
+                  "ambiguous cases.", "",
+                  "| model | N | arm | turns refused | sends refused | turns left with nothing routed | next round "
+                  "| graded | correct | clarify recall |", "|" + "---|" * 10]
+        for row in guarded:
+            g = row["client_guard"]
+            lines.append(f"| {row['model']} | {_size(row)} | {row['arm']} | {g['turns']} of {g['n']} | {g['sends']} | "
+                         f"{g['ended_refused']} | "
+                         + ", ".join(f"{k} {v}" for k, v in sorted(g["outcomes"].items())) + " | "
+                         + ", ".join(f"{k} {v}" for k, v in sorted(g["cells"].items()))
+                         + f" | {g['correct_after']} | {_rate_cell(row['clarify_recall'])} |")
     lines += ["", "### LLM calls and prompt tokens per turn (report split)", "",
               "| model | N | arm | k | LLM calls mean | searches mean | prompt tok per turn | prompt tok per call |",
               "|" + "---|" * 8]
@@ -788,8 +877,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--out-dir", type=Path, default=RESULTS_DIR)
     parser.add_argument("--set", dest="case_set", choices=sorted(SETS), default="v1")
     args = parser.parse_args(argv)
-    # Routing runs are named <date>_<arm>_..., so this skips the summaries and stays out of subdirectories.
-    paths = args.paths or [p for p in sorted(RESULTS_DIR.glob("[0-9]*.json")) if "_selector_" not in p.name
+    # Routing runs are named <date>_<arm>_..., so this skips the summaries and stays out of subdirectories other
+    # than the out dir (the held-out runs live in theirs).
+    scanned = sorted({p.resolve() for directory in (RESULTS_DIR, args.out_dir) for p in directory.glob("[0-9]*.json")})
+    paths = args.paths or [p for p in scanned if "_selector_" not in p.name
                            and set_of(json.loads(p.read_text(encoding="utf-8"))["header"]) == args.case_set]
     if not paths:
         print("no result files")

@@ -468,3 +468,69 @@ def test_without_the_guard_the_same_spray_reaches_two_clients(tmp_path):
 
 def test_compare_pairs_the_guard_arm_with_fix_v2():
     assert compare.references("fix_v2_guard") == ["baseline", "fix_v1", "fix_v2"]
+
+
+def test_compare_grades_the_guard_bars_on_the_heldout_set_only(tmp_path):
+    cases = load_cases(run_routing.SETS["v2_heldout"][0])
+    parallel = [c for c in cases if c["gold"]["kind"] == "parallel"][:2]
+    single = [c for c in cases if c["gold"]["kind"] == "reuse"][:4]
+    fix_v2 = ([_record(c, 0, "correct_reuse", multi_client_send=True) for c in parallel]
+              + [_record(single[0], 0, "wrong_reuse", multi_client_send=True, cross_client=True)]
+              + [_record(c, 0, "correct_reuse") for c in single[1:]])
+    guard = ([_record(parallel[0], 0, "correct_reuse", multi_client_send=True),
+              _record(parallel[1], 0, "no_route", client_guard_refused=4, ended_refused=True,
+                      guard_outcome="no_route"),
+              _record(single[0], 0, "correct_reuse", client_guard_refused=2, guard_outcome="reused_suggested")]
+             + [_record(c, 0, "correct_reuse") for c in single[1:]])
+    paths = [_document(arm, records, tmp_path / f"{arm}.json", set="v2_heldout", model=run_routing.DEFAULT_MODEL)
+             for arm, records in (("fix_v2", fix_v2), ("fix_v2_guard", guard))]
+    assert compare.main([str(p) for p in paths] + ["--out-dir", str(tmp_path), "--set", "v2_heldout"]) == 0
+    report = json.loads((tmp_path / "RESULTS_v2_heldout.json").read_text(encoding="utf-8"))
+    verdict = {v["bar"]: v for v in report["verdicts"]}
+    assert list(verdict) == ["G-i", "G-ii", "G-iii", "G-iv"] and "b2a_pass" not in report["bars"]
+    assert verdict["G-i"]["verdict"] == "pass" and "(<= " in verdict["G-i"]["detail"]  # zero as a bound
+    assert verdict["G-ii"]["verdict"] == "pass"  # 0 cross-client against fix_v2's 1
+    assert verdict["G-iii"]["verdict"] == "pass"  # 5 of 6 each
+    assert verdict["G-iv"]["verdict"] == "fail"  # one parallel match against two
+    row = report["report"]["by_key"]["fix_v2_guard_minimax-m3_k8_n500"]["client_guard"]
+    assert (row["turns"], row["sends"], row["ended_refused"], row["correct_after"]) == (2, 6, 1, 1)
+    assert row["outcomes"] == {"no_route": 1, "reused_suggested": 1}
+    assert "### Client guard (report split)" in (tmp_path / "RESULTS_v2_heldout.md").read_text(encoding="utf-8")
+
+    # Accuracy more than 3 points down fails G-iii; a set with no parallel case does not pass G-iv.
+    guard = [_record(c, 0, "wrong_reuse") for c in single[:1]] + [_record(c, 0, "correct_reuse") for c in single[1:]]
+    fix_v2 = [_record(c, 0, "correct_reuse") for c in single]
+    paths = [_document(arm, records, tmp_path / f"{arm}.json", set="v2_heldout", model=run_routing.DEFAULT_MODEL)
+             for arm, records in (("fix_v2", fix_v2), ("fix_v2_guard", guard))]
+    assert compare.main([str(p) for p in paths] + ["--out-dir", str(tmp_path), "--set", "v2_heldout"]) == 0
+    report = json.loads((tmp_path / "RESULTS_v2_heldout.json").read_text(encoding="utf-8"))
+    verdict = {v["bar"]: v for v in report["verdicts"]}
+    assert verdict["G-iii"]["verdict"] == "fail"
+    assert (verdict["G-iv"]["verdict"], verdict["G-iv"]["detail"]) == ("not passed", "no parallel case: not passed")
+
+
+def test_the_round_two_guard_row_is_non_blind_and_pairs_with_fix_v2_trial_one(tmp_path):
+    cases = [c for c in load_cases(GOLDEN_V2_PATH) if c["category"] == "explicit"][:4]
+    # fix_v2's later trials miss every case, so its majority is all wrong while its first trial is all right.
+    fix_v2 = [_record(c, t, "correct_reuse" if t == 0 else "wrong_reuse") for c in cases for t in range(3)]
+    guard = [_record(c, 0, "correct_reuse") for c in cases]
+    paths = [_document("fix_v2", fix_v2, tmp_path / "a.json", set="v2", model=run_routing.DEFAULT_MODEL, trials=3),
+             _document("fix_v2_guard", guard, tmp_path / "b.json", set="v2", model=run_routing.DEFAULT_MODEL)]
+    assert compare.main([str(p) for p in paths] + ["--out-dir", str(tmp_path), "--set", "v2"]) == 0
+    report = json.loads((tmp_path / "RESULTS_v2.json").read_text(encoding="utf-8"))
+    last = report["verdicts"][-1]
+    assert last["bar"] == "Client guard on this set (non-blind)" and last["verdict"] == "not a verdict (non-blind)"
+    assert not any(v["bar"].startswith("G-") for v in report["verdicts"])
+    pair = report["report"]["paired_by_key"]["fix_v2_guard_vs_fix_v2_minimax-m3_k8_n500"]
+    assert (pair["b"], pair["c"]) == (0, 0)
+
+
+def test_compare_also_reads_the_runs_in_its_out_dir(tmp_path, monkeypatch):
+    case = load_cases(run_routing.SETS["v2_heldout"][0])[0]
+    out = tmp_path / "heldout"
+    out.mkdir()
+    _document("fix_v2", [_record(case, 0, "correct_reuse")], out / "1_heldout.json", set="v2_heldout")
+    monkeypatch.setattr(compare, "RESULTS_DIR", tmp_path / "elsewhere")
+    assert compare.main(["--set", "v2_heldout", "--out-dir", str(out)]) == 0
+    report = json.loads((out / "RESULTS_v2_heldout.json").read_text(encoding="utf-8"))
+    assert [row["file"] for row in report["report"]["groups"]] == ["1_heldout.json"]

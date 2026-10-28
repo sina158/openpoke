@@ -6,8 +6,8 @@ JSON value times 100; numbers are compared at the precision the README shows; an
 Exits 1 on any mismatch or unknown key.
 
 A key written `name:path` is looked up in another results file instead: `v2:report.by_key...` reads RESULTS_v2.json,
-`continuity:...` reads continuity/RESULTS.json and `lifecycle:...` reads LIFECYCLE.json (more files by
-`--also name=path`).
+`continuity:...` reads continuity/RESULTS.json, `heldout:...` reads heldout/RESULTS_v2_heldout.json and
+`lifecycle:...` reads LIFECYCLE.json (more files by `--also name=path`).
 """
 
 from __future__ import annotations
@@ -78,6 +78,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
     named = {"v2": ROOT / "evals" / "results" / "RESULTS_v2.json",
              "continuity": ROOT / "evals" / "results" / "continuity" / "RESULTS.json",
+             "heldout": ROOT / "evals" / "results" / "heldout" / "RESULTS_v2_heldout.json",
              "lifecycle": ROOT / "evals" / "results" / "LIFECYCLE.json"}
     named.update({item.split("=", 1)[0]: Path(item.split("=", 1)[1]) for item in args.also})
     extra = {name: json.loads(path.read_text(encoding="utf-8")) for name, path in named.items() if path.exists()}
