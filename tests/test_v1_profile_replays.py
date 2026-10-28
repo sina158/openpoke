@@ -7,6 +7,7 @@ target, a duplicate-guard second round, an agent message and searches, at every 
 """
 
 import json
+import re
 import shutil
 
 from evals import run_routing
@@ -56,3 +57,14 @@ def test_the_replay_would_see_a_card_change(fresh_stores, tmp_path, monkeypatch)
     v1, v2 = (shortlist_of(render_fix("near_duplicate-006", 500, p, tmp_path, monkeypatch)) for p in ("v1", "v2"))
     assert "Barrie" not in v1 and "Sarnia" not in v1
     assert "contractor in Barrie." in v2 and "contractor in Sarnia." in v2
+
+
+def test_the_replay_would_see_an_archived_candidate(fresh_stores, tmp_path, monkeypatch):
+    # "pull the terms we agreed for Hollowtree Dental Clinic last year": the target is the 2025 renewal,
+    # archived 350 days ago. v1 hides it; v2 shows it second, behind the 2026 renewal, with its status.
+    v1, v2 = (shortlist_of(render_fix("near_duplicate-016", 500, p, tmp_path, monkeypatch)) for p in ("v1", "v2"))
+    assert "renewal 2025" not in v1 and 'total="251"' in v1
+    names = re.findall(r'name="([^"]+)" status="(\w+)"', v2)
+    assert names[:2] == [("Hollowtree Dental Clinic renewal 2026", "active"),
+                         ("Hollowtree Dental Clinic renewal 2025", "archived")]
+    assert 'shown="8" total="500"' in v2 and "492 more agents are not shown" in v2

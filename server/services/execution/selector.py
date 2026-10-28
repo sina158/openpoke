@@ -126,9 +126,9 @@ def pins(
 
     Order: the agent whose result is being handled ("current"), agents whose card holds a thread,
     draft or message id named in ``query`` ("lookup", by id), agents with a pending action
-    ("pending", by id), then agents whose id or multi-word name appears in ``tail_text`` ("recent",
-    latest mention first). ``tail_text`` should be the last three unsummarised turns. Each agent appears
-    once; ids not among ``cards`` are ignored.
+    ("pending", by id), then active agents whose id or multi-word name appears in ``tail_text``
+    ("recent", latest mention first). ``tail_text`` should be the last three unsummarised turns. Each
+    agent appears once; ids not among ``cards`` are ignored.
     """
     known = {card.agent_id for card in cards}
     result: list[tuple[str, str]] = []
@@ -154,6 +154,8 @@ def pins(
     if tail:
         mentioned: list[tuple[int, str]] = []
         for card in cards:
+            if card.status == "archived":  # an agent idle for a month is not a recent mention
+                continue
             names = [card.agent_id.lower()]
             words = card.name.lower().split()
             if len(words) >= 2:  # a one-word name like "Email" is too generic to count as a reference
@@ -223,7 +225,8 @@ def select(
     ``query`` is the current message plus the last two user turns. The list stops at ``k`` cards or
     when the next card would push the rendered size (chars / 4) past ``token_budget``; the first
     card is always kept. ``scorers`` picks the score components for ablation; ``max_pins=0``
-    turns pinning off. Every card given is a candidate, so the caller leaves out archived agents.
+    turns pinning off. Every card given is a candidate; archived cards compete on score and lookup
+    but are never pinned as recent.
 
     ``scorers="hybrid"`` needs ``query_vector`` and ``vectors`` (agent id -> vector, from
     ``embeddings.embed``); the score is then the RRF of the full lexical ranking and the cosine

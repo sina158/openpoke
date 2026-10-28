@@ -127,6 +127,17 @@ def test_a_quoted_thread_id_is_looked_up_before_pending_pins():
     assert pins("", cards, query="dana@example.com about HO-4421-77") == []
 
 
+def test_an_archived_agent_is_looked_up_by_id_but_never_pinned_as_recent():
+    cards = [
+        card("a_0001", "Renewal for Dana 2025", entities=["18c2f4a9b3e1d7f0"], days_ago=350, status="archived"),
+        card("a_0002", "Renewal for Dana 2026", days_ago=3),
+    ]
+    tail = "about the renewal for dana 2025 and a_0001"
+    assert pins(tail, cards) == []
+    assert pins(tail, cards, query="thread 18C2F4A9B3E1D7F0") == [("a_0001", "lookup")]
+    assert pins(tail, [replace(cards[0], status="active"), cards[1]]) == [("a_0001", "recent")]
+
+
 def test_one_word_names_are_not_pinned_by_a_passing_mention():
     cards = [card("a_0001", "Email"), card("a_0002", "Reminder for Dana")]
     assert pins("Please email the reminder for dana", cards) == [("a_0002", "recent")]

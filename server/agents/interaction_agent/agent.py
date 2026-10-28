@@ -123,7 +123,9 @@ def _render_shortlist(latest_text: str, transcript: str, message_type: str) -> s
     settings = get_settings()
     now = now_utc()
     registry = get_agent_registry()
-    cards = cards_for(registry.list("active"))
+    # Under v2 archived agents are candidates too, shown with status="archived" and revived on reuse,
+    # so a matter from last year is not hidden behind this year's agent for the same client.
+    cards = cards_for(registry.list(None if v2_change_enabled("c3") else "active"))
     turns = [(tag, unescape(body)) for tag, body in _TURN.findall(transcript)]
     user_turns = [text for tag, text in turns if tag == "user_message"]
     query = "\n".join([*user_turns[-2:], latest_text])

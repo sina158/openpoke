@@ -127,7 +127,7 @@ def test_hybrid_selector_uses_vectors_and_falls_back_to_bm25(seeded, monkeypatch
     assert 'name="Renewal for Client 11"' in hybrid
 
 
-def test_an_archived_agent_never_appears_in_the_shortlist(seeded):
+def _archive_client_03():
     from datetime import datetime, timezone
 
     registry = get_agent_registry()
@@ -135,11 +135,39 @@ def test_an_archived_agent_never_appears_in_the_shortlist(seeded):
     registry.touch(target.id, now=datetime(2026, 8, 1, tzinfo=timezone.utc))
     now = datetime(2026, 10, 27, 9, tzinfo=timezone.utc)
     assert registry.archive_stale(now, idle_days=30, protected_ids=set()) == [target.id]
+    return target
+
+
+def test_under_v1_an_archived_agent_never_appears_in_the_shortlist(seeded, monkeypatch):
+    monkeypatch.setenv("OPENPOKE_ROUTING_PROFILE", "v1")
+    target = _archive_client_03()
 
     content, _, _ = seeded("fix")
 
     assert target.id not in content and "Renewal for Client 03" not in content
     assert '<active_agents mode="shortlist" shown="8" total="11">' in content
+    assert "3 more agents are not shown" in content
+
+
+@pytest.mark.parametrize("disabled", ["", "c1,c4"])
+def test_under_v2_an_archived_agent_is_a_candidate_shown_with_its_status(seeded, monkeypatch, disabled):
+    monkeypatch.setenv("OPENPOKE_V2_DISABLE", disabled)
+    target = _archive_client_03()
+
+    content, _, _ = seeded("fix")
+
+    assert f'<agent id="{target.id}" name="Renewal for Client 03" status="archived" last_active="87d ago"' in content
+    assert '<active_agents mode="shortlist" shown="8" total="12">' in content
+    assert "4 more agents are not shown" in content
+
+
+def test_disabling_c3_keeps_archived_agents_off_the_shortlist(seeded, monkeypatch):
+    monkeypatch.setenv("OPENPOKE_V2_DISABLE", "c3")
+    target = _archive_client_03()
+
+    content, _, _ = seeded("fix")
+
+    assert target.id not in content and 'total="11"' in content
 
 
 def test_full_cards_shows_every_card_without_selection_or_search(seeded):
