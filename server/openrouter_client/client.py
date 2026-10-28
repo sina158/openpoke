@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse
 
 import httpx
 
-from ..config import get_settings
+from ..config import DEFAULT_LLM_BASE_URL, get_settings
 
-OpenRouterBaseURL = "https://openrouter.ai/api/v1"
+OpenRouterBaseURL = DEFAULT_LLM_BASE_URL
 
 
 class OpenRouterError(RuntimeError):
@@ -25,7 +26,7 @@ def _headers(*, api_key: Optional[str] = None) -> Dict[str, str]:
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
-
+    headers.update(settings.llm_headers)
     return headers
 
 
@@ -33,6 +34,41 @@ def _build_messages(messages: List[Dict[str, str]], system: Optional[str]) -> Li
     if system:
         return [{"role": "system", "content": system}, *messages]
     return messages
+
+
+def _is_openrouter(url: str) -> bool:
+    host = urlparse(url).hostname or ""
+    return host == "openrouter.ai" or host.endswith(".openrouter.ai")
+
+
+def _build_payload(
+    *,
+    model: str,
+    messages: List[Dict[str, str]],
+    system: Optional[str],
+    tools: Optional[List[Dict[str, Any]]],
+    url: str,
+) -> Dict[str, Any]:
+    """Request body; OpenRouter-only fields are sent only to OpenRouter."""
+    settings = get_settings()
+    payload: Dict[str, Any] = {
+        "model": model,
+        "messages": _build_messages(messages, system),
+        "stream": False,
+    }
+    if tools:
+        payload["tools"] = tools
+    if settings.llm_temperature is not None:
+        payload["temperature"] = settings.llm_temperature
+    if settings.llm_seed is not None:
+        payload["seed"] = settings.llm_seed
+    if settings.llm_provider_order and _is_openrouter(url):
+        payload["provider"] = {
+            "order": list(settings.llm_provider_order),
+            "allow_fallbacks": False,
+            "require_parameters": True,
+        }
+    return payload
 
 
 def _handle_response_error(exc: httpx.HTTPStatusError) -> None:
@@ -53,19 +89,13 @@ async def request_chat_completion(
     system: Optional[str] = None,
     api_key: Optional[str] = None,
     tools: Optional[List[Dict[str, Any]]] = None,
-    base_url: str = OpenRouterBaseURL,
+    base_url: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Request a chat completion and return the raw JSON payload."""
+    """Request a chat completion and return the full JSON payload, ``usage`` included."""
 
-    payload: Dict[str, object] = {
-        "model": model,
-        "messages": _build_messages(messages, system),
-        "stream": False,
-    }
-    if tools:
-        payload["tools"] = tools
-
+    base_url = base_url or get_settings().llm_base_url
     url = f"{base_url.rstrip('/')}/chat/completions"
+    payload = _build_payload(model=model, messages=messages, system=system, tools=tools, url=url)
 
     async with httpx.AsyncClient() as client:
         try:
