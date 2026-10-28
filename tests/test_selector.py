@@ -1,10 +1,12 @@
 import random
 import time
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 import pytest
 
-from server.services.execution.cards import AgentCard, render_card
+from server.services.execution.cards import AgentCard, build_card, render_card
 from server.services.execution.selector import (
     BM25,
     Scored,
@@ -113,6 +115,18 @@ def test_pins_need_a_whole_word_mention(roster):
     assert pins("see (a_0001) now", roster) == [("a_0001", "recent")]
 
 
+def test_a_quoted_thread_id_is_looked_up_before_pending_pins():
+    cards = [
+        card("a_0001", "Renewal for Dana", entities=["18c2f4a9b3e1d7f0", "dana@example.com", "ho-4421-77"]),
+        card("a_0002", "Claim for Dana", entities=["dana@example.com", "ho-4421-77"]),
+        card("a_0003", "Quote for Bruno"),
+    ]
+    query = "Dana says thread 18C2F4A9B3E1D7F0 is stale"
+    assert pins("", cards, pending_ids=["a_0003"], query=query) == [("a_0001", "lookup"), ("a_0003", "pending")]
+    # An email or policy number is shared by every matter of a client, so it is not a lookup key.
+    assert pins("", cards, query="dana@example.com about HO-4421-77") == []
+
+
 def test_one_word_names_are_not_pinned_by_a_passing_mention():
     cards = [card("a_0001", "Email"), card("a_0002", "Reminder for Dana")]
     assert pins("Please email the reminder for dana", cards) == [("a_0002", "recent")]
@@ -194,8 +208,7 @@ def test_render_shortlist_without_hidden_agents(roster):
     assert render_shortlist([], total=0) == "None"
 
 
-def test_selecting_from_5000_cards_is_fast():
-    rng = random.Random(11)
+def _roster_5000(rng):
     firsts = ["Alice", "Bruno", "Dana", "Elif", "Farah", "Goran", "Hana", "Ivo", "Jun", "Kemal"]
     lasts = ["Whitfield", "Okafor", "Lindqvist", "Moreau", "Tanaka", "Ruiz", "Novak", "Berg"]
     tasks = ["renewal", "quote", "claim", "certificate", "endorsement", "cancellation", "billing"]
@@ -209,6 +222,11 @@ def test_selecting_from_5000_cards_is_fast():
             [f"{first.lower()}.{last.lower()}{i}@example.com", f"{first} {last}".lower(), f"ho-{i:04d}-11"],
             days_ago=rng.uniform(0, 90),
         ))
+    return cards
+
+
+def test_selecting_from_5000_cards_is_fast():
+    cards = _roster_5000(random.Random(11))
     start = time.perf_counter()
     result = select(
         "any news on the claim for Dana Okafor? ho-0042-11",
@@ -221,3 +239,22 @@ def test_selecting_from_5000_cards_is_fast():
     assert elapsed < 1.0
     assert ids(result)[0] == "a_0100"
     assert "a_0042" in ids(result)
+
+
+def test_a_thread_id_from_the_last_response_is_found_among_5000_cards():
+    source = SimpleNamespace(id="a_9999", name="Kenji Lowther home renewal", status="active",
+                             last_active_at=(NOW - timedelta(days=45)).isoformat(), purpose="", entities=[])
+    target = build_card(source, [
+        ("agent_request", "Handle the home renewal for Kenji Lowther, policy HO-4281-52."),
+        ("agent_response", "Emailed Kenji Lowther (thread d70a955a077ecaf5) about HO-4281-52."),
+    ])
+    assert "d70a955a077ecaf5" in target.entities
+    reminders = [card(f"r_{i:04d}", f"Reminder: back up the laptop (Nov {i % 28 + 1})",
+                      "Set a reminder: back up the laptop", days_ago=0) for i in range(40)]
+    # As in a real pool, every other agent has emailed on some thread too, so "thread" is a common word.
+    others = [replace(c, purpose=c.purpose + " Replied on the thread.") for c in _roster_5000(random.Random(5))]
+    cards = others[: 5000 - len(reminders) - 1] + reminders + [target]
+    query = "the carrier wrote back on thread d70a955a077ecaf5, can you pick that up again?"
+    assert "a_9999" not in ids(select(query, cards, max_pins=0, now=NOW))  # BM25 alone loses it
+    result = select(query, cards, now=NOW)
+    assert (result[0].card.agent_id, result[0].pinned) == ("a_9999", "lookup")

@@ -2,8 +2,9 @@
 
 score(a) = 1.0 * bm25(q, card_text(a)) + 2.0 * |entities(q) & entities(a)| + 0.5 * exp(-age_days(a) / 14)
 
-Pinned agents come first (the agent whose result is being handled, agents with a pending action,
-agents named in the last few turns), then the best scores, until k agents or the token budget.
+Pinned agents come first (the agent whose result is being handled, agents holding a thread or draft
+id the query names, agents with a pending action, agents named in the last few turns), then the best
+scores, until k agents or the token budget.
 Everything here is pure and deterministic: the same cards and query give the same list in the same
 order, whatever order the cards arrive in. ``scorers="hybrid"`` fuses that ranking with a cosine
 ranking over caller-supplied embeddings (reciprocal rank fusion, see ``embeddings.py``).
@@ -18,7 +19,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Iterable, Mapping, Sequence
 
-from .cards import AgentCard, card_text, extract_entities, render_card
+from .cards import MAIL_ID, AgentCard, card_text, extract_entities, render_card
 from .embeddings import hybrid_scores
 
 RECENCY_HALF_LIFE_DAYS = 14.0
@@ -76,7 +77,7 @@ class BM25:
 class Scored:
     card: AgentCard
     score: float
-    pinned: str | None = None  # "current" | "pending" | "recent"
+    pinned: str | None = None  # "current" | "lookup" | "pending" | "recent"
 
 
 def _parse_time(value: str) -> datetime | None:
@@ -118,10 +119,12 @@ def pins(
     cards: Sequence[AgentCard],
     pending_ids: Iterable[str] = (),
     current_id: str | None = None,
+    query: str = "",
 ) -> list[tuple[str, str]]:
     """Agents that must be shown regardless of score, as ``(agent_id, reason)``, most important first.
 
-    Order: the agent whose result is being handled ("current"), agents with a pending action
+    Order: the agent whose result is being handled ("current"), agents whose card holds a thread,
+    draft or message id named in ``query`` ("lookup", by id), agents with a pending action
     ("pending", by id), then agents whose id or multi-word name appears in ``tail_text`` ("recent",
     latest mention first). ``tail_text`` should be the last three unsummarised turns. Each agent appears
     once; ids not among ``cards`` are ignored.
@@ -137,6 +140,12 @@ def pins(
 
     if current_id:
         add(current_id, "current")
+    # Lookup before retrieval: a quoted thread id is an exact key, and at thousands of agents a few
+    # common words can outscore it in BM25.
+    named = set(extract_entities(query, kinds={MAIL_ID})) if query else set()
+    if named:
+        for agent_id in sorted(card.agent_id for card in cards if named.intersection(card.entities)):
+            add(agent_id, "lookup")
     for agent_id in sorted(set(pending_ids)):
         add(agent_id, "pending")
 
@@ -233,7 +242,7 @@ def select(
         totals = [fused[card.agent_id] for card in cards]
     by_id = {card.agent_id: (card, total) for card, total in zip(cards, totals)}
 
-    pinned = pins(tail_text, cards, pending_ids, current_id)[: max(max_pins, 0)]
+    pinned = pins(tail_text, cards, pending_ids, current_id, query)[: max(max_pins, 0)]
     pinned_ids = {agent_id for agent_id, _ in pinned}
     ordered = [Scored(by_id[agent_id][0], by_id[agent_id][1], reason) for agent_id, reason in pinned]
     ordered += sorted(
