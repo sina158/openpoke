@@ -80,7 +80,7 @@ def test_each_turn_starts_by_archiving(fresh_stores, monkeypatch):
     monkeypatch.setenv("OPENPOKE_LLM_API_KEY", "test-key")
     get_settings.cache_clear()
     calls = []
-    monkeypatch.setattr(interaction, "archive_idle_agents", lambda: calls.append("archive") or [])
+    monkeypatch.setattr(interaction, "on_turn_start", lambda: calls.append("archive") or [])
 
     async def no_loop(self, system_prompt, messages):
         return interaction._LoopSummary(last_assistant_text="ok")
@@ -90,3 +90,27 @@ def test_each_turn_starts_by_archiving(fresh_stores, monkeypatch):
     asyncio.run(runtime.execute("hello"))
     asyncio.run(runtime.handle_agent_message("[SUCCESS] Some agent: done"))
     assert calls == ["archive", "archive"]
+
+
+def test_full_roster_modes_have_no_lifecycle(agents, monkeypatch):
+    for mode in ("full",):
+        monkeypatch.setenv("OPENPOKE_ROSTER_MODE", mode)
+        get_settings.cache_clear()
+        assert lifecycle.on_turn_start(NOW) == []
+    assert all(r.status == "active" for r in get_agent_registry().list(status=None))
+
+    monkeypatch.setenv("OPENPOKE_ROSTER_MODE", "shortlist")
+    get_settings.cache_clear()
+    assert lifecycle.on_turn_start(NOW) == [agents["Idle quote"].id]
+
+
+def test_each_data_dir_has_its_own_throttle(agents, tmp_path, monkeypatch):
+    assert lifecycle.on_turn_start(NOW) == [agents["Idle quote"].id]
+
+    from server.services.execution.registry import reset_agent_registry
+
+    monkeypatch.setenv("OPENPOKE_DATA_DIR", str(tmp_path / "other"))
+    reset_agent_registry()
+    other, _ = get_agent_registry().get_or_create("Old matter elsewhere")
+    get_agent_registry().touch(other.id, now=NOW - timedelta(days=90))
+    assert lifecycle.on_turn_start(NOW) == [other.id]

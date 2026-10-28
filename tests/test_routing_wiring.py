@@ -124,3 +124,18 @@ def test_hybrid_selector_uses_vectors_and_falls_back_to_bm25(seeded, monkeypatch
     hybrid, _, _ = seeded("fix")
     assert "Renewal for Client 11" not in bm25_content
     assert 'name="Renewal for Client 11"' in hybrid
+
+
+def test_an_archived_agent_never_appears_in_the_shortlist(seeded):
+    from datetime import datetime, timezone
+
+    registry = get_agent_registry()
+    target = registry.find_by_name("Renewal for Client 03")  # the best match for the message
+    registry.touch(target.id, now=datetime(2026, 8, 1, tzinfo=timezone.utc))
+    now = datetime(2026, 10, 27, 9, tzinfo=timezone.utc)
+    assert registry.archive_stale(now, idle_days=30, protected_ids=set()) == [target.id]
+
+    content, _, _ = seeded("fix")
+
+    assert target.id not in content and "Renewal for Client 03" not in content
+    assert '<active_agents mode="shortlist" shown="8" total="11">' in content

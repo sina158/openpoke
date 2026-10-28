@@ -8,7 +8,7 @@ from .agent import build_system_prompt, prepare_message_with_history
 from .tools import ToolResult, get_tool_schemas, handle_tool_call
 from ...config import get_settings
 from ...services.conversation import get_conversation_log, get_working_memory_log
-from ...services.execution.lifecycle import archive_idle_agents
+from ...services.execution.lifecycle import on_turn_start
 from ...services.provenance import turn_provenance
 from ...openrouter_client import request_chat_completion
 from ...logging_config import logger
@@ -43,10 +43,10 @@ class _LoopSummary:
     execution_agents: Set[str] = field(default_factory=set)
 
 
-def _archive_idle_agents() -> None:
-    """Archive idle agents at the start of a turn; bookkeeping must never fail the turn."""
+def _start_turn() -> None:
+    """Run the turn-start hook (archiving idle agents); bookkeeping must never fail the turn."""
     try:
-        archived = archive_idle_agents()
+        archived = on_turn_start()
     except Exception as exc:  # pragma: no cover - defensive
         logger.warning(f"Archiving idle agents failed: {exc}")
         return
@@ -79,7 +79,7 @@ class InteractionAgentRuntime:
         """Handle a user-authored message."""
 
         try:
-            _archive_idle_agents()
+            _start_turn()
             transcript_before = self._load_conversation_transcript()
             self.conversation_log.record_user_message(user_message)
 
@@ -118,7 +118,7 @@ class InteractionAgentRuntime:
         """Process a message from an execution agent, the email watcher, or a trigger run."""
 
         try:
-            _archive_idle_agents()
+            _start_turn()
             transcript_before = self._load_conversation_transcript()
             self.conversation_log.record_agent_message(agent_message)
 
