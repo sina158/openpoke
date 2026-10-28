@@ -90,9 +90,12 @@ order = pins (max 4), then score desc, then id   -> stop at k=8 or 1,200 tokens 
 
 ## Retrieval and the audit surface
 
-<!-- SLOT-RETRIEVAL: one paragraph on retrieval (what ranks the shortlist and why archived agents now compete in it), filled after the v2 runs. -->
-
-<!-- SLOT-AUDIT: one sentence on the audit surface (what is recorded per send so a reviewer can reconstruct it). Retrieval and audit together stay under 200 words. -->
+Retrieval is lexical: BM25 with entity overlap and recency ranks the shortlist, and the evidence option
+(`OPENPOKE_SHORTLIST_EVIDENCE`, off by default) runs the same scorer over each agent's own log and cites the entry the
+user can follow (`agent_id#entry`). Embeddings were built
+and measured in round one and lost to BM25 from N=50 up (section 3, `evals/results/SELECTOR.md`); a vector store would
+be one more scorer behind the same interface, a row in that table, not a different design. Every send carries its
+provenance, and a pending outbound action waits for a code the user types.
 
 ## 4. Why names are not identity
 
@@ -195,8 +198,9 @@ order = pins (max 4), then score desc, then id   -> stop at k=8 or 1,200 tokens 
   pending send (`protected_agent_ids`).
 - `on_turn_start` runs before every user and agent turn (`InteractionAgentRuntime._start_turn`) and before each case in
   the routing eval, so the eval measures what ships.
-- An archived agent leaves the shortlist (`registry.list("active")`), stays in `search_agents` (`list(status=None)`),
-  and is revived when `send_message_to_agent` reuses it or the batch manager runs it, e.g. on a trigger
+- Under profile v1 an archived agent leaves the shortlist (`registry.list("active")`) and stays in `search_agents`
+  (`list(status=None)`); under v2 (c3) archived agents are shortlist candidates and their status is shown on the card.
+  Either way an archived agent is revived when `send_message_to_agent` reuses it or the batch manager runs it, e.g. on a trigger
   (`batch_manager._mark_active`).
 - Cards are rebuilt on dispatch and after each run (`card_store.refresh_card`) and stored in the registry, so a turn
   reads no logs: about 131 ms per turn at 500 agents before, about 10 ms after (commit 31c5297 message).
