@@ -19,8 +19,8 @@ AI assistance: I built this the way I work, with my own team of AI agents (mostl
    <!-- n:lifecycle:arms.fix_v2.summary.live_end -->23<!-- /n --> and +<!-- n:lifecycle:arms.fix_v2.summary.prompt_tokens_slope_per_day -->32<!-- /n --> a day, an interval that includes 0. [What I built](#what-i-built)
 2. **Test cases and evaluators.** A <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.pairs -->110<!-- /n -->-case set written blind and locked by
    hash, gold labels from the generator, graded in code; a routing eval, a <!-- n:v2:injection.attacks -->46<!-- /n -->-attack injection suite, a
-   30-day lifecycle simulation, a scripted demo, 437 offline tests (the count `pytest --collect-only` prints, the 20
-   marked slow excluded). Every model call is recorded, so every number replays offline.
+   30-day lifecycle simulation, a scripted demo, 437 offline tests. Every model call is recorded, so every number
+   replays offline.
    [Tests and evaluators](#tests-and-evaluators)
 3. **How it was judged.** Bars were committed before any run and kept when they failed. Passed: fix v2 beats fix v1
    (+<!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.delta_accuracy -->10.0%<!-- /n -->, p = <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_minimax-m3_k8_n500.mcnemar_p -->0.0034<!-- /n -->),
@@ -35,9 +35,6 @@ AI assistance: I built this the way I work, with my own team of AI agents (mostl
    revive, bounded execution history, a cost ledger. 30 open gaps are ranked with fixes in [KNOWN-GAPS.md](KNOWN-GAPS.md).
    [Other problems](#other-problems-fixed-in-code)
 
-`make test` and `make demo` need no API key; `make demo` replays the demo offline in under a second
-([TRANSCRIPT.md](evals/results/TRANSCRIPT.md)).
-
 ## Checking it in 15 minutes
 
 No API key and no network. Each expected output below was checked on a fresh clone, on Linux and on Windows.
@@ -48,7 +45,7 @@ python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activ
 pip install -r requirements-dev.txt
 make test           # 436 passed, 1 skipped, 20 deselected (15 s on Linux, about 5 minutes on Windows)
 make demo           # 6/9 cells - 3 real model misses (turns 3, 4, 5), see TRANSCRIPT.md
-make check-numbers  # "N marked numbers checked, 0 wrong" for README 255, DESIGN 50, ROUND1 82, ROUND1-TABLES 411, REPORT 373
+make check-numbers  # "N marked numbers checked, 0 wrong" for README 247, DESIGN 50, ROUND1 82, ROUND1-TABLES 411, REPORT 373
 make injection      # 46 attacks, 0 unauthorised sends, 0 forged turns
 ```
 
@@ -123,9 +120,8 @@ agents to find out is guessing. The baseline arm is the upstream routing. Reason
 - **Evaluators.** `evals/run_routing.py` grades each case into one outcome in code; `evals/compare.py` adds Wilson and
   template-clustered intervals and paired McNemar tests; `evals/run_injection.py`, `run_lifecycle.py` and
   `demo_conversation.py` run the attacks, the month and the demo.
-- **Unit tests.** 437, offline (`make test`): the count `pytest --collect-only` prints, which leaves out the 20 tests
-  marked slow (full cassette replays, `pytest -m slow`). Read first: `test_send_gate.py` and `test_approvals.py` (the
-  code), `test_shared_client_check.py` (c1), `test_registry.py`, `test_baseline_replay.py` and
+- **Unit tests.** 437, offline (`make test`); the 20 slower full replays run with `pytest -m slow`. Read first:
+  `test_send_gate.py` and `test_approvals.py` (the code), `test_shared_client_check.py` (c1), `test_registry.py`, `test_baseline_replay.py` and
   `test_v1_profile_replays.py` (the baseline and round one replay byte for byte), `test_every_llm_call_is_ledgered.py`.
 - **Replay.** Each live call is stored in a cassette keyed by a hash of the full request; a replay that meets an
   unrecorded call fails (`make eval-replay`).
@@ -134,10 +130,8 @@ Terms: an **arm** is a configuration; a **case-trial** is one case in one trial;
 agent that is not the gold one (**cross-client** when it is another client's); a **spray** messages the right agent
 and another; a **hijack** puts a new matter on an old agent; **pass^3** is right on all three trials;
 **template-clustered** intervals resample templates, because cases share them; a zero carries a **rule-of-three** bound.
-A **cell** is the one outcome a case-trial or a demo turn is graded into (correct reuse, wrong reuse, duplicate, hijack,
-...); the demo's cells half (D1) counts the checked turns that landed in their scripted cell, 6 of 9.
-An **evidence snippet** is an optional field on a shortlisted card (`OPENPOKE_SHORTLIST_EVIDENCE=1`) quoting part of
-the entry in that agent's own log that best matches the message by BM25, cited as `agent_id#entry`.
+A **cell** is the outcome a case-trial or demo turn is graded into. An **evidence snippet** is an optional card field
+quoting the best-matching entry of the agent's own log (`OPENPOKE_SHORTLIST_EVIDENCE=1`).
 
 ## How I tested it and how I knew
 
@@ -186,11 +180,11 @@ tool-iteration limit and counts as wrong ([RESULTS_v2.md](evals/results/RESULTS_
 | B5 tokens <= 75% of baseline, <= 0.5 searches, p50 not above | **fail** | <!-- n:v2:bars.prompt_token_ratio_n500 -->103.0%<!-- /n --> per turn; <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.searches.mean -->1.08<!-- /n --> searches; p50 <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.latency_ms.p50 -->12,065<!-- /n --> vs <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n500.latency_ms.p50 -->8,509<!-- /n --> ms | Smaller calls, but an extra search round. Next: skip the search when a strong match is on the shortlist. |
 | B6 no small-N regression | pass | N=5: fix v2 <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n5.accuracy.rate -->87.3%<!-- /n -->, baseline <!-- n:v2:report.by_key.baseline_minimax-m3_k8_n5.accuracy.rate -->34.5%<!-- /n -->, fix v1 <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n5.accuracy.rate -->74.5%<!-- /n --> | |
 | B7 duplicates; B8 injection | pass | <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.duplicate.k -->0<!-- /n --> duplicates; <!-- n:v2:injection.unauthorised_sends -->0<!-- /n --> unauthorised sends in <!-- n:v2:injection.attacks -->46<!-- /n --> attacks | |
-| B9 a second model agrees in direction | pass | deepseek-v4-pro, one trial per arm (2 and 3 cut for quota): +<!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_deepseek-v4-pro_k8_n500.delta_accuracy -->1.8%<!-- /n --> over fix v1 (p = <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_deepseek-v4-pro_k8_n500.mcnemar_p -->0.7539<!-- /n -->), cross-client <!-- n:v2:report.by_key.fix_v1_deepseek-v4-pro_k8_n500.cross_client.wrong_reuse -->1<!-- /n --> to <!-- n:v2:report.by_key.fix_v2_deepseek-v4-pro_k8_n500.cross_client.wrong_reuse -->0<!-- /n --> | Its fix v1 was already <!-- n:v2:report.by_key.fix_v1_deepseek-v4-pro_k8_n500.accuracy.rate -->84.5%<!-- /n -->. The two files B9 compares replayed with no cassette miss; the deepseek baseline's has one in its <!-- n:v2:report.by_key.baseline_deepseek-v4-pro_k8_n500.accuracy.n -->110<!-- /n --> case-trials (`v2-paraphrase-001`): the replay found no recorded response, so the case was graded `error` (wrong, 0 tokens) rather than re-run, which can only make that baseline's <!-- n:v2:report.by_key.baseline_deepseek-v4-pro_k8_n500.accuracy.rate -->46.4%<!-- /n --> accuracy (by at most one case) and its <!-- n:v2:report.by_key.baseline_deepseek-v4-pro_k8_n500.prompt_tokens.mean -->9,720<!-- /n --> tokens above low. |
+| B9 a second model agrees in direction | pass | deepseek-v4-pro, one trial per arm (2 and 3 cut for quota): +<!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_deepseek-v4-pro_k8_n500.delta_accuracy -->1.8%<!-- /n --> over fix v1 (p = <!-- n:v2:report.paired_by_key.fix_v2_vs_fix_v1_deepseek-v4-pro_k8_n500.mcnemar_p -->0.7539<!-- /n -->), cross-client <!-- n:v2:report.by_key.fix_v1_deepseek-v4-pro_k8_n500.cross_client.wrong_reuse -->1<!-- /n --> to <!-- n:v2:report.by_key.fix_v2_deepseek-v4-pro_k8_n500.cross_client.wrong_reuse -->0<!-- /n --> | Its fix v1 was already <!-- n:v2:report.by_key.fix_v1_deepseek-v4-pro_k8_n500.accuracy.rate -->84.5%<!-- /n -->. One deepseek baseline case-trial has no recording and is graded wrong with 0 tokens, which can only lower that baseline's accuracy and token mean. |
 | ablation, no c1 | <!-- n:v2:verdicts.10.verdict -->not needed on this set<!-- /n --> | <!-- n:v2:report.paired_by_key.fix_v2_no_c1_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->0.0%<!-- /n -->, p = <!-- n:v2:report.paired_by_key.fix_v2_no_c1_vs_fix_v2_minimax-m3_k8_n500.mcnemar_p -->1.0000<!-- /n --> | It refused <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.refused.sends -->18<!-- /n --> sends and same-client multi-sends fell <!-- n:v2:report.by_key.fix_v1_minimax-m3_k8_n500.same_client_multi_send -->28<!-- /n --> (fix v1) to <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.same_client_multi_send -->0<!-- /n -->, but no graded outcome moved. |
 | ablation, no c2/c3 | <!-- n:v2:verdicts.11.verdict -->needed (removing it lowers accuracy)<!-- /n --> | <!-- n:v2:report.paired_by_key.fix_v2_no_c3_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->-8.2%<!-- /n --> [<!-- n:v2:report.paired_by_key.fix_v2_no_c3_vs_fix_v2_minimax-m3_k8_n500.delta_clustered_ci95.0 -->-13.2%<!-- /n -->, <!-- n:v2:report.paired_by_key.fix_v2_no_c3_vs_fix_v2_minimax-m3_k8_n500.delta_clustered_ci95.1 -->-2.9%<!-- /n -->], p = <!-- n:v2:report.paired_by_key.fix_v2_no_c3_vs_fix_v2_minimax-m3_k8_n500.mcnemar_p -->0.0225<!-- /n --> | One switch removes both. |
 | ablation, no c4 | <!-- n:v2:verdicts.12.verdict -->needed (removing it lowers accuracy)<!-- /n --> | <!-- n:v2:report.paired_by_key.fix_v2_no_c4_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->-3.6%<!-- /n --> [<!-- n:v2:report.paired_by_key.fix_v2_no_c4_vs_fix_v2_minimax-m3_k8_n500.delta_clustered_ci95.0 -->-11.5%<!-- /n -->, <!-- n:v2:report.paired_by_key.fix_v2_no_c4_vs_fix_v2_minimax-m3_k8_n500.delta_clustered_ci95.1 -->1.9%<!-- /n -->], p = <!-- n:v2:report.paired_by_key.fix_v2_no_c4_vs_fix_v2_minimax-m3_k8_n500.mcnemar_p -->0.3877<!-- /n --> | The interval includes 0: not significant. |
-| A1 evidence snippets: no accuracy loss, tokens <= +10% | **fail** | <!-- n:v2:report.paired_by_key.fix_v2_evidence_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->0.0%<!-- /n -->; <!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.prompt_tokens.mean -->11,456<!-- /n --> vs <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.prompt_tokens.mean -->10,198<!-- /n --> tokens | The eval's logs hold two entries, both on the card, so it tests duplication; the flag stays off. A2 passes as registered (<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.registered.k -->18<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.registered.n -->34<!-- /n -->) and as corrected, post hoc (<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.corrected.k -->18<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.corrected.n -->18<!-- /n -->). |
+| A1 evidence snippets: no accuracy loss, tokens <= +10% | **fail** | <!-- n:v2:report.paired_by_key.fix_v2_evidence_vs_fix_v2_minimax-m3_k8_n500.delta_accuracy -->0.0%<!-- /n -->; <!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.prompt_tokens.mean -->11,456<!-- /n --> vs <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.prompt_tokens.mean -->10,198<!-- /n --> tokens | The eval's logs hold two entries, both already on the card, so this tests duplication; the flag stays off. A2 passes (<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.registered.k -->18<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_evidence_minimax-m3_k8_n500.evidence.registered.n -->34<!-- /n -->). |
 | L1-L6 lifecycle; D1 demo | pass; replay pass, cells **fail** | below | L2 is post hoc; the demo's misses are below. |
 
 **Client guard (v2.1).** An opt-in check (`OPENPOKE_CLIENT_GUARD=1`, off by default) refuses a send to an existing
@@ -204,7 +198,7 @@ N=500, one trial, against fix v2 on the same <!-- n:heldout:report.paired_by_key
 |---|---|---|---|
 | G-i no turn sends to two clients (parallel cases left out) | <!-- n:heldout:verdicts.0.verdict -->pass<!-- /n --> | <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.multi_client_send.k -->0<!-- /n --> of <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.multi_client_send.n -->104<!-- /n --> (<= <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.multi_client_send.upper95 -->2.9%<!-- /n --> at 95%); fix v2 <!-- n:heldout:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.k -->8<!-- /n --> | |
 | G-ii cross-client wrong reuse <= fix v2's and <= 2% | <!-- n:heldout:verdicts.1.verdict -->pass<!-- /n --> | <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.cross_client.wrong_reuse -->0<!-- /n --> of <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.cross_client.wrong_reuse_n -->84<!-- /n --> (<= <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.cross_client.wrong_reuse_upper95 -->3.6%<!-- /n -->); fix v2 <!-- n:heldout:report.by_key.fix_v2_minimax-m3_k8_n500.cross_client.wrong_reuse -->5<!-- /n --> | |
-| G-iii accuracy at most 3 points below fix v2's | <!-- n:heldout:verdicts.2.verdict -->pass<!-- /n --> | <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.accuracy.rate -->88.2%<!-- /n --> against <!-- n:heldout:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.rate -->82.7%<!-- /n -->, McNemar p = <!-- n:heldout:report.paired_by_key.fix_v2_guard_vs_fix_v2_minimax-m3_k8_n500.mcnemar_p -->0.1094<!-- /n --> | Not all of it is the guard: each run drew its own reply to the same first call, and of the cases only one arm got right (<!-- n:heldout:report.paired_by_key.fix_v2_guard_vs_fix_v2_minimax-m3_k8_n500.b -->2<!-- /n --> fix v2's, <!-- n:heldout:report.paired_by_key.fix_v2_guard_vs_fix_v2_minimax-m3_k8_n500.c -->8<!-- /n --> the guard's), 5 are turns the guard did not touch. |
+| G-iii accuracy at most 3 points below fix v2's | <!-- n:heldout:verdicts.2.verdict -->pass<!-- /n --> | <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.accuracy.rate -->88.2%<!-- /n --> against <!-- n:heldout:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.rate -->82.7%<!-- /n -->, McNemar p = <!-- n:heldout:report.paired_by_key.fix_v2_guard_vs_fix_v2_minimax-m3_k8_n500.mcnemar_p -->0.1094<!-- /n --> | Most of the gap is run-to-run variation, not the guard: 5 of the <!-- n:heldout:report.paired_by_key.fix_v2_guard_vs_fix_v2_minimax-m3_k8_n500.c -->8<!-- /n --> cases only the guard got right are turns it never touched. |
 | G-iv parallel cases still matched | **<!-- n:heldout:verdicts.3.verdict -->fail<!-- /n -->** | <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.multi_client_send.parallel_gold.matched_gold -->3<!-- /n --> of <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.multi_client_send.parallel_gold.n -->6<!-- /n -->; fix v2 <!-- n:heldout:report.by_key.fix_v2_minimax-m3_k8_n500.multi_client_send.parallel_gold.matched_gold -->5<!-- /n --> | One parallel template describes a client ("the tool store in Orangeville") instead of naming it, and the guard refuses that client's agent, as the what-if warned. Next: count a description that fits one client's cards as naming it, then measure on a new set. |
 
 The guard refused <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.client_guard.sends -->20<!-- /n --> sends in <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.client_guard.turns -->10<!-- /n --> of <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.client_guard.n -->110<!-- /n --> turns; in the round after, the model asked the user <!-- n:heldout:report.by_key.fix_v2_guard_minimax-m3_k8_n500.client_guard.outcomes.clarified -->6<!-- /n --> times, and clarify
@@ -233,23 +227,18 @@ One broker's month through the real interaction turn (`evals/lifecycle_scenario.
   sign-only reading fix v2's +<!-- n:lifecycle:arms.fix_v2.summary.prompt_tokens_slope_per_day -->32<!-- /n --> fails it. The intervals are in `RESULTS_v2.md`.
 - **c1 is inert here:** the roster never reaches 100 agents (at most <!-- n:lifecycle:arms.baseline.summary.roster_end -->53<!-- /n -->), and below 100 the 2% cut-off
   drops every shared entity.
-- **Tokens rise, the prompt does not:** tokens add up every call in a turn, while `LIFECYCLE.md`'s chars measure the
-  first call only (baseline slope <!-- n:lifecycle:arms.baseline.summary.prompt_chars_slope_per_day -->16<!-- /n --> chars a day). The baseline makes more calls as the
-  month goes on (2.3 a turn on days 1-10, 6.9 on days 21-30, in `lifecycle_baseline_minimax-m3_d30.jsonl`), and 45 of
-  its <!-- n:lifecycle:arms.baseline.summary.errors -->52<!-- /n --> limit turns fall in the last ten days; those turns had already sent and are graded.
-- **Fix v1's 2/2:** the check counts only messages whose matter already has its own agent. In fix v1 four of the six
-  day-30 matters never got one (their messages went to other matters' agents), which is also why it ends below ideal.
+- **Tokens rise, the prompt does not:** the first call's prompt grows <!-- n:lifecycle:arms.baseline.summary.prompt_chars_slope_per_day -->16<!-- /n --> chars a day, but the baseline makes more
+  calls per turn as the month goes on (2.3 on days 1-10, 6.9 on days 21-30), and 45 of its <!-- n:lifecycle:arms.baseline.summary.errors -->52<!-- /n --> limit turns fall in the last ten days.
+- **Fix v1's 2/2** counts only messages whose matter already had its own agent; four of fix v1's six day-30 matters
+  never got one, which is also why it ends below ideal.
 
 ### Demo ([TRANSCRIPT.md](evals/results/TRANSCRIPT.md))
 
-`make demo` replays a nine-turn conversation (fix v2, recorded once, live, with minimax-m3) offline in 0.6 s: D1's
-replay half passes, its cells half fails at 6 of 9. Turns 3 to 5 are real model misses: a new renewal and a new
-kitchen-fire claim went to the client's welcome agent, so the c4 same-matter rule was not followed in this recording
-(hijack on the 110-case set: <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.hijack.count -->1<!-- /n --> of <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.hijack.n -->48<!-- /n -->). Turn 7, a phishing email asking for a forward,
-is "held" only in the sense that nothing was sent: the model never called `confirm_action`, so the gate refused
-nothing, and refusals are tested by the injection suite. The live run's log graded 5 of 9; the committed grader gives
-6, because it grades the gate turn by the forward's state alone (still proposed, nothing sent), so turn 7 counts as
-held ([RESULTS_v2.md](evals/results/RESULTS_v2.md), "Replay against the live run").
+`make demo` replays a nine-turn conversation (fix v2, recorded once with minimax-m3) offline in 0.6 s. The replay
+passes; 6 of 9 graded turns land in their scripted cell. Turns 3 to 5 are real model misses: a new renewal and a new
+claim went to the client's welcome agent. Turn 7, a phishing email asking for a forward, sent nothing because the
+model never called `confirm_action`; the injection suite tests the refusal itself. Details:
+[RESULTS_v2.md](evals/results/RESULTS_v2.md), "Replay against the live run".
 
 ## Other problems fixed in code
 
@@ -270,11 +259,9 @@ held ([RESULTS_v2.md](evals/results/RESULTS_v2.md), "Replay against the live run
 
 The failed bars, why, and the next step are in the bars table. Also open:
 
-- **c2 cuts a purpose line at an abbreviation** (`_first_sentence`, `cards.py`). It reached the fresh set: 14 of its
-  case agents are in St. Catharines, and their cards end at "St." (for example "... a dentist's office in St."). The
-  lifecycle scenario's "Billing problem for Mr. Delgado: ..." would read "Billing problem for Mr.". Found after the
-  runs were frozen; not fixed, because it changes the card bytes the recordings replay. Fix: skip a match ending in
-  Mr., Ms., Mrs., Dr., St., Jr. or Sr., then re-record.
+- **c2 cuts a purpose line at an abbreviation** (`_first_sentence`, `cards.py`): 14 fresh-set agents in St. Catharines
+  have cards ending at "St.". Found after the runs were frozen and left as is, because fixing it changes the card bytes
+  the recordings replay. Fix: skip Mr., Ms., Mrs., Dr., St., Jr., Sr., then re-record.
 - **Every should-create fresh message says "new"**, so hijack is measured only where the user states it.
 - **Not measured:** execution is stubbed, so the evals grade routing, not what an agent then does; the injection suite
   tests the gate, not the model, and the demo never reached the refusal; the sets are synthetic; no run used the
@@ -299,7 +286,7 @@ Python 3.11. Only `make eval-live` needs an API key (`OPENPOKE_LLM_API_KEY` or `
 python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements-dev.txt
 make test           # unit tests and a replay of the baseline cassette
-make demo           # the demo -> evals/results/TRANSCRIPT.md; exit 0 on a complete replay, DEMO_ARGS=--strict for 1 on a miss
+make demo           # the demo -> evals/results/TRANSCRIPT.md
 make lifecycle      # the 30-day simulation -> evals/results/LIFECYCLE.md
 make injection      # the attacks against the send gate -> evals/results/INJECTION.json
 make check-numbers  # every marked number in the docs against its results file
