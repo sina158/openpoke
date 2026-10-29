@@ -4,6 +4,8 @@ This fork changes how OpenPoke's interaction agent chooses an execution agent on
 puts an approval gate in front of outbound email. Everything above "Upstream README" is new; the upstream README is
 kept unchanged below.
 
+The full report, step by step with the statistics: [REPORT.md](REPORT.md).
+
 AI assistance: I built this the way I work, with my own team of AI agents (mostly Claude): parallel builders, a lead agent coordinating them, blind reviewers from other model families, and an assistant that checks my work. When this README says the fresh set's author never saw the failures, or the builders never read it, those are separate agents kept apart on purpose. I set the plan, the bars and the calls on what to cut; the agents wrote most of the code and the first drafts of the docs. The bars were committed before any run, so nobody, human or agent, could move them.
 
 **In one screen** (fresh test set, 500 agents, three trials, minimax-m3, unless a line says otherwise):
