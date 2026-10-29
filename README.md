@@ -4,7 +4,7 @@ This fork changes how OpenPoke's interaction agent chooses an execution agent on
 puts an approval gate in front of outbound email. Everything above "Upstream README" is new; the upstream README is
 kept unchanged below.
 
-<!-- OWNER: AI-assistance line -->
+AI assistance: I built this the way I work, with my own team of AI agents (mostly Claude): parallel builders, a lead agent coordinating them, blind reviewers from other model families, and an assistant that checks my work. When this README says the fresh set's author never saw the failures, or the builders never read it, those are separate agents kept apart on purpose. I set the plan, the bars and the calls on what to cut; the agents wrote most of the code and the first drafts of the docs. The bars were committed before any run, so nobody, human or agent, could move them.
 
 **In one screen** (fresh test set, 500 agents, three trials, minimax-m3, unless a line says otherwise):
 
@@ -272,7 +272,9 @@ A call missing from a cassette fails every replay. `--out-dir` keeps replayed re
 ones, which `make compare` would refuse as duplicates. Settings (`OPENPOKE_*`) are listed in
 [DESIGN.md](DESIGN.md#configuration).
 
-<!-- OWNER: brokerage paragraph, under the heading "What this means for an assistant at a brokerage" -->
+## What this means for an assistant at a brokerage
+
+At a brokerage an agent is a client's matter, so the costly failure isn't a long prompt; it's one client's details landing in another client's thread. That's why agents here have ids instead of names, and why wrong reuse is scored as worse than a duplicate. It isn't solved. On the fresh test set at 500 agents, 11 of 252 reuses still landed on another client's agent and 19 of 312 turns messaged two clients at once; both bars failed, and FAILURES.md shows each case. What does hold: a client's new claim no longer goes to their renewal agent (12 of 48 to 1 of 48), nothing goes out by email until the person types a short code beside a summary the code wrote (0 unauthorised sends in 46 injected emails), and every turn records whether a person, an agent, an email or an automation started it, which is the trail a compliance review would ask for. For a brokerage I'd close the two-client gap in code, not in the prompt: an opt-in client guard, measured on a new held-out set with its bar written first, cut two-client sends from 8 to 0 of 104 and reuse of another client's agent from 5 to 0 of 84. It also refuses some sends a person really asked for, so it ships off until it can match a client the person describes rather than names.
 
 ## License
 
