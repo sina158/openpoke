@@ -38,6 +38,43 @@ AI assistance: I built this the way I work, with my own team of AI agents (mostl
 `make test` and `make demo` need no API key; `make demo` replays the demo offline in under a second
 ([TRANSCRIPT.md](evals/results/TRANSCRIPT.md)).
 
+## Checking it in 15 minutes
+
+No API key and no network. Each expected output below was checked on a fresh clone, on Linux and on Windows.
+
+```bash
+git clone <this repository> openpoke && cd openpoke
+python -m venv .venv && . .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+make test           # 436 passed, 1 skipped, 20 deselected (15 s on Linux, about 5 minutes on Windows)
+make demo           # 6/9 cells - 3 real model misses (turns 3, 4, 5), see TRANSCRIPT.md
+make check-numbers  # "N marked numbers checked, 0 wrong" for README 255, DESIGN 50, ROUND1 82, ROUND1-TABLES 411, REPORT 373
+make injection      # 46 attacks, 0 unauthorised sends, 0 forged turns
+```
+
+The skip is the optional embeddings test (`requirements-embeddings.txt`); the 20 deselected are the full cassette
+replays, minutes long (`pytest -m slow`). Windows has no `make` by default; run the commands it wraps:
+`python -m pytest`, `python -m evals.demo_conversation`, `python -m evals.check_readme_numbers --readme <file>`.
+
+- **Code to read first.** `server/services/execution/registry.py` (an agent is a minted id and a unique slug; archive
+  and revive, never delete), `cards.py` (a card from the agent's own log, no model call), `selector.py` (the shortlist),
+  `server/agents/interaction_agent/tools.py` (routing by id, search, the duplicate check, clarify, the shared-client
+  check and the client guard), `server/services/approvals.py` (a send waits for the user's code). Their tests:
+  `test_send_gate.py`, `test_registry.py`, `test_shared_client_check.py`.
+- **One number by hand.** Fix v2's accuracy, <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.rate -->83.0%<!-- /n -->: the `minimax-m3 | 500 | fix_v2` row of
+  `evals/results/RESULTS_v2.md` reads <!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.k -->274<!-- /n -->/<!-- n:v2:report.by_key.fix_v2_minimax-m3_k8_n500.accuracy.n -->330<!-- /n -->, and `evals/results/RESULTS_v2.json` holds it at
+  `report.by_key.fix_v2_minimax-m3_k8_n500.accuracy`. The comment around each number in this file's source names
+  its key; `make check-numbers` repeats this for every one.
+- **Live, with your own key.** Set `OPENROUTER_API_KEY`, then run 20 fresh-set cases at 50 agents on
+  `openai/gpt-4.1-mini` (the OpenRouter default; `--model vendor/model` for another). Estimated from the recorded
+  token counts: about $0.10 and a minute; `--budget-usd` stops it at $1. `--live` leaves the cassettes alone and
+  `--out-dir` keeps the result file away from the committed ones; run `--arm baseline` the same way to compare.
+  `python -m evals.run_routing --set v2 --arm fix_v2 --sizes 50 --trials 1 --limit 20 --live --budget-usd 1 --out-dir /tmp/live`
+- **Odd but disclosed.** Three demo turns are real model misses, kept. One deepseek baseline case-trial has no
+  recording and is graded wrong (B9 row below). Five commit ids in result file names were cherry-picked under new
+  ids; [REPORT.md section 6](REPORT.md#6-proof-how-to-check-every-number) maps each. `make demo` rewrites the timing
+  line in `TRANSCRIPT.md`, so `git status` shows it changed.
+
 ## The problem
 
 Upstream, every turn shows the interaction agent every execution agent by name (`_render_active_agents`,
