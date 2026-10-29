@@ -69,7 +69,7 @@ headline only if its tuple is wrong, never because of its result.
 First pass by the owner's assistant: each message (and its history) read against the gold and hard-negative
 agents' full records, each gold agent's `client_key` and `discriminators` checked against the tuple, and each case's
 roster at N=500 and N=5,000 searched for another agent sharing every content word with the gold one. 20 of 20 agree,
-0 disputes. The owner's own double-check is pending. Notes, none of which changes a label: (A) one of the two claims
+0 disputes. The owner's own double-check (2026-10-29): 20 of 20 agree, 0 disputes, with one note on v2-ambiguous-003: in practice the claim untouched for 350 days is likely closed; the data marks both claims open, so asking is right. Notes, none of which changes a label: (A) one of the two claims
 is much older, but both are open and the message gives no date; (B) the gold agent and its hard negative share every
 content word, and a synonym in the message decides it (house = home, upcoming term = renewal, loss report = claim),
 which is what the template tests; (C) the message nearly states the answer.

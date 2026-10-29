@@ -80,7 +80,7 @@ agents to find out is guessing. The baseline arm is the upstream routing. Reason
   from the tuple that builds each case, never from a model (`evals/golden/LABELS.md`). The author of the set had not
   seen the failures, results or v2 code, and the builders of v2 never read it. sha256
   `35c914b20baa0409d1ee28db4c56d23b2e4b1feb4facbbadecfc7e3807a3122f` (`routing_v2.sha256`, commit 8090344). A 20-case
-  hand check: 20 of 20 labels agree on a first pass by the owner's assistant; the owner's own check is pending.
+  hand check: 20 of 20 labels agree, on a first pass by the owner's assistant and on the owner's own check.
 - **Evaluators.** `evals/run_routing.py` grades each case into one outcome in code; `evals/compare.py` adds Wilson and
   template-clustered intervals and paired McNemar tests; `evals/run_injection.py`, `run_lifecycle.py` and
   `demo_conversation.py` run the attacks, the month and the demo.
